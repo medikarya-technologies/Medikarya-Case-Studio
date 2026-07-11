@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm neutral surfaces */
+    --background: 60 9% 98%; /* #FAFAF8 */
+    --foreground: 220 13% 13%; /* #1E1F22 */
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 13% 13%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 13%;
+
+    /* Brand accent — deep forest green */
+    --primary: 152 44% 22%; /* #1F5138 */
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary accent — muted teal */
+    --secondary: 174 35% 42%; /* #458F87 */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 45 10% 95%; /* #F3F2EF */
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 36 52% 55%; /* warm terracotta/amber accent */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 55% 38%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 32 95% 44%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 40 8% 90%;
+    --input: 40 8% 90%;
+    --ring: 152 44% 22%;
+
+    --radius: 0.5rem;
+
+    /* Extended palette tokens */
+    --brand: 152 44% 22%;
+    --brand-light: 152 34% 35%;
+    --brand-muted: 152 25% 92%;
+    --surface: 45 14% 97%; /* #F7F6F3 */
+    --sidebar: 220 13% 13%; /* charcoal sidebar */
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-accent: 152 34% 35%;
+    --sidebar-border: 220 10% 20%;
+
+    /* Status colors */
+    --status-draft: 220 9% 46%;
+    --status-submitted: 217 91% 50%;
+    --status-approved: 142 55% 38%;
+    --status-changes: 32 95% 44%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  h1 {
+    @apply text-3xl font-bold tracking-tight text-foreground;
+  }
+  h2 {
+    @apply text-2xl font-semibold tracking-tight text-foreground;
+  }
+  h3 {
+    @apply text-xl font-semibold text-foreground;
+  }
+}
+
+@layer utilities {
+  .page-enter {
+    animation: page-enter 0.2s ease-out;
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
