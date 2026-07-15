@@ -12,6 +12,8 @@ export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
+  /** Use `prefix` only for items with nested child routes that should keep the parent highlighted. */
+  match?: 'exact' | 'prefix';
 }
 
 interface DashboardShellProps {
@@ -20,14 +22,27 @@ interface DashboardShellProps {
   roleLabel: string;
 }
 
+function normalizePath(path: string) {
+  if (path.length > 1 && path.endsWith('/')) return path.slice(0, -1);
+  return path;
+}
+
 export function DashboardShell({ children, navItems, roleLabel }: DashboardShellProps) {
-  const pathname = usePathname();
+  const pathname = normalizePath(usePathname());
   const { user } = useUser();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const isActive = (href: string) =>
-    href === pathname || (href !== '/' && pathname.startsWith(href + '/'));
+  // Default: exact pathname match only. Prefix matching is opt-in via item.match === 'prefix'
+  // so Dashboard (`/dashboard/author`) never lights up on `/dashboard/author/new`.
+  const isActive = (item: NavItem) => {
+    const href = normalizePath(item.href);
+    if (pathname === href) return true;
+    if (item.match === 'prefix' && href !== '/') {
+      return pathname.startsWith(`${href}/`);
+    }
+    return false;
+  };
 
   return (
     <div className="flex h-screen bg-surface">
@@ -68,7 +83,7 @@ export function DashboardShell({ children, navItems, roleLabel }: DashboardShell
           <ul className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const active = isActive(item.href);
+              const active = isActive(item);
 
               return (
                 <li key={item.href}>
