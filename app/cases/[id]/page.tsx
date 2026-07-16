@@ -10,22 +10,25 @@ import { Case } from '@/lib/types';
 import { Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { fetchCaseById } from '@/app/actions/case-actions';
+import { fetchCaseById, fetchCurrentUser } from '@/app/actions/case-actions';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ExportPDFButton } from '@/components/pdf/ExportPDFButton';
+import { CaseComments } from '@/components/case/CaseComments';
+import type { User } from '@/lib/types';
 
 export default function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { isLoaded } = useUser();
   const [caseData, setCaseData] = useState<Case | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchCase = async () => {
       try {
-        const caseData = await fetchCaseById(id);
-        if (caseData) {
-          setCaseData(caseData);
-        }
+        const [caseData, user] = await Promise.all([fetchCaseById(id), fetchCurrentUser()]);
+        if (caseData) setCaseData(caseData);
+        setCurrentUser(user);
       } catch (e) {
         console.error('Error fetching case:', e);
       } finally {
@@ -76,9 +79,16 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
 
   const canEdit = (caseData.status === 'draft' || caseData.status === 'changes_requested');
 
+  const backHref =
+    currentUser?.role === 'admin'
+      ? '/dashboard/admin/cases'
+      : currentUser?.role === 'reviewer'
+        ? '/dashboard/reviewer'
+        : '/dashboard/author/cases';
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <BackButton href="/dashboard/author" />
+      <BackButton href={backHref} />
 
       <Card>
         <CardHeader>
@@ -96,8 +106,11 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 Created: {new Date(caseData.created_at).toLocaleDateString()}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
               <StatusBadge status={caseData.status} />
+              {caseData.status === 'approved' && (
+                <ExportPDFButton caseData={caseData} author={caseData.author} />
+              )}
               {canEdit && (
                 <Link href={`/cases/${id}/edit`}>
                   <Button variant="outline" size="sm">
@@ -318,6 +331,8 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
 
         </CardContent>
       </Card>
+
+      {caseData.status !== 'draft' && <CaseComments caseId={id} />}
     </div>
   );
 }

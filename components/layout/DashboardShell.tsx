@@ -2,18 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, Menu, X, type LucideIcon } from 'lucide-react';
+import { Menu, X, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { UserButton, useUser } from '@clerk/nextjs';
 import { Logo } from '@/components/layout/Logo';
+import { NotificationBell } from '@/components/layout/NotificationBell';
 import { APP_SHORT_NAME, APP_SUBTITLE } from '@/lib/constants';
 
 export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Use `prefix` only for items with nested child routes that should keep the parent highlighted. */
-  match?: 'exact' | 'prefix';
 }
 
 interface DashboardShellProps {
@@ -22,27 +21,22 @@ interface DashboardShellProps {
   roleLabel: string;
 }
 
-function normalizePath(path: string) {
-  if (path.length > 1 && path.endsWith('/')) return path.slice(0, -1);
-  return path;
-}
-
 export function DashboardShell({ children, navItems, roleLabel }: DashboardShellProps) {
-  const pathname = normalizePath(usePathname());
+  const pathname = usePathname();
   const { user } = useUser();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Default: exact pathname match only. Prefix matching is opt-in via item.match === 'prefix'
-  // so Dashboard (`/dashboard/author`) never lights up on `/dashboard/author/new`.
-  const isActive = (item: NavItem) => {
-    const href = normalizePath(item.href);
-    if (pathname === href) return true;
-    if (item.match === 'prefix' && href !== '/') {
-      return pathname.startsWith(`${href}/`);
-    }
-    return false;
-  };
+  // Exact match preferred; for nested paths only the longest (most specific) href wins
+  // so `/dashboard/author` does not stay active on `/dashboard/author/templates`.
+  const activeHref =
+    navItems
+      .filter(
+        (item) =>
+          pathname === item.href ||
+          (item.href !== '/' && pathname.startsWith(`${item.href}/`))
+      )
+      .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
 
   return (
     <div className="flex h-screen bg-surface">
@@ -83,7 +77,7 @@ export function DashboardShell({ children, navItems, roleLabel }: DashboardShell
           <ul className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const active = isActive(item);
+              const active = item.href === activeHref;
 
               return (
                 <li key={item.href}>
@@ -125,12 +119,7 @@ export function DashboardShell({ children, navItems, roleLabel }: DashboardShell
           </button>
           <div className="hidden lg:block" />
           <div className="flex items-center gap-2 sm:gap-4">
-            <button
-              className="p-2 rounded-lg hover:bg-muted transition-colors hidden sm:flex"
-              aria-label="Notifications"
-            >
-              <Bell className="w-5 h-5 text-muted-foreground" />
-            </button>
+            <NotificationBell />
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-semibold text-foreground">
