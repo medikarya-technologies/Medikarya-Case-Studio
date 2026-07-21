@@ -1,17 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Eye, Edit, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/case/StatusBadge';
+import { CaseListFilters, filterCases } from '@/components/case/CaseListFilters';
 import { Case, CaseStatus } from '@/lib/types';
 import { fetchAllCases } from '@/app/actions/case-actions';
 import { useAuth } from '@clerk/nextjs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search } from 'lucide-react';
 
 export default function AdminCasesPage() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -19,7 +18,8 @@ export default function AdminCasesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [specialty, setSpecialty] = useState('all');
+  const [status, setStatus] = useState('all');
 
   const fetchCases = useCallback(async (retryCount = 0) => {
     setIsLoading(true);
@@ -44,12 +44,18 @@ export default function AdminCasesPage() {
     fetchCases();
   }, [isLoaded, isSignedIn, fetchCases]);
 
-  const filteredCases = cases.filter((c) => {
-    const matchesSearch =
-      !search || c.title.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredCases = useMemo(
+    () => filterCases(cases, search, specialty, status),
+    [cases, search, specialty, status]
+  );
+
+  const hasActiveFilters = search.trim() !== '' || specialty !== 'all' || status !== 'all';
+
+  const clearFilters = () => {
+    setSearch('');
+    setSpecialty('all');
+    setStatus('all');
+  };
 
   if (isLoading) {
     return (
@@ -79,28 +85,18 @@ export default function AdminCasesPage() {
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by title…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="flex h-10 rounded-md border border-input bg-card px-3 py-2 text-sm"
-        >
-          <option value="all">All statuses</option>
-          <option value="draft">Draft</option>
-          <option value="submitted">Submitted</option>
-          <option value="approved">Approved</option>
-          <option value="changes_requested">Changes Requested</option>
-        </select>
-      </div>
+      {cases.length > 0 && (
+        <CaseListFilters
+          search={search}
+          onSearchChange={setSearch}
+          specialty={specialty}
+          onSpecialtyChange={setSpecialty}
+          status={status}
+          onStatusChange={setStatus}
+          onClear={clearFilters}
+          hasActiveFilters={hasActiveFilters}
+        />
+      )}
 
       {fetchError && (
         <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg flex items-center justify-between">
@@ -116,7 +112,15 @@ export default function AdminCasesPage() {
           <CardTitle className="text-xl">Cases ({filteredCases.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredCases.length === 0 ? (
+          {filteredCases.length === 0 && hasActiveFilters ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <FileText className="w-12 h-12 mx-auto mb-4 opacity-30" />
+              <p className="mb-4">No cases match your filters</p>
+              <Button variant="outline" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            </div>
+          ) : filteredCases.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-4 opacity-30" />
               <p>No cases found</p>

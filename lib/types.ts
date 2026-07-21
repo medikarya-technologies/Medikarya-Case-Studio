@@ -6,6 +6,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  portfolio_public?: boolean;
   created_at: string;
 }
 
@@ -147,6 +148,7 @@ export interface Case {
   created_at: string;
   updated_at: string;
   approved_at: string | null;
+  assigned_reviewer_id?: string | null;
   author?: User;
 
   // Nested data (stored as JSONB)
@@ -169,6 +171,39 @@ export interface CaseReview {
   comments: string;
   created_at: string;
   reviewer?: User;
+}
+
+export type NotificationType =
+  | 'case_submitted'
+  | 'case_approved'
+  | 'changes_requested'
+  | 'new_comment'
+  | 'reviewer_assigned';
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  message: string;
+  related_case_id: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface CaseComment {
+  id: string;
+  case_id: string;
+  user_id: string;
+  message: string;
+  created_at: string;
+  user?: User;
+}
+
+export interface AnalyticsSummary {
+  bySpecialty: { specialty: string; count: number }[];
+  byStatus: { status: string; count: number }[];
+  avgDaysToApproval: number | null;
+  topAuthors: { author_id: string; name: string; count: number }[];
 }
 
 // --- Keep original types for backward compatibility ---
