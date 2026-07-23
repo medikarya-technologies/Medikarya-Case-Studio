@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +13,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { fetchCaseById, fetchCurrentUser } from '@/app/actions/case-actions';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ExportPDFButton } from '@/components/pdf/ExportPDFButton';
+const ExportPDFButton = dynamic(
+  () => import('@/components/pdf/ExportPDFButton').then((mod) => mod.ExportPDFButton),
+  { ssr: false }
+);
 import { CaseComments } from '@/components/case/CaseComments';
 import type { User } from '@/lib/types';
 
