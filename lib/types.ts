@@ -138,6 +138,19 @@ export interface DiagnosisManagement {
   reference_pdfs?: { filename: string; url: string }[];
 }
 
+export interface CaseAttachment {
+  id: string;
+  case_id: string;
+  investigation_id?: string | null;
+  file_name: string;
+  file_type: 'image' | 'pdf';
+  file_size: number;
+  storage_path: string;
+  public_url: string;
+  uploaded_by?: string | null;
+  created_at: string;
+}
+
 // --- Main Case Interface ---
 export interface Case {
   id: string;
@@ -153,7 +166,7 @@ export interface Case {
   assigned_reviewer_id?: string | null;
   author?: User;
 
-  // Nested data (stored as JSONB)
+  // Nested data (stored as JSONB or joined table)
   patient_details?: PatientDetails;
   chief_complaint_history?: ChiefComplaintHistory;
   medical_history?: MedicalPersonalHistory;
@@ -163,6 +176,7 @@ export interface Case {
   investigations?: Investigation[];
   diagnosis_management?: DiagnosisManagement;
   learning_points?: string[];
+  attachments?: CaseAttachment[];
 }
 
 export interface CaseReview {

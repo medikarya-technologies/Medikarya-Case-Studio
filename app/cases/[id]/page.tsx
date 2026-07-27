@@ -18,6 +18,7 @@ const ExportPDFButton = dynamic(
   { ssr: false }
 );
 import { CaseComments } from '@/components/case/CaseComments';
+import { AttachmentGallery } from '@/components/attachments/AttachmentGallery';
 import type { User } from '@/lib/types';
 
 export default function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -253,43 +254,77 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
           )}
 
           {/* Investigations */}
-          {caseData.investigations && caseData.investigations.length > 0 && (
+          {((caseData.investigations && caseData.investigations.length > 0) || (caseData.attachments && caseData.attachments.length > 0)) && (
             <Card>
               <CardHeader>
-                <CardTitle>Investigations</CardTitle>
+                <CardTitle>Investigations & Reports</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {caseData.investigations.map((inv, i) => (
-                    <Card key={i} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold">{inv.test_name}</p>
-                          <Badge variant="outline">{inv.type}</Badge>
-                        </div>
-                        {inv.date && <p className="text-sm text-gray-500">{new Date(inv.date).toLocaleDateString()}</p>}
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 mt-4">
-                        {inv.result && <div><p className="text-sm text-gray-500">Result</p><p>{inv.result}</p></div>}
-                        {inv.normal_range && <div><p className="text-sm text-gray-500">Normal Range</p><p>{inv.normal_range}</p></div>}
-                      </div>
-                      {inv.interpretation && <div className="mt-4"><p className="text-sm text-gray-500">Interpretation</p><p className="whitespace-pre-wrap">{inv.interpretation}</p></div>}
-                      {inv.image_url && (
-                        <div className="mt-4 border rounded-md overflow-hidden bg-gray-50 p-2 max-w-md mx-auto">
-                          <p className="text-xs text-gray-500 mb-1">Attached Scan / Image</p>
-                          <img
-                            src={inv.image_url}
-                            alt={`${inv.test_name} scan`}
-                            className="max-h-60 w-auto object-contain mx-auto rounded"
-                            onError={(e) => {
-                              (e.target as HTMLElement).style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      )}
-                    </Card>
-                  ))}
-                </div>
+              <CardContent className="space-y-6">
+                {caseData.investigations && caseData.investigations.length > 0 && (
+                  <div className="space-y-4">
+                    {caseData.investigations.map((inv, i) => {
+                      const invAttachments = caseData.attachments?.filter(
+                        (a) => a.investigation_id === inv.id
+                      ) || [];
+                      return (
+                        <Card key={i} className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-semibold">{inv.test_name}</p>
+                              <Badge variant="outline">{inv.type}</Badge>
+                            </div>
+                            {inv.date && <p className="text-sm text-gray-500">{new Date(inv.date).toLocaleDateString()}</p>}
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 mt-4">
+                            {inv.result && <div><p className="text-sm text-gray-500">Result</p><p>{inv.result}</p></div>}
+                            {inv.normal_range && <div><p className="text-sm text-gray-500">Normal Range</p><p>{inv.normal_range}</p></div>}
+                          </div>
+                          {inv.interpretation && <div className="mt-4"><p className="text-sm text-gray-500">Interpretation</p><p className="whitespace-pre-wrap">{inv.interpretation}</p></div>}
+                          {inv.image_url && (
+                            <div className="mt-4 border rounded-md overflow-hidden bg-gray-50 p-2 max-w-md mx-auto">
+                              <p className="text-xs text-gray-500 mb-1">Attached Scan / Image</p>
+                              <img
+                                src={inv.image_url}
+                                alt={`${inv.test_name} scan`}
+                                className="max-h-60 w-auto object-contain mx-auto rounded"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
+                          {invAttachments.length > 0 && (
+                            <div className="mt-4 pt-3 border-t">
+                              <p className="text-xs font-semibold text-gray-500 mb-2">Linked Scans & Files</p>
+                              <AttachmentGallery attachments={invAttachments} canDelete={false} />
+                            </div>
+                          )}
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* All Case Attachments Gallery */}
+                {caseData.attachments && caseData.attachments.length > 0 && (
+                  <div className="pt-4 border-t">
+                    <h4 className="font-semibold text-sm mb-3">All Case Attachments & Reports</h4>
+                    <AttachmentGallery
+                      attachments={caseData.attachments}
+                      canDelete={canEdit && (currentUser?.id === caseData.author_id || currentUser?.role === 'admin')}
+                      onAttachmentDeleted={(deletedId) => {
+                        setCaseData((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                attachments: prev.attachments?.filter((a) => a.id !== deletedId),
+                              }
+                            : prev
+                        );
+                      }}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
