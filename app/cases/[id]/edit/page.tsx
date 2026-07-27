@@ -17,8 +17,11 @@ import { BackButton } from '@/components/ui/BackButton';
 import { useUser } from '@clerk/nextjs';
 import { caseSchema, type CaseFormData } from '@/lib/case-schema';
 import { validateCaseForSubmit } from '@/lib/case-submit-validation';
-import type { Case } from '@/lib/types';
+import type { Case, CaseAttachment } from '@/lib/types';
 import { saveDraftCase, submitCaseAction, fetchCaseById } from '@/app/actions/case-actions';
+import { fetchCaseAttachmentsAction } from '@/app/actions/attachment-actions';
+import { AttachmentUploader } from '@/components/attachments/AttachmentUploader';
+import { AttachmentGallery } from '@/components/attachments/AttachmentGallery';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -429,11 +432,20 @@ export default function EditCasePage() {
   const caseId = params.id as string;
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [caseData, setCaseData] = useState<Case | null>(null);
+  const [attachments, setAttachments] = useState<CaseAttachment[]>([]);
   const [isLoadingCase, setIsLoadingCase] = useState(true);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isNavigatingNext, setIsNavigatingNext] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+
+  const handleAttachmentUploaded = (newAtt: CaseAttachment) => {
+    setAttachments((prev) => [...prev, newAtt]);
+  };
+
+  const handleAttachmentDeleted = (deletedId: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== deletedId));
+  };
 
   const methods = useForm<CaseFormData>({
     resolver: zodResolver(caseSchema),
@@ -467,6 +479,7 @@ export default function EditCasePage() {
 
         if (data) {
           setCaseData(data);
+          setAttachments(data.attachments || []);
           reset({
             title: data.title || '',
             specialty: data.specialty || 'internal_medicine',
@@ -1123,14 +1136,38 @@ export default function EditCasePage() {
             </div>
           )}
 
-          {/* Step5: Investigations */}
+          {/* Step5: Investigations & Attachments */}
           {currentStep === 5 && (
-            <Card>
-              <CardHeader><CardTitle>Investigations</CardTitle></CardHeader>
-              <CardContent>
-                <InvestigationsFieldArray control={control} />
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Investigations Data</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <InvestigationsFieldArray control={control} />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Investigation Attachments & Scans</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <AttachmentUploader
+                    caseId={caseId}
+                    onAttachmentUploaded={handleAttachmentUploaded}
+                  />
+                  <div className="pt-2">
+                    <h4 className="text-sm font-medium mb-3">Uploaded Case Attachments</h4>
+                    <AttachmentGallery
+                      attachments={attachments}
+                      canDelete={true}
+                      onAttachmentDeleted={handleAttachmentDeleted}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Step6: Diagnosis & Management */}

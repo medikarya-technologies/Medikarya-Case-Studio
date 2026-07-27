@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, StyleSheet, Image, Link } from '@react-pdf/renderer';
 import type { Case, User } from '@/lib/types';
+import type { ResolvedImageMap } from '@/app/actions/attachment-actions';
 import { formatSpecialtyLabel } from '@/lib/specialtyIcons';
 
 // ==========================================
@@ -510,63 +511,126 @@ function PrescribedMedicationsTable({ caseData }: { caseData: Case }) {
   );
 }
 
-function InvestigationsTable({ caseData }: { caseData: Case }) {
+function InvestigationsTable({
+  caseData,
+  resolvedImages,
+}: {
+  caseData: Case;
+  resolvedImages?: ResolvedImageMap;
+}) {
   const investigations = caseData.investigations;
-  if (!investigations || investigations.length === 0) return null;
+  const imageAttachments = caseData.attachments?.filter((a) => a.file_type === 'image') || [];
+
+  if ((!investigations || investigations.length === 0) && imageAttachments.length === 0) return null;
+
+  const renderSingleImage = (url: string, label: string) => {
+    if (!url || !url.trim()) return null;
+
+    const trimmedUrl = url.trim();
+    const resolved = resolvedImages?.[trimmedUrl];
+
+    if (resolved && !resolved.success) {
+      return (
+        <View style={styles.imageRowContainer} wrap={false}>
+          <Text style={styles.imageLabel}>{label}:</Text>
+          <Text style={{ fontSize: 8, color: '#94a3b8', fontStyle: 'italic', marginTop: 2 }}>
+            [Image unavailable ({resolved.error || 'Fetch failed'}): {trimmedUrl.length > 50 ? `${trimmedUrl.slice(0, 50)}...` : trimmedUrl}]
+          </Text>
+        </View>
+      );
+    }
+
+    const imageSrc = resolved?.dataUri || trimmedUrl;
+
+    return (
+      <View style={styles.imageRowContainer} wrap={false}>
+        <Text style={styles.imageLabel}>{label}:</Text>
+        <Image src={imageSrc} style={styles.investigationImage} />
+      </View>
+    );
+  };
 
   return (
-    <View style={styles.table}>
-      <View style={styles.tableHeader}>
-        <Text style={[styles.tableCellHeader, { width: '25%' }]}>Test (Type)</Text>
-        <Text style={[styles.tableCellHeader, { width: '12%' }]}>Date</Text>
-        <Text style={[styles.tableCellHeader, { width: '20%' }]}>Result</Text>
-        <Text style={[styles.tableCellHeader, { width: '18%' }]}>Normal Range</Text>
-        <Text style={[styles.tableCellHeader, { width: '25%' }]}>Interpretation</Text>
-      </View>
-      {investigations.map((inv, idx) => (
-        <View key={idx} wrap={false} style={{ borderBottomWidth: idx === investigations.length - 1 ? 0 : 1, borderBottomColor: pdfTheme.colors.borderLight }}>
-          <View style={[styles.tableRow, idx % 2 === 1 && !inv.image_url ? styles.tableRowAlternating : {}, { borderBottomWidth: 0 }]}>
-            <Text style={[styles.tableCell, { width: '25%', fontFamily: pdfTheme.fonts.bodyBold }]}>
-              {inv.test_name} ({inv.type.toUpperCase()})
-            </Text>
-            <Text style={[styles.tableCell, { width: '12%', fontSize: 8 }]}>
-              {inv.date ? new Date(inv.date).toLocaleDateString() : 'N/A'}
-            </Text>
-            <Text style={[styles.tableCell, { width: '20%' }]}>{inv.result || 'N/A'}</Text>
-            <Text style={[styles.tableCell, { width: '18%' }]}>{inv.normal_range || 'N/A'}</Text>
-            <Text style={[styles.tableCell, { width: '25%' }]}>{inv.interpretation || 'N/A'}</Text>
+    <View style={{ width: '100%' }}>
+      {investigations && investigations.length > 0 && (
+        <View style={styles.table}>
+          <View style={styles.tableHeader}>
+            <Text style={[styles.tableCellHeader, { width: '25%' }]}>Test (Type)</Text>
+            <Text style={[styles.tableCellHeader, { width: '12%' }]}>Date</Text>
+            <Text style={[styles.tableCellHeader, { width: '20%' }]}>Result</Text>
+            <Text style={[styles.tableCellHeader, { width: '18%' }]}>Normal Range</Text>
+            <Text style={[styles.tableCellHeader, { width: '25%' }]}>Interpretation</Text>
           </View>
-          {inv.image_url && (
-            <View style={styles.imageRowContainer} wrap={false}>
-              <Text style={styles.imageLabel}>Attached Investigation scan for {inv.test_name}:</Text>
-              <Image src={inv.image_url} style={styles.investigationImage} />
-            </View>
-          )}
+          {investigations.map((inv, idx) => {
+            const invImages = imageAttachments.filter((a) => a.investigation_id === inv.id);
+            const hasAnyImage = Boolean(inv.image_url) || invImages.length > 0;
+            return (
+              <View key={idx} wrap={false} style={{ borderBottomWidth: idx === investigations.length - 1 ? 0 : 1, borderBottomColor: pdfTheme.colors.borderLight }}>
+                <View style={[styles.tableRow, idx % 2 === 1 && !hasAnyImage ? styles.tableRowAlternating : {}, { borderBottomWidth: 0 }]}>
+                  <Text style={[styles.tableCell, { width: '25%', fontFamily: pdfTheme.fonts.bodyBold }]}>
+                    {inv.test_name} ({inv.type.toUpperCase()})
+                  </Text>
+                  <Text style={[styles.tableCell, { width: '12%', fontSize: 8 }]}>
+                    {inv.date ? new Date(inv.date).toLocaleDateString() : 'N/A'}
+                  </Text>
+                  <Text style={[styles.tableCell, { width: '20%' }]}>{inv.result || 'N/A'}</Text>
+                  <Text style={[styles.tableCell, { width: '18%' }]}>{inv.normal_range || 'N/A'}</Text>
+                  <Text style={[styles.tableCell, { width: '25%' }]}>{inv.interpretation || 'N/A'}</Text>
+                </View>
+                {inv.image_url && renderSingleImage(inv.image_url, `Attached scan for ${inv.test_name}`)}
+                {invImages.map((att, imgIdx) =>
+                  renderSingleImage(att.public_url, `Attached scan (${att.file_name})`)
+                )}
+              </View>
+            );
+          })}
         </View>
-      ))}
+      )}
+
+      {/* Unlinked general image attachments */}
+      {imageAttachments
+        .filter((a) => !a.investigation_id || !investigations?.some((i) => i.id === a.investigation_id))
+        .map((att, idx) => (
+          <View key={idx} style={{ marginTop: 6 }}>
+            {renderSingleImage(att.public_url, `Attached Investigation Image — ${att.file_name}`)}
+          </View>
+        ))}
     </View>
   );
 }
 
 function ReferencesSection({ caseData }: { caseData: Case }) {
-  const refs = caseData.diagnosis_management?.reference_pdfs;
-  if (!refs || refs.length === 0) return null;
+  const refs = caseData.diagnosis_management?.reference_pdfs || [];
+  const pdfAttachments = caseData.attachments?.filter((a) => a.file_type === 'pdf') || [];
+
+  if (refs.length === 0 && pdfAttachments.length === 0) return null;
 
   return (
     <View style={styles.sectionContainer} wrap={false}>
-      <Text style={styles.sectionTitle} minPresenceAhead={40}>Attached References</Text>
+      <Text style={styles.sectionTitle} minPresenceAhead={40}>Attached References & PDF Reports</Text>
       <View style={styles.referencesCard}>
         <Text style={styles.referencesNotice}>
-          The following reference documents were uploaded with this case. Full document merging
-          is a planned feature; clickable direct links to the reference documents are provided below:
+          The following reference documents and PDF lab reports were uploaded with this case.
+          Clickable direct links to the reference documents are provided below:
         </Text>
         {refs.map((ref, idx) => (
-          <View key={idx} style={styles.referenceItem}>
+          <View key={`ref-${idx}`} style={styles.referenceItem}>
             <Text style={styles.referenceBullet}>•</Text>
             <Text style={styles.referenceText}>
               <Text style={styles.boldLabel}>{ref.filename || 'Scanned Reference Document'}: </Text>
               <Link src={ref.url} style={styles.referenceLink}>
                 {ref.url}
+              </Link>
+            </Text>
+          </View>
+        ))}
+        {pdfAttachments.map((att, idx) => (
+          <View key={`att-${idx}`} style={styles.referenceItem}>
+            <Text style={styles.referenceBullet}>•</Text>
+            <Text style={styles.referenceText}>
+              <Text style={styles.boldLabel}>{att.file_name} ({Math.round(att.file_size / 1024)} KB): </Text>
+              <Link src={att.public_url} style={styles.referenceLink}>
+                {att.public_url}
               </Link>
             </Text>
           </View>
@@ -592,7 +656,15 @@ function ApprovalSignoff({ caseData }: { caseData: Case }) {
 // MAIN CASE DOCUMENT COMPONENT
 // ==========================================
 
-export function CaseDocument({ caseData, author }: { caseData: Case; author?: User }) {
+export function CaseDocument({
+  caseData,
+  author,
+  resolvedImages,
+}: {
+  caseData: Case;
+  author?: User;
+  resolvedImages?: ResolvedImageMap;
+}) {
   const pd = caseData.patient_details;
   const cc = caseData.chief_complaint_history;
   const mh = caseData.medical_history;
@@ -773,9 +845,9 @@ export function CaseDocument({ caseData, author }: { caseData: Case; author?: Us
         )}
 
         {/* 4. Investigations (Table with inline X-rays/scans) */}
-        {caseData.investigations && caseData.investigations.length > 0 && (
+        {((caseData.investigations && caseData.investigations.length > 0) || (caseData.attachments && caseData.attachments.some(a => a.file_type === 'image'))) && (
           <ClinicalSection title="Investigations">
-            <InvestigationsTable caseData={caseData} />
+            <InvestigationsTable caseData={caseData} resolvedImages={resolvedImages} />
           </ClinicalSection>
         )}
 

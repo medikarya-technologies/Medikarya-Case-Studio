@@ -8,6 +8,8 @@ import { CaseDocument } from '@/components/pdf/CaseDocument';
 import type { Case, User } from '@/lib/types';
 import { toast } from '@/components/ui/toaster';
 
+import { resolvePdfImagesAction, type ResolvedImageMap } from '@/app/actions/attachment-actions';
+
 interface ExportPDFButtonProps {
   caseData: Case;
   author?: User;
@@ -20,7 +22,27 @@ export function ExportPDFButton({ caseData, author, size = 'sm' }: ExportPDFButt
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      const blob = await pdf(<CaseDocument caseData={caseData} author={author} />).toBlob();
+      // Collect all image URLs from investigations and attachments
+      const imageUrls: string[] = [];
+      if (caseData.investigations) {
+        for (const inv of caseData.investigations) {
+          if (inv.image_url) imageUrls.push(inv.image_url);
+        }
+      }
+      if (caseData.attachments) {
+        for (const att of caseData.attachments) {
+          if (att.file_type === 'image' && att.public_url) {
+            imageUrls.push(att.public_url);
+          }
+        }
+      }
+
+      // Resolve images server-side (bypasses browser CORS & prevents PDF crashes)
+      const resolvedImages: ResolvedImageMap = await resolvePdfImagesAction(imageUrls);
+
+      const blob = await pdf(
+        <CaseDocument caseData={caseData} author={author} resolvedImages={resolvedImages} />
+      ).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;

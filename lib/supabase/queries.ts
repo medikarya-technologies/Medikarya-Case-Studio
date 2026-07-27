@@ -1,5 +1,5 @@
 import { createServerSupabaseClient, createServiceClient } from './server';
-import type { Case, CaseReview, User, CaseComment, Notification, AnalyticsSummary, NotificationType } from '@/lib/types';
+import type { Case, CaseReview, User, CaseComment, Notification, AnalyticsSummary, NotificationType, CaseAttachment } from '@/lib/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Helper to log full Supabase error
@@ -129,7 +129,7 @@ export async function getAllCases(
 export async function getCaseById(
   caseId: string,
   supabase?: SupabaseClient
-): Promise<Case & { reviews?: CaseReview[] } | null> {
+): Promise<(Case & { reviews?: CaseReview[] }) | null> {
   const client = supabase || createServiceClient();
   const { data: caseData, error: caseError } = await client
     .from('cases')
@@ -143,20 +143,94 @@ export async function getCaseById(
 
   if (!caseData) return null;
 
-  const { data: reviews, error: reviewsError } = await client
-    .from('case_reviews')
-    .select('*, users(name)')
-    .eq('case_id', caseId)
-    .order('created_at', { ascending: true });
+  const [{ data: reviews, error: reviewsError }, { data: attachments, error: attachmentsError }] =
+    await Promise.all([
+      client
+        .from('case_reviews')
+        .select('*, users(name)')
+        .eq('case_id', caseId)
+        .order('created_at', { ascending: true }),
+      client
+        .from('case_attachments')
+        .select('*')
+        .eq('case_id', caseId)
+        .order('created_at', { ascending: true }),
+    ]);
 
   if (reviewsError) {
     logSupabaseError('getCaseById (fetch reviews)', reviewsError);
   }
 
+  if (attachmentsError) {
+    logSupabaseError('getCaseById (fetch attachments)', attachmentsError);
+  }
+
   return {
     ...caseData,
     reviews: reviews || [],
+    attachments: (attachments as CaseAttachment[]) || [],
   } as any;
+}
+
+// --- Case Attachments ---
+export async function getCaseAttachments(caseId: string): Promise<CaseAttachment[]> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from('case_attachments')
+    .select('*')
+    .eq('case_id', caseId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    logSupabaseError('getCaseAttachments', error);
+    return [];
+  }
+  return (data as CaseAttachment[]) || [];
+}
+
+export async function getAttachmentById(attachmentId: string): Promise<CaseAttachment | null> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from('case_attachments')
+    .select('*')
+    .eq('id', attachmentId)
+    .single();
+
+  if (error) {
+    logSupabaseError('getAttachmentById', error);
+    return null;
+  }
+  return data as CaseAttachment;
+}
+
+export async function createCaseAttachment(
+  attachmentData: Omit<CaseAttachment, 'id' | 'created_at'>
+): Promise<CaseAttachment> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from('case_attachments')
+    .insert([attachmentData])
+    .select('*')
+    .single();
+
+  if (error) {
+    logSupabaseError('createCaseAttachment', error);
+    throw error;
+  }
+  return data as CaseAttachment;
+}
+
+export async function deleteCaseAttachment(attachmentId: string): Promise<void> {
+  const supabase = createServiceClient();
+  const { error } = await supabase
+    .from('case_attachments')
+    .delete()
+    .eq('id', attachmentId);
+
+  if (error) {
+    logSupabaseError('deleteCaseAttachment', error);
+    throw error;
+  }
 }
 
 export async function createCase(
