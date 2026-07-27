@@ -114,6 +114,7 @@ export interface Investigation {
   normal_range?: string;
   date?: string;
   interpretation?: string;
+  image_url?: string;
 }
 
 // --- Diagnosis & Management ---
@@ -134,6 +135,7 @@ export interface DiagnosisManagement {
   follow_up_plan?: string;
   prognosis?: string;
   outcome?: string;
+  reference_pdfs?: { filename: string; url: string }[];
 }
 
 // --- Main Case Interface ---

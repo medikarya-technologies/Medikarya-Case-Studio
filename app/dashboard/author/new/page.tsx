@@ -109,6 +109,7 @@ const DEFAULT_FORM_DATA: CaseFormData = {
     follow_up_plan: '',
     prognosis: '',
     outcome: '',
+    reference_pdfs: [],
   },
   learning_points: [],
 };
@@ -350,6 +351,14 @@ function InvestigationsFieldArray({ control }: { control: any }) {
                 render={({ field: f }) => <Textarea placeholder="Interpretation" {...f} value={f.value || ''} />}
               />
             </div>
+            <div className="col-span-12 space-y-2">
+              <Label>Image URL (X-Ray, scan, or chart URL)</Label>
+              <Controller
+                name={`investigations.${index}.image_url`}
+                control={control}
+                render={({ field: f }) => <Input placeholder="https://example.com/scan.jpg" {...f} value={f.value || ''} />}
+              />
+            </div>
           </div>
         </Card>
       ))}
@@ -357,10 +366,55 @@ function InvestigationsFieldArray({ control }: { control: any }) {
         type="button"
         variant="secondary"
         size="sm"
-        onClick={() => append({ type: 'lab', test_name: '', result: '', normal_range: '', date: '', interpretation: '' })}
+        onClick={() => append({ type: 'lab', test_name: '', result: '', normal_range: '', date: '', interpretation: '', image_url: '' })}
       >
         <Plus className="w-4 h-4 mr-2" />
         Add Investigation
+      </Button>
+    </div>
+  );
+}
+
+function ReferencePdfsFieldArray({ control }: { control: any }) {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'diagnosis_management.reference_pdfs',
+  });
+  return (
+    <div className="space-y-4">
+      {fields.map((field, index) => (
+        <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
+          <div className="col-span-5 space-y-1">
+            <Label>Document Name</Label>
+            <Controller
+              name={`diagnosis_management.reference_pdfs.${index}.filename`}
+              control={control}
+              render={({ field: f }) => <Input placeholder="e.g. Scanned Lab Report.pdf" {...f} value={f.value || ''} />}
+            />
+          </div>
+          <div className="col-span-6 space-y-1">
+            <Label>PDF File URL</Label>
+            <Controller
+              name={`diagnosis_management.reference_pdfs.${index}.url`}
+              control={control}
+              render={({ field: f }) => <Input placeholder="https://example.com/doc.pdf" {...f} value={f.value || ''} />}
+            />
+          </div>
+          <div className="col-span-1">
+            <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={() => append({ filename: '', url: '' })}
+      >
+        <Plus className="w-4 h-4 mr-2" />
+        Add Reference PDF URL
       </Button>
     </div>
   );
@@ -1143,6 +1197,13 @@ export default function NewCasePage() {
                       <p className="text-sm text-destructive">{errors.diagnosis_management.outcome.message}</p>
                     )}
                   </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader><CardTitle>Reference Documents</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-xs text-muted-foreground">Attach external reference documents or prior summary files (URLs to PDFs).</p>
+                  <ReferencePdfsFieldArray control={control} />
                 </CardContent>
               </Card>
               <Card>

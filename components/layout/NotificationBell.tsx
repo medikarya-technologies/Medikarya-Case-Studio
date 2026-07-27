@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Bell, CheckCheck, Loader2 } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import type { Notification } from '@/lib/types';
 import {
@@ -18,8 +19,15 @@ export function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const { isLoaded, isSignedIn } = useUser();
 
   const refresh = useCallback(async () => {
+    if (!isLoaded) return;
+    if (!isSignedIn) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
     try {
       const [items, count] = await Promise.all([
         fetchNotificationsAction(),
@@ -30,7 +38,7 @@ export function NotificationBell() {
     } catch (e) {
       console.error('Failed to load notifications', e);
     }
-  }, []);
+  }, [isLoaded, isSignedIn]);
 
   useEffect(() => {
     refresh();

@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +13,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { fetchCaseById, fetchCurrentUser } from '@/app/actions/case-actions';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ExportPDFButton } from '@/components/pdf/ExportPDFButton';
+const ExportPDFButton = dynamic(
+  () => import('@/components/pdf/ExportPDFButton').then((mod) => mod.ExportPDFButton),
+  { ssr: false }
+);
 import { CaseComments } from '@/components/case/CaseComments';
 import type { User } from '@/lib/types';
 
@@ -108,9 +112,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
               <StatusBadge status={caseData.status} />
-              {caseData.status === 'approved' && (
-                <ExportPDFButton caseData={caseData} author={caseData.author} />
-              )}
+              <ExportPDFButton caseData={caseData} author={caseData.author} />
               {canEdit && (
                 <Link href={`/cases/${id}/edit`}>
                   <Button variant="outline" size="sm">
@@ -272,6 +274,19 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                         {inv.normal_range && <div><p className="text-sm text-gray-500">Normal Range</p><p>{inv.normal_range}</p></div>}
                       </div>
                       {inv.interpretation && <div className="mt-4"><p className="text-sm text-gray-500">Interpretation</p><p className="whitespace-pre-wrap">{inv.interpretation}</p></div>}
+                      {inv.image_url && (
+                        <div className="mt-4 border rounded-md overflow-hidden bg-gray-50 p-2 max-w-md mx-auto">
+                          <p className="text-xs text-gray-500 mb-1">Attached Scan / Image</p>
+                          <img
+                            src={inv.image_url}
+                            alt={`${inv.test_name} scan`}
+                            className="max-h-60 w-auto object-contain mx-auto rounded"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
                     </Card>
                   ))}
                 </div>
@@ -309,6 +324,23 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                   <div>
                     <p className="text-sm text-muted-foreground">Outcome</p>
                     <p className="whitespace-pre-wrap">{caseData.diagnosis_management.outcome}</p>
+                  </div>
+                )}
+                {caseData.diagnosis_management.reference_pdfs && caseData.diagnosis_management.reference_pdfs.length > 0 && (
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-gray-500 font-semibold mb-2">Attached References</p>
+                    <div className="space-y-2">
+                      {caseData.diagnosis_management.reference_pdfs.map((pdf, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                          <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                          </svg>
+                          <a href={pdf.url} target="_blank" rel="noopener noreferrer">
+                            {pdf.filename || 'Scanned Report'}
+                          </a>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </CardContent>

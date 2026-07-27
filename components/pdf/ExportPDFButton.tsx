@@ -17,8 +17,6 @@ interface ExportPDFButtonProps {
 export function ExportPDFButton({ caseData, author, size = 'sm' }: ExportPDFButtonProps) {
   const [isExporting, setIsExporting] = useState(false);
 
-  if (caseData.status !== 'approved') return null;
-
   const handleExport = async () => {
     setIsExporting(true);
     try {

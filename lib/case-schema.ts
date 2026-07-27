@@ -104,6 +104,7 @@ export const caseSchema = z.object({
       normal_range: z.string().optional(),
       date: z.string().optional(),
       interpretation: z.string().optional(),
+      image_url: z.string().url('Must be a valid URL').or(z.literal('')).optional(),
     })
   ),
 
@@ -125,6 +126,12 @@ export const caseSchema = z.object({
     follow_up_plan: z.string().optional(),
     prognosis: z.string().optional(),
     outcome: z.string().optional(),
+    reference_pdfs: z.array(
+      z.object({
+        filename: z.string().min(1, 'Filename is required'),
+        url: z.string().url('Must be a valid URL').or(z.literal('')),
+      })
+    ).optional(),
   }),
   learning_points: z.array(z.string()),
 });
