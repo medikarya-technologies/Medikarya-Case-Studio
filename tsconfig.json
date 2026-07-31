@@ -36,6 +36,7 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
+    "node_modules",
     "Case-Authoring-Platform/node_modules"
   ]
 }

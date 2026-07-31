@@ -6,6 +6,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  portfolio_public?: boolean;
   created_at: string;
 }
 
@@ -113,6 +114,7 @@ export interface Investigation {
   normal_range?: string;
   date?: string;
   interpretation?: string;
+  image_url?: string;
 }
 
 // --- Diagnosis & Management ---
@@ -133,6 +135,20 @@ export interface DiagnosisManagement {
   follow_up_plan?: string;
   prognosis?: string;
   outcome?: string;
+  reference_pdfs?: { filename: string; url: string }[];
+}
+
+export interface CaseAttachment {
+  id: string;
+  case_id: string;
+  investigation_id?: string | null;
+  file_name: string;
+  file_type: 'image' | 'pdf';
+  file_size: number;
+  storage_path: string;
+  public_url: string;
+  uploaded_by?: string | null;
+  created_at: string;
 }
 
 // --- Main Case Interface ---
@@ -147,9 +163,10 @@ export interface Case {
   created_at: string;
   updated_at: string;
   approved_at: string | null;
+  assigned_reviewer_id?: string | null;
   author?: User;
 
-  // Nested data (stored as JSONB)
+  // Nested data (stored as JSONB or joined table)
   patient_details?: PatientDetails;
   chief_complaint_history?: ChiefComplaintHistory;
   medical_history?: MedicalPersonalHistory;
@@ -159,6 +176,7 @@ export interface Case {
   investigations?: Investigation[];
   diagnosis_management?: DiagnosisManagement;
   learning_points?: string[];
+  attachments?: CaseAttachment[];
 }
 
 export interface CaseReview {
@@ -169,6 +187,39 @@ export interface CaseReview {
   comments: string;
   created_at: string;
   reviewer?: User;
+}
+
+export type NotificationType =
+  | 'case_submitted'
+  | 'case_approved'
+  | 'changes_requested'
+  | 'new_comment'
+  | 'reviewer_assigned';
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  message: string;
+  related_case_id: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface CaseComment {
+  id: string;
+  case_id: string;
+  user_id: string;
+  message: string;
+  created_at: string;
+  user?: User;
+}
+
+export interface AnalyticsSummary {
+  bySpecialty: { specialty: string; count: number }[];
+  byStatus: { status: string; count: number }[];
+  avgDaysToApproval: number | null;
+  topAuthors: { author_id: string; name: string; count: number }[];
 }
 
 // --- Keep original types for backward compatibility ---

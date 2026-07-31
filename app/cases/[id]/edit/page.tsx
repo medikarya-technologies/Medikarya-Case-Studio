@@ -17,8 +17,11 @@ import { BackButton } from '@/components/ui/BackButton';
 import { useUser } from '@clerk/nextjs';
 import { caseSchema, type CaseFormData } from '@/lib/case-schema';
 import { validateCaseForSubmit } from '@/lib/case-submit-validation';
-import type { Case } from '@/lib/types';
+import type { Case, CaseAttachment } from '@/lib/types';
 import { saveDraftCase, submitCaseAction, fetchCaseById } from '@/app/actions/case-actions';
+import { fetchCaseAttachmentsAction } from '@/app/actions/attachment-actions';
+import { AttachmentUploader } from '@/components/attachments/AttachmentUploader';
+import { AttachmentGallery } from '@/components/attachments/AttachmentGallery';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -110,6 +113,7 @@ const DEFAULT_FORM_DATA: CaseFormData = {
     follow_up_plan: '',
     prognosis: '',
     outcome: '',
+    reference_pdfs: [],
   },
   learning_points: [],
 };
@@ -351,6 +355,14 @@ function InvestigationsFieldArray({ control }: { control: any }) {
                 render={({ field: f }) => <Textarea placeholder="Interpretation" {...f} value={f.value || ''} />}
               />
             </div>
+            <div className="col-span-12 space-y-2">
+              <Label>Image URL (X-Ray, scan, or chart URL)</Label>
+              <Controller
+                name={`investigations.${index}.image_url`}
+                control={control}
+                render={({ field: f }) => <Input placeholder="https://example.com/scan.jpg" {...f} value={f.value || ''} />}
+              />
+            </div>
           </div>
         </Card>
       ))}
@@ -358,10 +370,55 @@ function InvestigationsFieldArray({ control }: { control: any }) {
         type="button"
         variant="secondary"
         size="sm"
-        onClick={() => append({ type: 'lab', test_name: '', result: '', normal_range: '', date: '', interpretation: '' })}
+        onClick={() => append({ type: 'lab', test_name: '', result: '', normal_range: '', date: '', interpretation: '', image_url: '' })}
       >
         <Plus className="w-4 h-4 mr-2" />
         Add Investigation
+      </Button>
+    </div>
+  );
+}
+
+function ReferencePdfsFieldArray({ control }: { control: any }) {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'diagnosis_management.reference_pdfs',
+  });
+  return (
+    <div className="space-y-4">
+      {fields.map((field, index) => (
+        <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
+          <div className="col-span-5 space-y-1">
+            <Label>Document Name</Label>
+            <Controller
+              name={`diagnosis_management.reference_pdfs.${index}.filename`}
+              control={control}
+              render={({ field: f }) => <Input placeholder="e.g. Scanned Lab Report.pdf" {...f} value={f.value || ''} />}
+            />
+          </div>
+          <div className="col-span-6 space-y-1">
+            <Label>PDF File URL</Label>
+            <Controller
+              name={`diagnosis_management.reference_pdfs.${index}.url`}
+              control={control}
+              render={({ field: f }) => <Input placeholder="https://example.com/doc.pdf" {...f} value={f.value || ''} />}
+            />
+          </div>
+          <div className="col-span-1">
+            <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={() => append({ filename: '', url: '' })}
+      >
+        <Plus className="w-4 h-4 mr-2" />
+        Add Reference PDF URL
       </Button>
     </div>
   );
@@ -375,11 +432,20 @@ export default function EditCasePage() {
   const caseId = params.id as string;
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [caseData, setCaseData] = useState<Case | null>(null);
+  const [attachments, setAttachments] = useState<CaseAttachment[]>([]);
   const [isLoadingCase, setIsLoadingCase] = useState(true);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isNavigatingNext, setIsNavigatingNext] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+
+  const handleAttachmentUploaded = (newAtt: CaseAttachment) => {
+    setAttachments((prev) => [...prev, newAtt]);
+  };
+
+  const handleAttachmentDeleted = (deletedId: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== deletedId));
+  };
 
   const methods = useForm<CaseFormData>({
     resolver: zodResolver(caseSchema),
@@ -413,6 +479,7 @@ export default function EditCasePage() {
 
         if (data) {
           setCaseData(data);
+          setAttachments(data.attachments || []);
           reset({
             title: data.title || '',
             specialty: data.specialty || 'internal_medicine',
@@ -1069,14 +1136,38 @@ export default function EditCasePage() {
             </div>
           )}
 
-          {/* Step5: Investigations */}
+          {/* Step5: Investigations & Attachments */}
           {currentStep === 5 && (
-            <Card>
-              <CardHeader><CardTitle>Investigations</CardTitle></CardHeader>
-              <CardContent>
-                <InvestigationsFieldArray control={control} />
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Investigations Data</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <InvestigationsFieldArray control={control} />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Investigation Attachments & Scans</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <AttachmentUploader
+                    caseId={caseId}
+                    onAttachmentUploaded={handleAttachmentUploaded}
+                  />
+                  <div className="pt-2">
+                    <h4 className="text-sm font-medium mb-3">Uploaded Case Attachments</h4>
+                    <AttachmentGallery
+                      attachments={attachments}
+                      canDelete={true}
+                      onAttachmentDeleted={handleAttachmentDeleted}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Step6: Diagnosis & Management */}
@@ -1162,6 +1253,13 @@ export default function EditCasePage() {
                       <p className="text-sm text-destructive">{errors.diagnosis_management.outcome.message}</p>
                     )}
                   </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader><CardTitle>Reference Documents</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-xs text-muted-foreground">Attach external reference documents or prior summary files (URLs to PDFs).</p>
+                  <ReferencePdfsFieldArray control={control} />
                 </CardContent>
               </Card>
               <Card>
