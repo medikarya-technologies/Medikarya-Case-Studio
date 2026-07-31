@@ -189,6 +189,38 @@ export interface Case {
   custom_fields?: CustomField[];
 }
 
+export interface SectionComment {
+  id?: string;
+  sectionId: string;
+  sectionLabel: string;
+  text: string;
+}
+
+export function parseReviewComments(rawComments: string): SectionComment[] {
+  if (!rawComments || !rawComments.trim()) return [];
+  try {
+    const parsed = JSON.parse(rawComments);
+    if (Array.isArray(parsed)) {
+      return parsed.map((item, idx) => ({
+        id: item.id || `sc_${idx}`,
+        sectionId: item.sectionId || 'general',
+        sectionLabel: item.sectionLabel || 'General Feedback',
+        text: item.text || '',
+      }));
+    }
+  } catch (e) {
+    // Legacy plain text fallback
+  }
+  return [
+    {
+      id: 'sc_legacy',
+      sectionId: 'general',
+      sectionLabel: 'General Feedback',
+      text: rawComments,
+    },
+  ];
+}
+
 export interface CaseReview {
   id: string;
   case_id: string;
