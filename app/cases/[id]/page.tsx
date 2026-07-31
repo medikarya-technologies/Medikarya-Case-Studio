@@ -82,9 +82,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
   }
   if (!caseData) return <div>Case not found</div>;
 
-  const canEdit =
-    (currentUser?.id === caseData.author_id || currentUser?.role === 'admin') &&
-    (caseData.status === 'draft' || caseData.status === 'changes_requested' || currentUser?.role === 'admin');
+  const canEdit = (caseData.status === 'draft' || caseData.status === 'changes_requested');
 
   const backHref =
     currentUser?.role === 'admin'
