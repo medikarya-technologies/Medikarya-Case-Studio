@@ -1,7 +1,31 @@
 import { Document, Page, Text, View, StyleSheet, Image, Link } from '@react-pdf/renderer';
-import type { Case, User } from '@/lib/types';
+import type { Case, User, CustomField } from '@/lib/types';
 import type { ResolvedImageMap } from '@/app/actions/attachment-actions';
 import { formatSpecialtyLabel } from '@/lib/specialtyIcons';
+
+function PDFCustomFields({
+  customFields,
+  sectionId,
+}: {
+  customFields?: CustomField[];
+  sectionId: string;
+}) {
+  const fields = customFields?.filter((cf) => cf.sectionId === sectionId) || [];
+  if (fields.length === 0) return null;
+
+  return (
+    <View style={{ marginTop: 6, paddingTop: 4, borderTopWidth: 0.5, borderTopColor: '#cbd5e1' }} wrap={false}>
+      {fields.map((cf, idx) => (
+        <View key={idx} style={{ marginBottom: 4 }} wrap={false}>
+          <Text style={{ fontFamily: 'Helvetica-Bold', color: '#475569', fontSize: 8.5 }}>
+            {cf.label} [Custom]:{' '}
+          </Text>
+          <Text style={{ fontSize: 9.5, color: '#1e293b' }}>{cf.value || 'N/A'}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
 
 // ==========================================
 // DESIGN SYSTEM & TOKENS (pdfTheme)
@@ -413,6 +437,7 @@ function DemographicsBox({ caseData }: { caseData: Case }) {
           <Text style={styles.gridValue}>{pd.location || 'N/A'}</Text>
         </View>
       </View>
+      <PDFCustomFields customFields={caseData.custom_fields} sectionId="patient_details" />
     </View>
   );
 }
@@ -727,6 +752,7 @@ export function CaseDocument({
                 <Text>{cc.hpi_additional}</Text>
               </View>
             )}
+            <PDFCustomFields customFields={caseData.custom_fields} sectionId="chief_complaint" />
           </ClinicalSection>
         )}
 
@@ -777,6 +803,7 @@ export function CaseDocument({
                 <MedicationsTable caseData={caseData} />
               </View>
             )}
+            <PDFCustomFields customFields={caseData.custom_fields} sectionId="medical_history" />
           </ClinicalSection>
         )}
 
@@ -841,6 +868,7 @@ export function CaseDocument({
                 </View>
               </View>
             )}
+            <PDFCustomFields customFields={caseData.custom_fields} sectionId="examination" />
           </ClinicalSection>
         )}
 
@@ -848,6 +876,7 @@ export function CaseDocument({
         {((caseData.investigations && caseData.investigations.length > 0) || (caseData.attachments && caseData.attachments.some(a => a.file_type === 'image'))) && (
           <ClinicalSection title="Investigations">
             <InvestigationsTable caseData={caseData} resolvedImages={resolvedImages} />
+            <PDFCustomFields customFields={caseData.custom_fields} sectionId="investigations" />
           </ClinicalSection>
         )}
 
@@ -898,6 +927,7 @@ export function CaseDocument({
                 <Text>{dx.outcome}</Text>
               </View>
             )}
+            <PDFCustomFields customFields={caseData.custom_fields} sectionId="diagnosis" />
           </ClinicalSection>
         )}
 

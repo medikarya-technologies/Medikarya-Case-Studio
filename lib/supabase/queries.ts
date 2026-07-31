@@ -165,8 +165,12 @@ export async function getCaseById(
     logSupabaseError('getCaseById (fetch attachments)', attachmentsError);
   }
 
+  const rawCustomFields =
+    caseData.custom_fields || (caseData.diagnosis_management as any)?._custom_fields || [];
+
   return {
     ...caseData,
+    custom_fields: Array.isArray(rawCustomFields) ? rawCustomFields : [],
     reviews: reviews || [],
     attachments: (attachments as CaseAttachment[]) || [],
   } as any;
@@ -241,18 +245,39 @@ export async function createCase(
 
   console.log('createCase: inserting into cases:', { author_id: userId, ...caseData });
 
-  const { data: newCase, error: caseError } = await supabase
+  let insertPayload: any = { author_id: userId, ...caseData };
+
+  let { data: newCase, error: caseError } = await supabase
     .from('cases')
-    .insert([{ author_id: userId, ...caseData }])
+    .insert([insertPayload])
     .select('*')
     .single();
+
+  if (caseError && (caseError.message?.includes('custom_fields') || caseError.details?.includes('custom_fields'))) {
+    console.warn('custom_fields column missing on cases table, falling back to embedded _custom_fields');
+    const { custom_fields, diagnosis_management, ...rest } = caseData as any;
+    insertPayload = {
+      author_id: userId,
+      ...rest,
+      diagnosis_management: {
+        ...(diagnosis_management || {}),
+        _custom_fields: custom_fields || [],
+      },
+    };
+    const res = await supabase.from('cases').insert([insertPayload]).select('*').single();
+    newCase = res.data;
+    caseError = res.error;
+  }
 
   if (caseError) {
     logSupabaseError('createCase', caseError);
     throw caseError;
   }
 
-  return newCase as Case;
+  return {
+    ...newCase,
+    custom_fields: newCase.custom_fields || (newCase.diagnosis_management as any)?._custom_fields || caseData.custom_fields || [],
+  } as Case;
 }
 
 export async function updateCase(
@@ -263,10 +288,26 @@ export async function updateCase(
 
   console.log('updateCase: updating case', caseId, 'with:', caseData);
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from('cases')
     .update({ ...caseData })
     .eq('id', caseId);
+
+  if (error && (error.message?.includes('custom_fields') || error.details?.includes('custom_fields'))) {
+    console.warn('custom_fields column missing on cases table, falling back to embedded _custom_fields');
+    const { custom_fields, diagnosis_management, ...rest } = caseData as any;
+    const updatePayload = {
+      ...rest,
+      ...(diagnosis_management !== undefined && {
+        diagnosis_management: {
+          ...(diagnosis_management || {}),
+          _custom_fields: custom_fields || [],
+        },
+      }),
+    };
+    const res = await supabase.from('cases').update(updatePayload).eq('id', caseId);
+    error = res.error;
+  }
 
   if (error) {
     logSupabaseError('updateCase', error);

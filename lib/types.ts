@@ -151,6 +151,15 @@ export interface CaseAttachment {
   created_at: string;
 }
 
+// --- Per-Case Custom Field ---
+export interface CustomField {
+  id: string;
+  sectionId: string;
+  label: string;
+  type: 'text' | 'textarea';
+  value: string;
+}
+
 // --- Main Case Interface ---
 export interface Case {
   id: string;
@@ -177,6 +186,7 @@ export interface Case {
   diagnosis_management?: DiagnosisManagement;
   learning_points?: string[];
   attachments?: CaseAttachment[];
+  custom_fields?: CustomField[];
 }
 
 export interface CaseReview {

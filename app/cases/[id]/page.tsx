@@ -7,7 +7,7 @@ import { useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/case/StatusBadge';
 import { BackButton } from '@/components/ui/BackButton';
-import { Case } from '@/lib/types';
+import { Case, CustomField } from '@/lib/types';
 import { Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,44 @@ const ExportPDFButton = dynamic(
 import { CaseComments } from '@/components/case/CaseComments';
 import { AttachmentGallery } from '@/components/attachments/AttachmentGallery';
 import type { User } from '@/lib/types';
+
+function SectionCustomFields({
+  customFields,
+  sectionId,
+}: {
+  customFields?: CustomField[];
+  sectionId: string;
+}) {
+  const fields = customFields?.filter((cf) => cf.sectionId === sectionId) || [];
+  if (fields.length === 0) return null;
+
+  return (
+    <div className="pt-4 border-t mt-4 space-y-3">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        Case Custom Fields
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {fields.map((cf) => (
+          <div
+            key={cf.id}
+            className="p-3 border rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-800/40"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-sm font-semibold text-foreground">{cf.label}</p>
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/60 dark:text-amber-300 dark:border-amber-700"
+              >
+                Custom
+              </Badge>
+            </div>
+            <p className="text-sm text-foreground whitespace-pre-wrap">{cf.value || 'N/A'}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -139,6 +177,9 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 {caseData.patient_details.occupation && <div><p className="text-sm text-gray-500">Occupation</p><p>{caseData.patient_details.occupation}</p></div>}
                 {caseData.patient_details.location && <div><p className="text-sm text-gray-500">Location</p><p>{caseData.patient_details.location}</p></div>}
                 {caseData.patient_details.presenting_date && <div><p className="text-sm text-gray-500">Presenting Date</p><p>{new Date(caseData.patient_details.presenting_date).toLocaleDateString()}</p></div>}
+                <div className="col-span-2">
+                  <SectionCustomFields customFields={caseData.custom_fields} sectionId="patient_details" />
+                </div>
               </CardContent>
             </Card>
           )}
@@ -157,6 +198,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 {caseData.chief_complaint_history.hpi_relieving && <div><p className="text-sm text-gray-500">Relieving Factors</p><p>{caseData.chief_complaint_history.hpi_relieving}</p></div>}
                 {caseData.chief_complaint_history.hpi_additional && <div><p className="text-sm text-gray-500">Additional History</p><p className="whitespace-pre-wrap">{caseData.chief_complaint_history.hpi_additional}</p></div>}
                 {caseData.chief_complaint_history.associated_symptoms && <div><p className="text-sm text-gray-500">Associated Symptoms</p><p className="whitespace-pre-wrap">{caseData.chief_complaint_history.associated_symptoms}</p></div>}
+                <SectionCustomFields customFields={caseData.custom_fields} sectionId="chief_complaint" />
               </CardContent>
             </Card>
           )}
@@ -177,6 +219,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
               {caseData.medical_history?.allergies && caseData.medical_history.allergies.length > 0 && (
                 <div><p className="text-sm text-gray-500">Allergies</p><div className="flex flex-wrap gap-2 mt-1">{caseData.medical_history.allergies.map((item, i) => <Badge key={i} variant="outline">{item}</Badge>)}</div></div>
               )}
+              <SectionCustomFields customFields={caseData.custom_fields} sectionId="medical_history" />
             </CardContent>
           </Card>
 
@@ -249,6 +292,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                   {caseData.examination_findings.systemic?.dermatological && <div><p className="text-sm text-gray-500">Dermatological</p><p className="whitespace-pre-wrap">{caseData.examination_findings.systemic.dermatological}</p></div>}
                   {caseData.examination_findings.systemic?.thyroid && <div><p className="text-sm text-gray-500">Thyroid</p><p className="whitespace-pre-wrap">{caseData.examination_findings.systemic.thyroid}</p></div>}
                 </div>
+                <SectionCustomFields customFields={caseData.custom_fields} sectionId="examination" />
               </CardContent>
             </Card>
           )}
@@ -325,6 +369,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                     />
                   </div>
                 )}
+                <SectionCustomFields customFields={caseData.custom_fields} sectionId="investigations" />
               </CardContent>
             </Card>
           )}
@@ -378,6 +423,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                     </div>
                   </div>
                 )}
+                <SectionCustomFields customFields={caseData.custom_fields} sectionId="diagnosis" />
               </CardContent>
             </Card>
           )}

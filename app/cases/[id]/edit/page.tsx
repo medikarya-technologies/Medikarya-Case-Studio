@@ -24,6 +24,7 @@ import { AttachmentUploader } from '@/components/attachments/AttachmentUploader'
 import { AttachmentGallery } from '@/components/attachments/AttachmentGallery';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CustomFieldsSection } from '@/components/case/form/CustomFieldsSection';
 
 // Checkbox group for common PMH
 const COMMON_PMH = [
@@ -116,6 +117,7 @@ const DEFAULT_FORM_DATA: CaseFormData = {
     reference_pdfs: [],
   },
   learning_points: [],
+  custom_fields: [],
 };
 
 // Array fields helper component
@@ -501,6 +503,7 @@ export default function EditCasePage() {
                 '',
             },
             learning_points: data.learning_points || [],
+            custom_fields: data.custom_fields || [],
           });
         }
       } catch (e) {
@@ -857,6 +860,7 @@ export default function EditCasePage() {
                   </div>
                 </CardContent>
               </Card>
+              <CustomFieldsSection sectionId="patient_details" sectionTitle="Patient Details" />
             </div>
           )}
 
@@ -928,6 +932,7 @@ export default function EditCasePage() {
                     render={({ field }) => <Textarea placeholder="Associated symptoms..." {...field} value={field.value || ''} />}
                   />
                 </div>
+                <CustomFieldsSection sectionId="chief_complaint" sectionTitle="Chief Complaint" />
               </CardContent>
             </Card>
           )}
@@ -1057,6 +1062,7 @@ export default function EditCasePage() {
                   ))}
                 </CardContent>
               </Card>
+              <CustomFieldsSection sectionId="medical_history" sectionTitle="Medical History" />
             </div>
           )}
 
@@ -1133,6 +1139,7 @@ export default function EditCasePage() {
                   ))}
                 </CardContent>
               </Card>
+              <CustomFieldsSection sectionId="examination" sectionTitle="Examination" />
             </div>
           )}
 
@@ -1143,8 +1150,9 @@ export default function EditCasePage() {
                 <CardHeader>
                   <CardTitle>Investigations Data</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   <InvestigationsFieldArray control={control} />
+                  <CustomFieldsSection sectionId="investigations" sectionTitle="Investigations" />
                 </CardContent>
               </Card>
 
@@ -1273,6 +1281,7 @@ export default function EditCasePage() {
                   />
                 </CardContent>
               </Card>
+              <CustomFieldsSection sectionId="diagnosis" sectionTitle="Diagnosis & Management" />
             </div>
           )}
 
