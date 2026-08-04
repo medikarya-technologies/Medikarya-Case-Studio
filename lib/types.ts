@@ -174,6 +174,7 @@ export interface Case {
   approved_at: string | null;
   assigned_reviewer_id?: string | null;
   author?: User;
+  reviews?: CaseReview[];
 
   // Nested data (stored as JSONB or joined table)
   patient_details?: PatientDetails;

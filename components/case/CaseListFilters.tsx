@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,7 @@ interface CaseListFiltersProps {
   hasActiveFilters: boolean;
 }
 
-export function CaseListFilters({
+export const CaseListFilters = memo(function CaseListFilters({
   search,
   onSearchChange,
   specialty,
@@ -91,7 +92,7 @@ export function CaseListFilters({
       )}
     </div>
   );
-}
+});
 
 export function filterCases<T extends { title: string; specialty?: string; status: string }>(
   cases: T[],

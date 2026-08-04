@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { Eye, CheckCircle, XCircle, Loader2, FileText, ArrowUpDown, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,92 @@ import { getCaseCompleteness } from '@/lib/case-completeness';
 import { ApproveConfirmModal, RequestChangesModal } from '@/components/case/ReviewerActionDialogs';
 
 type SortOption = 'oldest_first' | 'newest_first' | 'title_asc' | 'completeness_desc';
+
+interface ReviewerCaseCardProps {
+  caseItem: Case;
+  isProcessing: boolean;
+  onApproveClick: (caseItem: Case) => void;
+  onRequestChangesClick: (caseItem: Case) => void;
+}
+
+const ReviewerCaseCard = memo(function ReviewerCaseCard({
+  caseItem,
+  isProcessing,
+  onApproveClick,
+  onRequestChangesClick,
+}: ReviewerCaseCardProps) {
+  const completeness = useMemo(() => getCaseCompleteness(caseItem), [caseItem]);
+  const resubmitCount = useMemo(
+    () => caseItem.reviews?.filter((r) => r.decision === 'changes_requested').length || 0,
+    [caseItem.reviews]
+  );
+  const isSubmitted = caseItem.status === 'submitted';
+
+  return (
+    <Card className="shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-lg font-semibold line-clamp-2 leading-snug">{caseItem.title}</CardTitle>
+          <StatusBadge status={caseItem.status} />
+        </div>
+        <div className="flex flex-wrap gap-1.5 pt-2">
+          <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">
+            {completeness.score}% Complete
+          </Badge>
+          {resubmitCount > 0 && (
+            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700">
+              Resubmitted {resubmitCount}x
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <p className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5" />
+            Submitted: {new Date(caseItem.created_at).toLocaleDateString()}
+          </p>
+          {caseItem.author?.name && (
+            <p>Author: <span className="font-semibold text-foreground">{caseItem.author.name}</span></p>
+          )}
+        </div>
+
+        <div className="flex gap-2 flex-wrap pt-2 border-t">
+          <Link href={`/cases/${caseItem.id}`}>
+            <Button variant="secondary" size="sm">
+              <Eye className="h-4 w-4 mr-1" />
+              View & Review
+            </Button>
+          </Link>
+          {isSubmitted && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-[#16A34A] border-[#16A34A] hover:bg-green-50"
+                onClick={() => onApproveClick(caseItem)}
+                disabled={isProcessing}
+              >
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Approve
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-[#D97706] border-[#D97706] hover:bg-amber-50"
+                onClick={() => onRequestChangesClick(caseItem)}
+                disabled={isProcessing}
+              >
+                <XCircle className="h-4 w-4 mr-1" />
+                Request Changes
+              </Button>
+            </>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
 
 export default function ReviewerDashboard() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -74,12 +160,20 @@ export default function ReviewerDashboard() {
 
   const hasActiveFilters = search.trim() !== '' || specialty !== 'all' || status !== 'all';
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearch('');
     setSpecialty('all');
     setStatus('all');
     setSortBy('oldest_first');
-  };
+  }, []);
+
+  const handleApproveClick = useCallback((caseItem: Case) => {
+    setActiveModal({ type: 'approve', caseItem });
+  }, []);
+
+  const handleRequestChangesClick = useCallback((caseItem: Case) => {
+    setActiveModal({ type: 'request_changes', caseItem });
+  }, []);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -222,76 +316,15 @@ export default function ReviewerDashboard() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedAndFilteredCases.map((caseItem) => {
-            const completeness = getCaseCompleteness(caseItem);
-            const resubmitCount =
-              caseItem.reviews?.filter((r) => r.decision === 'changes_requested').length || 0;
-
-            return (
-              <Card key={caseItem.id} className="shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-lg font-semibold line-clamp-2 leading-snug">{caseItem.title}</CardTitle>
-                    <StatusBadge status={caseItem.status} />
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 pt-2">
-                    <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">
-                      {completeness.score}% Complete
-                    </Badge>
-                    {resubmitCount > 0 && (
-                      <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700">
-                        Resubmitted {resubmitCount}x
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-1 text-xs text-muted-foreground">
-                    <p className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" />
-                      Submitted: {new Date(caseItem.created_at).toLocaleDateString()}
-                    </p>
-                    {caseItem.author?.name && (
-                      <p>Author: <span className="font-semibold text-foreground">{caseItem.author.name}</span></p>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2 flex-wrap pt-2 border-t">
-                    <Link href={`/cases/${caseItem.id}`}>
-                      <Button variant="secondary" size="sm">
-                        <Eye className="h-4 w-4 mr-1" />
-                        View & Review
-                      </Button>
-                    </Link>
-                    {caseItem.status === 'submitted' && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-[#16A34A] border-[#16A34A] hover:bg-green-50"
-                          onClick={() => setActiveModal({ type: 'approve', caseItem })}
-                          disabled={processingCaseId === caseItem.id}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Approve
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-[#D97706] border-[#D97706] hover:bg-amber-50"
-                          onClick={() => setActiveModal({ type: 'request_changes', caseItem })}
-                          disabled={processingCaseId === caseItem.id}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Request Changes
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {sortedAndFilteredCases.map((caseItem) => (
+            <ReviewerCaseCard
+              key={caseItem.id}
+              caseItem={caseItem}
+              isProcessing={processingCaseId === caseItem.id}
+              onApproveClick={handleApproveClick}
+              onRequestChangesClick={handleRequestChangesClick}
+            />
+          ))}
         </div>
       )}
 

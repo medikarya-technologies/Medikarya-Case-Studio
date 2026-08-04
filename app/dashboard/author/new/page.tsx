@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBeforeUnloadWarning, useNavigationGuard } from '@/hooks/use-unsaved-changes';
 import { ArrowLeft, Save, Send, Check, ChevronRight, ChevronLeft, Plus, X, Loader2 } from 'lucide-react';
@@ -21,6 +21,15 @@ import { saveDraftCase, submitCaseAction } from '@/app/actions/case-actions';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CustomFieldsSection } from '@/components/case/form/CustomFieldsSection';
+
+const STEPS = [
+  { number: 1, title: 'Patient & Metadata' },
+  { number: 2, title: 'Chief Complaint' },
+  { number: 3, title: 'Medical History' },
+  { number: 4, title: 'Examination' },
+  { number: 5, title: 'Investigations' },
+  { number: 6, title: 'Diagnosis' },
+];
 
 // Checkbox group for common PMH
 const COMMON_PMH = [
@@ -117,7 +126,7 @@ const DEFAULT_FORM_DATA: CaseFormData = {
 };
 
 // Array fields helper component
-function ArrayInputField({
+const ArrayInputField = memo(function ArrayInputField({
   name,
   label,
   placeholder,
@@ -167,10 +176,10 @@ function ArrayInputField({
       </Button>
     </div>
   );
-}
+});
 
 // Field array components
-function CurrentMedicationsFieldArray({ control }: { control: any }) {
+const CurrentMedicationsFieldArray = memo(function CurrentMedicationsFieldArray({ control }: { control: any }) {
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'current_medications',
@@ -216,9 +225,9 @@ function CurrentMedicationsFieldArray({ control }: { control: any }) {
       </Button>
     </div>
   );
-}
+});
 
-function PrescribedMedicationsFieldArray({ control }: { control: any }) {
+const PrescribedMedicationsFieldArray = memo(function PrescribedMedicationsFieldArray({ control }: { control: any }) {
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'diagnosis_management.medications_prescribed',
@@ -277,9 +286,9 @@ function PrescribedMedicationsFieldArray({ control }: { control: any }) {
       </Button>
     </div>
   );
-}
+});
 
-function InvestigationsFieldArray({ control }: { control: any }) {
+const InvestigationsFieldArray = memo(function InvestigationsFieldArray({ control }: { control: any }) {
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'investigations',
@@ -375,9 +384,9 @@ function InvestigationsFieldArray({ control }: { control: any }) {
       </Button>
     </div>
   );
-}
+});
 
-function ReferencePdfsFieldArray({ control }: { control: any }) {
+const ReferencePdfsFieldArray = memo(function ReferencePdfsFieldArray({ control }: { control: any }) {
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'diagnosis_management.reference_pdfs',
@@ -420,7 +429,7 @@ function ReferencePdfsFieldArray({ control }: { control: any }) {
       </Button>
     </div>
   );
-}
+});
 
 export default function NewCasePage() {
   const router = useRouter();
@@ -461,7 +470,7 @@ export default function NewCasePage() {
   }, [height, weight, setValue]);
 
   // Function to save draft
-  const saveDraft = async (status: 'draft' | 'submitted' = 'draft') => {
+  const saveDraft = useCallback(async (status: 'draft' | 'submitted' = 'draft') => {
     const data = getValues();
 
     if (status === 'draft') {
@@ -493,10 +502,10 @@ export default function NewCasePage() {
         setIsSubmitting(false);
       }
     }
-  };
+  }, [caseId, getValues]);
 
   // Step validation
-  const validateStep = async (step: number) => {
+  const validateStep = useCallback(async (step: number) => {
     let fieldsToValidate: (keyof CaseFormData)[] = [];
     if (step === 1) fieldsToValidate = ['title', 'specialty', 'difficulty', 'tags', 'patient_details'];
     if (step === 2) fieldsToValidate = ['chief_complaint_history'];
@@ -508,26 +517,26 @@ export default function NewCasePage() {
     // Trigger validation on subset of fields
     const result = await methods.trigger(fieldsToValidate as any);
     return result;
-  };
+  }, [methods]);
 
-  const handleNextStep = async () => {
+  const handleNextStep = useCallback(async () => {
     const isValid = await validateStep(currentStep);
     if (isValid) {
       setIsNavigatingNext(true);
       try {
         await saveDraft();
-        setCurrentStep(currentStep + 1);
+        setCurrentStep((prev) => prev + 1);
       } finally {
         setIsNavigatingNext(false);
       }
     }
-  };
+  }, [currentStep, validateStep, saveDraft]);
 
-  const handlePrevStep = () => {
-    setCurrentStep(currentStep - 1);
-  };
+  const handlePrevStep = useCallback(() => {
+    setCurrentStep((prev) => prev - 1);
+  }, []);
 
-  const handleSubmitCase = async () => {
+  const handleSubmitCase = useCallback(async () => {
     const data = getValues();
     const validationErrors = validateCaseForSubmit(data);
 
@@ -546,11 +555,11 @@ export default function NewCasePage() {
     await saveDraft('submitted');
     router.push('/dashboard/author');
     return true;
-  };
+  }, [getValues, setError, saveDraft, router]);
 
-  const onSubmit = async () => {
+  const onSubmit = useCallback(async () => {
     await handleSubmitCase();
-  };
+  }, [handleSubmitCase]);
 
   if (!isLoaded) {
     return (
@@ -570,15 +579,7 @@ export default function NewCasePage() {
     );
   }
 
-  // Render steps
-  const steps = [
-    { number: 1, title: 'Patient & Metadata' },
-    { number: 2, title: 'Chief Complaint' },
-    { number: 3, title: 'Medical History' },
-    { number: 4, title: 'Examination' },
-    { number: 5, title: 'Investigations' },
-    { number: 6, title: 'Diagnosis' },
-  ];
+  const steps = STEPS;
 
   if (isPreviewMode) {
     const data = getValues();

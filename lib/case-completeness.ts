@@ -67,7 +67,7 @@ export function getCaseCompleteness(caseData: Partial<Case> | null | undefined):
   };
 
   // 1. Patient Details
-  const pd = caseData.patient_details || {};
+  const pd: any = caseData.patient_details || {};
   checkField('patient_details', 'Patient Details', 'Patient ID', pd.patient_id);
   checkField('patient_details', 'Patient Details', 'Age', pd.age);
   checkField('patient_details', 'Patient Details', 'Gender', pd.gender);
@@ -75,7 +75,7 @@ export function getCaseCompleteness(caseData: Partial<Case> | null | undefined):
   checkField('patient_details', 'Patient Details', 'Presenting Date', pd.presenting_date);
 
   // 2. Chief Complaint & HPI
-  const cc = caseData.chief_complaint_history || {};
+  const cc: any = caseData.chief_complaint_history || {};
   checkField('chief_complaint', 'Chief Complaint & HPI', 'Chief Complaint', cc.chief_complaint, { isRequired: true, minLength: 3 });
   checkField('chief_complaint', 'Chief Complaint & HPI', 'Duration', cc.hpi_duration);
   checkField('chief_complaint', 'Chief Complaint & HPI', 'Onset', cc.hpi_onset);
@@ -83,7 +83,7 @@ export function getCaseCompleteness(caseData: Partial<Case> | null | undefined):
   checkField('chief_complaint', 'Chief Complaint & HPI', 'Associated Symptoms', cc.associated_symptoms);
 
   // 3. Medical & Personal History
-  const mh = caseData.medical_history || {};
+  const mh: any = caseData.medical_history || {};
   const hasPMH = (mh.past_medical_history && mh.past_medical_history.length > 0) || Boolean(mh.custom_medical_history);
   checkField('medical_history', 'Medical History', 'Past Medical History', hasPMH);
   checkField('medical_history', 'Medical History', 'Family History', mh.family_history);
@@ -91,14 +91,14 @@ export function getCaseCompleteness(caseData: Partial<Case> | null | undefined):
   checkField('medical_history', 'Medical History', 'Current Medications', caseData.current_medications);
 
   // 4. Examination Findings
-  const exam = caseData.examination_findings || {};
+  const exam: any = caseData.examination_findings || {};
   checkField('examination', 'Examination Findings', 'General Appearance', exam.general_appearance, { isRequired: true, minLength: 5 });
   
-  const vitals = exam.vital_signs || {};
+  const vitals: any = exam.vital_signs || {};
   const hasVitals = vitals.bp_systolic != null || vitals.hr != null || vitals.temp != null || vitals.spo2 != null;
   checkField('examination', 'Examination Findings', 'Vital Signs', hasVitals);
 
-  const systemic = exam.systemic || {};
+  const systemic: any = exam.systemic || {};
   const hasSystemic = Object.values(systemic).some((v) => Boolean(v && String(v).trim()));
   checkField('examination', 'Examination Findings', 'Systemic Examination', hasSystemic);
 
@@ -109,7 +109,7 @@ export function getCaseCompleteness(caseData: Partial<Case> | null | undefined):
   checkField('investigations', 'Investigations & Reports', 'Investigations / Lab Tests', hasInvestigations);
 
   // 6. Diagnosis & Management
-  const dx = caseData.diagnosis_management || {};
+  const dx: any = caseData.diagnosis_management || {};
   checkField('diagnosis', 'Diagnosis & Management', 'Final Diagnosis', dx.final_diagnosis, { isRequired: true, minLength: 3 });
   checkField('diagnosis', 'Diagnosis & Management', 'Treatment Plan', dx.treatment_plan, { isRequired: true, minLength: 10 });
   checkField('diagnosis', 'Diagnosis & Management', 'Medications Prescribed', dx.medications_prescribed);

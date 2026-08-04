@@ -1,6 +1,7 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
+import { use, useState, useEffect, memo } from 'react';
+import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
@@ -25,7 +26,7 @@ import { getCaseCompleteness } from '@/lib/case-completeness';
 import { ReviewHistoryTimeline } from '@/components/case/ReviewHistoryTimeline';
 import { ApproveConfirmModal, RequestChangesModal } from '@/components/case/ReviewerActionDialogs';
 
-function SectionCustomFields({
+const SectionCustomFields = memo(function SectionCustomFields({
   customFields,
   sectionId,
 }: {
@@ -61,7 +62,7 @@ function SectionCustomFields({
       </div>
     </div>
   );
-}
+});
 
 export default function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -495,13 +496,13 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                           {inv.image_url && (
                             <div className="mt-4 border rounded-md overflow-hidden bg-gray-50 p-2 max-w-md mx-auto">
                               <p className="text-xs text-gray-500 mb-1">Attached Scan / Image</p>
-                              <img
+                              <Image
                                 src={inv.image_url}
                                 alt={`${inv.test_name} scan`}
+                                width={600}
+                                height={400}
+                                unoptimized
                                 className="max-h-60 w-auto object-contain mx-auto rounded"
-                                onError={(e) => {
-                                  (e.target as HTMLElement).style.display = 'none';
-                                }}
                               />
                             </div>
                           )}

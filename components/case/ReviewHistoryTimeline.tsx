@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { CheckCircle2, AlertCircle, Calendar, User as UserIcon, MessageSquare, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +13,7 @@ interface ReviewHistoryTimelineProps {
   onJumpToSection?: (sectionId: string) => void;
 }
 
-export function ReviewHistoryTimeline({ reviews = [], onJumpToSection }: ReviewHistoryTimelineProps) {
+export const ReviewHistoryTimeline = memo(function ReviewHistoryTimeline({ reviews = [], onJumpToSection }: ReviewHistoryTimelineProps) {
   if (!reviews || reviews.length === 0) {
     return (
       <Card className="border-dashed bg-muted/20">
@@ -146,4 +147,4 @@ export function ReviewHistoryTimeline({ reviews = [], onJumpToSection }: ReviewH
       </CardContent>
     </Card>
   );
-}
+});

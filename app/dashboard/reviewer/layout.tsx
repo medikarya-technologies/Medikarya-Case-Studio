@@ -1,6 +1,6 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { getOrCreateUser } from '@/lib/supabase/queries';
+import { getUserByClerkId, getOrCreateUser } from '@/lib/supabase/queries';
 import ReviewerDashboardClientLayout from './client-layout';
 
 export default async function ReviewerDashboardLayout({
@@ -9,17 +9,23 @@ export default async function ReviewerDashboardLayout({
   children: React.ReactNode;
 }>) {
   const { userId } = await auth();
-  const clerkUser = await currentUser();
   
-  if (!userId || !clerkUser) {
+  if (!userId) {
     redirect('/sign-in');
   }
-  
-  const user = await getOrCreateUser(
-    userId,
-    clerkUser.fullName || clerkUser.username || 'Unknown User',
-    clerkUser.emailAddresses[0]?.emailAddress || ''
-  );
+
+  let user = await getUserByClerkId(userId);
+  if (!user) {
+    const clerkUser = await currentUser();
+    if (!clerkUser) {
+      redirect('/sign-in');
+    }
+    user = await getOrCreateUser(
+      userId,
+      clerkUser.fullName || clerkUser.username || 'Unknown User',
+      clerkUser.emailAddresses[0]?.emailAddress || ''
+    );
+  }
   
   const role = user.role as 'author' | 'reviewer' | 'admin';
   

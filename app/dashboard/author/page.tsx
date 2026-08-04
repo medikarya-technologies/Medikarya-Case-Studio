@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -40,6 +40,80 @@ function getDayOfYear() {
   return day;
 }
 
+interface RecentCaseCardProps {
+  caseItem: Case;
+  isSubmitting: boolean;
+  isDeleting: boolean;
+  onSubmit: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+const RecentCaseCard = memo(function RecentCaseCard({
+  caseItem,
+  isSubmitting,
+  isDeleting,
+  onSubmit,
+  onDelete,
+}: RecentCaseCardProps) {
+  const canEdit = caseItem.status === 'draft' || caseItem.status === 'changes_requested';
+  const isDraft = caseItem.status === 'draft';
+
+  return (
+    <div className="border border-border rounded-lg p-4 flex items-center justify-between hover:bg-muted/30 hover:shadow-sm transition-all">
+      <Link href={`/cases/${caseItem.id}`} className="flex-1">
+        <div>
+          <p className="font-semibold text-foreground">{caseItem.title}</p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className="text-sm text-muted-foreground">
+              {caseItem.specialty?.replace(/_/g, ' ') || 'Unknown Specialty'}
+            </span>
+            <span className="text-xs text-muted-foreground/60">•</span>
+            <span className="text-sm text-muted-foreground">
+              {new Date(caseItem.updated_at).toLocaleDateString()}
+            </span>
+            <div className="flex gap-2 ml-2">
+              <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full capitalize">
+                {caseItem.difficulty}
+              </span>
+              <StatusBadge status={caseItem.status} />
+            </div>
+          </div>
+        </div>
+      </Link>
+      <div className="flex gap-2 ml-4">
+        {canEdit && (
+          <>
+            <Link href={`/cases/${caseItem.id}/edit`}>
+              <Button variant="outline" size="sm">Edit</Button>
+            </Link>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => onSubmit(caseItem.id)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit'}
+            </Button>
+            {isDraft && (
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={() => onDelete(caseItem.id)}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            )}
+          </>
+        )}
+        <Link href={`/cases/${caseItem.id}`}>
+          <Button variant="secondary" size="sm">View</Button>
+        </Link>
+      </div>
+    </div>
+  );
+});
+
 export default function AuthorDashboard() {
   const router = useRouter();
   const { user } = useUser();
@@ -60,12 +134,8 @@ export default function AuthorDashboard() {
       setCases(data || []);
     } catch (e) {
       console.error('Error fetching cases:', e);
-      // Retry with increasing delay in case the auth session wasn't fully
-      // ready on the server yet. This gap is bigger right after a BRAND
-      // NEW sign-up, since Clerk's dev-browser handshake takes longer to
-      // finish for a first-time session than for an existing one.
       if (retryCount < 5) {
-        const delay = 500 * (retryCount + 1); // 500ms, 1000ms, 1500ms, 2000ms, 2500ms
+        const delay = 500 * (retryCount + 1);
         setTimeout(() => fetchCases(retryCount + 1), delay);
         return;
       }
@@ -76,15 +146,12 @@ export default function AuthorDashboard() {
   }, []);
 
   useEffect(() => {
-    // Wait until Clerk has fully loaded the auth state on the client
-    // before calling the server action, to avoid a race condition where
-    // the session cookie isn't ready yet right after sign-in.
     if (!isLoaded) return;
     if (!isSignedIn) return;
     fetchCases();
   }, [isLoaded, isSignedIn, fetchCases]);
 
-  const handleDelete = async (caseId: string) => {
+  const handleDelete = useCallback(async (caseId: string) => {
     if (!confirm('Are you sure you want to delete this case?')) return;
     setIsDeleting(caseId);
     try {
@@ -97,9 +164,9 @@ export default function AuthorDashboard() {
     } finally {
       setIsDeleting(null);
     }
-  };
+  }, [fetchCases]);
 
-  const handleSubmit = async (caseId: string) => {
+  const handleSubmit = useCallback(async (caseId: string) => {
     if (!confirm('Are you sure you want to submit this case for review?')) return;
     setIsSubmitting(caseId);
     try {
@@ -113,18 +180,21 @@ export default function AuthorDashboard() {
     } finally {
       setIsSubmitting(null);
     }
-  };
+  }, [fetchCases]);
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: cases.length,
     published: cases.filter(c => c.status === 'approved').length,
     inReview: cases.filter(c => c.status === 'submitted').length,
     drafts: cases.filter(c => c.status === 'draft' || c.status === 'changes_requested').length
-  };
+  }), [cases]);
 
-  const recentCases = [...cases].sort((a, b) =>
-    new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-  ).slice(0, 5);
+  const recentCases = useMemo(() => 
+    [...cases].sort((a, b) =>
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    ).slice(0, 5),
+    [cases]
+  );
 
   return (
     <div className="space-y-8">
@@ -271,58 +341,14 @@ export default function AuthorDashboard() {
               ) : (
                 <div className="space-y-3">
                   {recentCases.map((caseItem) => (
-                    <div key={caseItem.id} className="border border-border rounded-lg p-4 flex items-center justify-between hover:bg-muted/30 hover:shadow-sm transition-all">
-                      <Link href={`/cases/${caseItem.id}`} className="flex-1">
-                        <div>
-                          <p className="font-semibold text-foreground">{caseItem.title}</p>
-                          <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            <span className="text-sm text-muted-foreground">
-                              {caseItem.specialty?.replace(/_/g, ' ') || 'Unknown Specialty'}
-                            </span>
-                            <span className="text-xs text-muted-foreground/60">•</span>
-                            <span className="text-sm text-muted-foreground">
-                              {new Date(caseItem.updated_at).toLocaleDateString()}
-                            </span>
-                            <div className="flex gap-2 ml-2">
-                              <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full capitalize">
-                                {caseItem.difficulty}
-                              </span>
-                              <StatusBadge status={caseItem.status} />
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
-                      <div className="flex gap-2 ml-4">
-                        {(caseItem.status === 'draft' || caseItem.status === 'changes_requested') && (
-                          <>
-                            <Link href={`/cases/${caseItem.id}/edit`}>
-                              <Button variant="outline" size="sm">Edit</Button>
-                            </Link>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => handleSubmit(caseItem.id)}
-                              disabled={isSubmitting === caseItem.id}
-                            >
-                              {isSubmitting === caseItem.id ? 'Submitting...' : 'Submit'}
-                            </Button>
-                            {caseItem.status === 'draft' && (
-                              <Button 
-                                variant="destructive" 
-                                size="sm" 
-                                onClick={() => handleDelete(caseItem.id)}
-                                disabled={isDeleting === caseItem.id}
-                              >
-                                {isDeleting === caseItem.id ? 'Deleting...' : 'Delete'}
-                              </Button>
-                            )}
-                          </>
-                        )}
-                        <Link href={`/cases/${caseItem.id}`}>
-                          <Button variant="secondary" size="sm">View</Button>
-                        </Link>
-                      </div>
-                    </div>
+                    <RecentCaseCard
+                      key={caseItem.id}
+                      caseItem={caseItem}
+                      isSubmitting={isSubmitting === caseItem.id}
+                      isDeleting={isDeleting === caseItem.id}
+                      onSubmit={handleSubmit}
+                      onDelete={handleDelete}
+                    />
                   ))}
                 </div>
               )}

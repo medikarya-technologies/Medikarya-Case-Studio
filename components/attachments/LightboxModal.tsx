@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { X, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -55,10 +56,13 @@ export function LightboxModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-zinc-950/90 min-h-[300px]">
-          <img
+        <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-zinc-950/90 min-h-[300px] relative">
+          <Image
             src={imageUrl}
             alt={fileName}
+            width={1200}
+            height={800}
+            unoptimized
             className="max-h-[75vh] w-auto max-w-full object-contain rounded shadow-lg"
           />
         </div>

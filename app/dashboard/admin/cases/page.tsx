@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { Eye, Edit, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,40 @@ import { Case, CaseStatus } from '@/lib/types';
 import { fetchAllCases } from '@/app/actions/case-actions';
 import { useAuth } from '@clerk/nextjs';
 import { Skeleton } from '@/components/ui/skeleton';
+
+const AdminCaseRow = memo(function AdminCaseRow({ caseItem }: { caseItem: Case }) {
+  const canEdit = caseItem.status === 'draft' || caseItem.status === 'changes_requested';
+
+  return (
+    <div className="border border-border rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-muted/30 hover:shadow-sm transition-all">
+      <div className="flex-1 min-w-0">
+        <h3 className="font-semibold truncate">{caseItem.title}</h3>
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
+          <StatusBadge status={caseItem.status as CaseStatus} />
+          <span className="text-sm text-muted-foreground">
+            Created {new Date(caseItem.created_at).toLocaleDateString()}
+          </span>
+        </div>
+      </div>
+      <div className="flex gap-2 shrink-0">
+        <Link href={`/cases/${caseItem.id}`}>
+          <Button variant="secondary" size="sm" className="min-h-[36px]">
+            <Eye className="h-4 w-4 mr-1" />
+            View
+          </Button>
+        </Link>
+        {canEdit && (
+          <Link href={`/cases/${caseItem.id}/edit`}>
+            <Button variant="outline" size="sm" className="min-h-[36px]">
+              <Edit className="h-4 w-4 mr-1" />
+              Edit
+            </Button>
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+});
 
 export default function AdminCasesPage() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -51,11 +85,11 @@ export default function AdminCasesPage() {
 
   const hasActiveFilters = search.trim() !== '' || specialty !== 'all' || status !== 'all';
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearch('');
     setSpecialty('all');
     setStatus('all');
-  };
+  }, []);
 
   if (isLoading) {
     return (
@@ -128,37 +162,7 @@ export default function AdminCasesPage() {
           ) : (
             <div className="space-y-2">
               {filteredCases.map((caseItem) => (
-                <div
-                  key={caseItem.id}
-                  className="border border-border rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-muted/30 hover:shadow-sm transition-all"
-                >
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold truncate">{caseItem.title}</h3>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <StatusBadge status={caseItem.status as CaseStatus} />
-                      <span className="text-sm text-muted-foreground">
-                        Created {new Date(caseItem.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <Link href={`/cases/${caseItem.id}`}>
-                      <Button variant="secondary" size="sm" className="min-h-[36px]">
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                    </Link>
-                    {(caseItem.status === 'draft' ||
-                      caseItem.status === 'changes_requested') && (
-                      <Link href={`/cases/${caseItem.id}/edit`}>
-                        <Button variant="outline" size="sm" className="min-h-[36px]">
-                          <Edit className="h-4 w-4 mr-1" />
-                          Edit
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
-                </div>
+                <AdminCaseRow key={caseItem.id} caseItem={caseItem} />
               ))}
             </div>
           )}

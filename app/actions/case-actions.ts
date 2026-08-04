@@ -1,7 +1,9 @@
 'use server';
 
+import { cache } from 'react';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import {
+  getUserByClerkId,
   getOrCreateUser,
   getAuthorCases,
   createCase,
@@ -39,21 +41,29 @@ import type {
 import { validateCaseForSubmit } from '@/lib/case-submit-validation';
 import { caseTemplates } from '@/lib/caseTemplates';
 
-export async function getOrCreateCurrentUser() {
-  const authResult = await auth();
-  const clerkUser = await currentUser();
-  const { userId } = authResult;
+export const getOrCreateCurrentUser = cache(async () => {
+  const { userId } = await auth();
 
-  if (!userId || !clerkUser) {
+  if (!userId) {
     throw new Error('User not authenticated');
   }
 
-  const email = clerkUser.emailAddresses[0]?.emailAddress;
+  const existingUser = await getUserByClerkId(userId);
+  if (existingUser) {
+    return existingUser;
+  }
+
+  const clerkUser = await currentUser();
+  if (!clerkUser) {
+    throw new Error('User not authenticated');
+  }
+
+  const email = clerkUser.emailAddresses[0]?.emailAddress || '';
   const name = clerkUser.fullName || clerkUser.username || 'Unknown User';
 
   const user = await getOrCreateUser(userId, name, email);
   return user;
-}
+});
 
 export async function fetchCurrentUser(): Promise<User> {
   return getOrCreateCurrentUser();
