@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { Eye, Edit, Trash2, Send, Loader2, MessageSquare, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,96 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toaster';
 
+interface AuthorCaseCardProps {
+  caseItem: Case;
+  commentCount: number;
+  isSubmitting: boolean;
+  isDeleting: boolean;
+  onSubmit: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+const AuthorCaseCard = memo(function AuthorCaseCard({
+  caseItem,
+  commentCount,
+  isSubmitting,
+  isDeleting,
+  onSubmit,
+  onDelete,
+}: AuthorCaseCardProps) {
+  const canEdit = caseItem.status === 'draft' || caseItem.status === 'changes_requested';
+  const isDraft = caseItem.status === 'draft';
+
+  return (
+    <Card className="shadow-sm hover:shadow-md hover:border-primary/20 transition-all">
+      <CardHeader>
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-lg line-clamp-1">{caseItem.title}</CardTitle>
+          <div className="flex items-center gap-1 shrink-0">
+            {commentCount > 0 && (
+              <Badge variant="secondary" className="gap-1">
+                <MessageSquare className="h-3 w-3" />
+                {commentCount}
+              </Badge>
+            )}
+            <StatusBadge status={caseItem.status} />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Created: {new Date(caseItem.created_at).toLocaleDateString()}
+        </p>
+        <div className="flex gap-2 flex-wrap">
+          <Link href={`/cases/${caseItem.id}`}>
+            <Button variant="secondary" size="sm">
+              <Eye className="h-4 w-4 mr-1" />
+              View
+            </Button>
+          </Link>
+          {canEdit && (
+            <Link href={`/cases/${caseItem.id}/edit`}>
+              <Button variant="outline" size="sm">
+                <Edit className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
+            </Link>
+          )}
+          {canEdit && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => onSubmit(caseItem.id)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-1" />
+              )}
+              Submit
+            </Button>
+          )}
+          {isDraft && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => onDelete(caseItem.id)}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+
 export default function AllCasesPage() {
   const [cases, setCases] = useState<Case[]>([]);
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
@@ -34,8 +124,10 @@ export default function AllCasesPage() {
       const data = await fetchAuthorCases();
       setCases(data || []);
       if (data?.length) {
-        const counts = await fetchCaseCommentCounts(data.map((c) => c.id));
-        setCommentCounts(counts);
+        // Fetch comment counts concurrently
+        fetchCaseCommentCounts(data.map((c) => c.id))
+          .then((counts) => setCommentCounts(counts))
+          .catch((err) => console.error('Error fetching comment counts:', err));
       }
     } catch (e) {
       console.error('Error fetching cases:', e);
@@ -56,13 +148,13 @@ export default function AllCasesPage() {
 
   const hasActiveFilters = search.trim() !== '' || specialty !== 'all' || status !== 'all';
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearch('');
     setSpecialty('all');
     setStatus('all');
-  };
+  }, []);
 
-  const handleDelete = async (caseId: string) => {
+  const handleDelete = useCallback(async (caseId: string) => {
     if (!confirm('Are you sure you want to delete this case?')) return;
     setIsDeleting(caseId);
     try {
@@ -75,9 +167,9 @@ export default function AllCasesPage() {
     } finally {
       setIsDeleting(null);
     }
-  };
+  }, [fetchCases]);
 
-  const handleSubmit = async (caseId: string) => {
+  const handleSubmit = useCallback(async (caseId: string) => {
     if (!confirm('Are you sure you want to submit this case for review?')) return;
     setIsSubmitting(caseId);
     try {
@@ -91,7 +183,7 @@ export default function AllCasesPage() {
     } finally {
       setIsSubmitting(null);
     }
-  };
+  }, [fetchCases]);
 
   return (
     <div className="space-y-6">
@@ -154,75 +246,15 @@ export default function AllCasesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCases.map((caseItem) => (
-            <Card
+            <AuthorCaseCard
               key={caseItem.id}
-              className="shadow-sm hover:shadow-md hover:border-primary/20 transition-all"
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-lg line-clamp-1">{caseItem.title}</CardTitle>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {(commentCounts[caseItem.id] ?? 0) > 0 && (
-                      <Badge variant="secondary" className="gap-1">
-                        <MessageSquare className="h-3 w-3" />
-                        {commentCounts[caseItem.id]}
-                      </Badge>
-                    )}
-                    <StatusBadge status={caseItem.status} />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Created: {new Date(caseItem.created_at).toLocaleDateString()}
-                </p>
-                <div className="flex gap-2 flex-wrap">
-                  <Link href={`/cases/${caseItem.id}`}>
-                    <Button variant="secondary" size="sm">
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
-                  </Link>
-                  {(caseItem.status === 'draft' || caseItem.status === 'changes_requested') && (
-                    <Link href={`/cases/${caseItem.id}/edit`}>
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
-                    </Link>
-                  )}
-                  {(caseItem.status === 'draft' || caseItem.status === 'changes_requested') && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => handleSubmit(caseItem.id)}
-                      disabled={isSubmitting === caseItem.id}
-                    >
-                      {isSubmitting === caseItem.id ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <Send className="h-4 w-4 mr-1" />
-                      )}
-                      Submit
-                    </Button>
-                  )}
-                  {caseItem.status === 'draft' && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(caseItem.id)}
-                      disabled={isDeleting === caseItem.id}
-                    >
-                      {isDeleting === caseItem.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+              caseItem={caseItem}
+              commentCount={commentCounts[caseItem.id] ?? 0}
+              isSubmitting={isSubmitting === caseItem.id}
+              isDeleting={isDeleting === caseItem.id}
+              onSubmit={handleSubmit}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       )}

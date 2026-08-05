@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { Users as UsersIcon, Loader2, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,50 @@ function roleBadgeClasses(role: string) {
       return 'bg-brand-muted text-primary';
   }
 }
+
+interface AdminUserRowProps {
+  user: User;
+  isUpdating: boolean;
+  onRoleChange: (user: User, newRole: 'author' | 'reviewer' | 'admin') => void;
+}
+
+const AdminUserRow = memo(function AdminUserRow({ user, isUpdating, onRoleChange }: AdminUserRowProps) {
+  return (
+    <tr className="border-b border-border/50 last:border-b-0 hover:bg-muted/30 transition-colors">
+      <td className="py-3 font-medium">{user.name}</td>
+      <td className="py-3 text-sm text-muted-foreground hidden sm:table-cell">
+        {user.email}
+      </td>
+      <td className="py-3">
+        <span
+          className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${roleBadgeClasses(user.role)}`}
+        >
+          {user.role}
+        </span>
+      </td>
+      <td className="py-3">
+        <div className="flex gap-1.5 flex-wrap">
+          {ROLE_OPTIONS.map((option) => (
+            <Button
+              key={option}
+              size="sm"
+              variant={user.role === option ? 'default' : 'outline'}
+              disabled={user.role === option || isUpdating}
+              onClick={() => onRoleChange(user, option)}
+              className="capitalize min-h-[36px]"
+            >
+              {isUpdating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                option
+              )}
+            </Button>
+          ))}
+        </div>
+      </td>
+    </tr>
+  );
+});
 
 export default function AdminUsersPage() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -56,7 +100,7 @@ export default function AdminUsersPage() {
     fetchUsers();
   }, [isLoaded, isSignedIn, fetchUsers]);
 
-  const handleRoleChange = async (targetUser: User, newRole: 'author' | 'reviewer' | 'admin') => {
+  const handleRoleChange = useCallback(async (targetUser: User, newRole: 'author' | 'reviewer' | 'admin') => {
     if (targetUser.role === newRole) return;
     const confirmed = confirm(
       `Are you sure you want to change ${targetUser.name}'s role to "${newRole}"?`
@@ -74,16 +118,18 @@ export default function AdminUsersPage() {
     } finally {
       setUpdatingUserId(null);
     }
-  };
+  }, [fetchUsers]);
 
-  const filteredUsers = users.filter((u) => {
-    const matchesSearch =
-      !search ||
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase());
-    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
+  const filteredUsers = useMemo(() => {
+    return users.filter((u) => {
+      const matchesSearch =
+        !search ||
+        u.name.toLowerCase().includes(search.toLowerCase()) ||
+        u.email.toLowerCase().includes(search.toLowerCase());
+      const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+      return matchesSearch && matchesRole;
+    });
+  }, [users, search, roleFilter]);
 
   if (isLoading) {
     return (
@@ -170,42 +216,12 @@ export default function AdminUsersPage() {
                 </thead>
                 <tbody>
                   {filteredUsers.map((u) => (
-                    <tr
+                    <AdminUserRow
                       key={u.id}
-                      className="border-b border-border/50 last:border-b-0 hover:bg-muted/30 transition-colors"
-                    >
-                      <td className="py-3 font-medium">{u.name}</td>
-                      <td className="py-3 text-sm text-muted-foreground hidden sm:table-cell">
-                        {u.email}
-                      </td>
-                      <td className="py-3">
-                        <span
-                          className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${roleBadgeClasses(u.role)}`}
-                        >
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        <div className="flex gap-1.5 flex-wrap">
-                          {ROLE_OPTIONS.map((option) => (
-                            <Button
-                              key={option}
-                              size="sm"
-                              variant={u.role === option ? 'default' : 'outline'}
-                              disabled={u.role === option || updatingUserId === u.id}
-                              onClick={() => handleRoleChange(u, option)}
-                              className="capitalize min-h-[36px]"
-                            >
-                              {updatingUserId === u.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                option
-                              )}
-                            </Button>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
+                      user={u}
+                      isUpdating={updatingUserId === u.id}
+                      onRoleChange={handleRoleChange}
+                    />
                   ))}
                 </tbody>
               </table>

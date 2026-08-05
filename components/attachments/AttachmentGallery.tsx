@@ -1,14 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { FileText, Image as ImageIcon, Trash2, ExternalLink, Eye, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { LightboxModal } from '@/components/attachments/LightboxModal';
 import type { CaseAttachment } from '@/lib/types';
 import { deleteAttachmentAction } from '@/app/actions/attachment-actions';
 import { toast } from '@/components/ui/toaster';
+
+const LightboxModal = dynamic(
+  () => import('@/components/attachments/LightboxModal').then((mod) => mod.LightboxModal),
+  { ssr: false }
+);
 
 interface AttachmentGalleryProps {
   attachments: CaseAttachment[];
@@ -84,13 +90,13 @@ export function AttachmentGallery({
                   className="relative aspect-square bg-zinc-900/5 cursor-pointer overflow-hidden flex items-center justify-center"
                   onClick={() => setSelectedImage({ url: att.public_url, name: att.file_name })}
                 >
-                  <img
+                  <Image
                     src={att.public_url}
                     alt={att.file_name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
+                    fill
+                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                    unoptimized
+                    className="object-cover group-hover:scale-105 transition-transform duration-200"
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <span className="bg-white/90 text-zinc-900 text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 shadow-sm">

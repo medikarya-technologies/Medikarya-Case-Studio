@@ -1,17 +1,108 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
-import { Eye, CheckCircle, XCircle, Loader2, FileText } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, Loader2, FileText, ArrowUpDown, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/case/StatusBadge';
 import { CaseListFilters, filterCases } from '@/components/case/CaseListFilters';
 import { Case } from '@/lib/types';
 import { fetchAllCases, approveCaseAction, requestChangesAction } from '@/app/actions/case-actions';
 import { useAuth } from '@clerk/nextjs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from '@/components/ui/toaster';
+import { toast } from 'sonner';
+import { getCaseCompleteness } from '@/lib/case-completeness';
+import { ApproveConfirmModal, RequestChangesModal } from '@/components/case/ReviewerActionDialogs';
+
+type SortOption = 'oldest_first' | 'newest_first' | 'title_asc' | 'completeness_desc';
+
+interface ReviewerCaseCardProps {
+  caseItem: Case;
+  isProcessing: boolean;
+  onApproveClick: (caseItem: Case) => void;
+  onRequestChangesClick: (caseItem: Case) => void;
+}
+
+const ReviewerCaseCard = memo(function ReviewerCaseCard({
+  caseItem,
+  isProcessing,
+  onApproveClick,
+  onRequestChangesClick,
+}: ReviewerCaseCardProps) {
+  const completeness = useMemo(() => getCaseCompleteness(caseItem), [caseItem]);
+  const resubmitCount = useMemo(
+    () => caseItem.reviews?.filter((r) => r.decision === 'changes_requested').length || 0,
+    [caseItem.reviews]
+  );
+  const isSubmitted = caseItem.status === 'submitted';
+
+  return (
+    <Card className="shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-lg font-semibold line-clamp-2 leading-snug">{caseItem.title}</CardTitle>
+          <StatusBadge status={caseItem.status} />
+        </div>
+        <div className="flex flex-wrap gap-1.5 pt-2">
+          <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">
+            {completeness.score}% Complete
+          </Badge>
+          {resubmitCount > 0 && (
+            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700">
+              Resubmitted {resubmitCount}x
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <p className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5" />
+            Submitted: {new Date(caseItem.created_at).toLocaleDateString()}
+          </p>
+          {caseItem.author?.name && (
+            <p>Author: <span className="font-semibold text-foreground">{caseItem.author.name}</span></p>
+          )}
+        </div>
+
+        <div className="flex gap-2 flex-wrap pt-2 border-t">
+          <Link href={`/cases/${caseItem.id}`}>
+            <Button variant="secondary" size="sm">
+              <Eye className="h-4 w-4 mr-1" />
+              View & Review
+            </Button>
+          </Link>
+          {isSubmitted && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-[#16A34A] border-[#16A34A] hover:bg-green-50"
+                onClick={() => onApproveClick(caseItem)}
+                disabled={isProcessing}
+              >
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Approve
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-[#D97706] border-[#D97706] hover:bg-amber-50"
+                onClick={() => onRequestChangesClick(caseItem)}
+                disabled={isProcessing}
+              >
+                <XCircle className="h-4 w-4 mr-1" />
+                Request Changes
+              </Button>
+            </>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
 
 export default function ReviewerDashboard() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -22,6 +113,12 @@ export default function ReviewerDashboard() {
   const [search, setSearch] = useState('');
   const [specialty, setSpecialty] = useState('all');
   const [status, setStatus] = useState('all');
+  const [sortBy, setSortBy] = useState<SortOption>('oldest_first');
+
+  const [activeModal, setActiveModal] = useState<{
+    type: 'approve' | 'request_changes';
+    caseItem: Case;
+  } | null>(null);
 
   const fetchCases = useCallback(async (retryCount = 0) => {
     setIsLoading(true);
@@ -41,34 +138,57 @@ export default function ReviewerDashboard() {
     }
   }, []);
 
-  const filteredCases = useMemo(
-    () => filterCases(cases, search, specialty, status),
-    [cases, search, specialty, status]
-  );
+  const sortedAndFilteredCases = useMemo(() => {
+    let list = filterCases(cases, search, specialty, status);
+
+    return list.sort((a, b) => {
+      if (sortBy === 'oldest_first') {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+      if (sortBy === 'newest_first') {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      if (sortBy === 'title_asc') {
+        return a.title.localeCompare(b.title);
+      }
+      if (sortBy === 'completeness_desc') {
+        return getCaseCompleteness(b).score - getCaseCompleteness(a).score;
+      }
+      return 0;
+    });
+  }, [cases, search, specialty, status, sortBy]);
 
   const hasActiveFilters = search.trim() !== '' || specialty !== 'all' || status !== 'all';
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearch('');
     setSpecialty('all');
     setStatus('all');
-  };
+    setSortBy('oldest_first');
+  }, []);
+
+  const handleApproveClick = useCallback((caseItem: Case) => {
+    setActiveModal({ type: 'approve', caseItem });
+  }, []);
+
+  const handleRequestChangesClick = useCallback((caseItem: Case) => {
+    setActiveModal({ type: 'request_changes', caseItem });
+  }, []);
 
   useEffect(() => {
-    // Wait until Clerk has fully loaded the auth state on the client
-    // before calling the server action, to avoid a race condition where
-    // the session cookie isn't ready yet right after sign-in.
     if (!isLoaded) return;
     if (!isSignedIn) return;
     fetchCases();
   }, [isLoaded, isSignedIn, fetchCases]);
 
-  const handleApprove = async (caseId: string) => {
-    if (!confirm('Are you sure you want to approve this case?')) return;
+  const handleApproveConfirm = async () => {
+    if (!activeModal) return;
+    const caseId = activeModal.caseItem.id;
     setProcessingCaseId(caseId);
     try {
       await approveCaseAction(caseId);
       toast.success('Case approved successfully');
+      setActiveModal(null);
       await fetchCases();
     } catch (e) {
       console.error('Error approving case:', e);
@@ -78,13 +198,14 @@ export default function ReviewerDashboard() {
     }
   };
 
-  const handleRequestChanges = async (caseId: string) => {
-    const comment = prompt('Enter your comment for the author (required):');
-    if (!comment) return;
+  const handleRequestChangesConfirm = async (commentsJsonString: string) => {
+    if (!activeModal) return;
+    const caseId = activeModal.caseItem.id;
     setProcessingCaseId(caseId);
     try {
-      await requestChangesAction(caseId, comment);
+      await requestChangesAction(caseId, commentsJsonString);
       toast.success('Changes requested successfully');
+      setActiveModal(null);
       await fetchCases();
     } catch (e) {
       console.error('Error requesting changes:', e);
@@ -133,16 +254,38 @@ export default function ReviewerDashboard() {
       </div>
 
       {cases.length > 0 && (
-        <CaseListFilters
-          search={search}
-          onSearchChange={setSearch}
-          specialty={specialty}
-          onSpecialtyChange={setSpecialty}
-          status={status}
-          onStatusChange={setStatus}
-          onClear={clearFilters}
-          hasActiveFilters={hasActiveFilters}
-        />
+        <div className="space-y-4">
+          <CaseListFilters
+            search={search}
+            onSearchChange={setSearch}
+            specialty={specialty}
+            onSpecialtyChange={setSpecialty}
+            status={status}
+            onStatusChange={setStatus}
+            onClear={clearFilters}
+            hasActiveFilters={hasActiveFilters}
+          />
+
+          {/* Reviewer Priority & Sort Controls */}
+          <div className="flex flex-wrap items-center justify-between gap-4 p-3 rounded-xl bg-card border shadow-2xs">
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+              <ArrowUpDown className="w-4 h-4 text-primary" />
+              <span>Prioritize Queue:</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-2xs focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring font-medium"
+              >
+                <option value="oldest_first">Oldest Waiting First (Priority)</option>
+                <option value="newest_first">Newest First</option>
+                <option value="completeness_desc">Most Complete First</option>
+                <option value="title_asc">Title A-Z</option>
+              </select>
+            </div>
+          </div>
+        </div>
       )}
 
       {fetchError && (
@@ -154,7 +297,7 @@ export default function ReviewerDashboard() {
         </div>
       )}
 
-      {filteredCases.length === 0 && hasActiveFilters ? (
+      {sortedAndFilteredCases.length === 0 && hasActiveFilters ? (
         <Card className="text-center py-12 shadow-sm">
           <CardContent>
             <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground/40" />
@@ -164,7 +307,7 @@ export default function ReviewerDashboard() {
             </Button>
           </CardContent>
         </Card>
-      ) : filteredCases.length === 0 ? (
+      ) : sortedAndFilteredCases.length === 0 ? (
         <Card className="text-center py-12 shadow-sm">
           <CardContent>
             <Eye className="w-12 h-12 mx-auto mb-4 text-muted-foreground/40" />
@@ -173,62 +316,37 @@ export default function ReviewerDashboard() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCases.map((caseItem) => (
-            <Card key={caseItem.id} className="shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg font-semibold line-clamp-1">{caseItem.title}</CardTitle>
-                  <StatusBadge status={caseItem.status} />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-gray-500">
-                  Submitted: {new Date(caseItem.created_at).toLocaleDateString()}
-                </p>
-                <div className="flex gap-2 flex-wrap">
-                  <Link href={`/cases/${caseItem.id}`}>
-                    <Button variant="secondary" size="sm">
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
-                  </Link>
-                  {caseItem.status === 'submitted' && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-[#16A34A] border-[#16A34A] hover:bg-green-50"
-                        onClick={() => handleApprove(caseItem.id)}
-                        disabled={processingCaseId === caseItem.id}
-                      >
-                        {processingCaseId === caseItem.id ? (
-                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        ) : (
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                        )}
-                        Approve
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-[#D97706] border-[#D97706] hover:bg-amber-50"
-                        onClick={() => handleRequestChanges(caseItem.id)}
-                        disabled={processingCaseId === caseItem.id}
-                      >
-                        {processingCaseId === caseItem.id ? (
-                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        ) : (
-                          <XCircle className="h-4 w-4 mr-1" />
-                        )}
-                        Request Changes
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          {sortedAndFilteredCases.map((caseItem) => (
+            <ReviewerCaseCard
+              key={caseItem.id}
+              caseItem={caseItem}
+              isProcessing={processingCaseId === caseItem.id}
+              onApproveClick={handleApproveClick}
+              onRequestChangesClick={handleRequestChangesClick}
+            />
           ))}
         </div>
+      )}
+
+      {/* In-App Action Modals */}
+      {activeModal?.type === 'approve' && (
+        <ApproveConfirmModal
+          isOpen={true}
+          onClose={() => setActiveModal(null)}
+          onConfirm={handleApproveConfirm}
+          caseTitle={activeModal.caseItem.title}
+          isSubmitting={processingCaseId === activeModal.caseItem.id}
+        />
+      )}
+
+      {activeModal?.type === 'request_changes' && (
+        <RequestChangesModal
+          isOpen={true}
+          onClose={() => setActiveModal(null)}
+          onConfirm={handleRequestChangesConfirm}
+          caseTitle={activeModal.caseItem.title}
+          isSubmitting={processingCaseId === activeModal.caseItem.id}
+        />
       )}
     </div>
   );

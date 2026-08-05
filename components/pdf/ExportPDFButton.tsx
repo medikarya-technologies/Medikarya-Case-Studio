@@ -1,13 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { pdf } from '@react-pdf/renderer';
+import React, { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { CaseDocument } from '@/components/pdf/CaseDocument';
 import type { Case, User } from '@/lib/types';
 import { toast } from '@/components/ui/toaster';
-
 import { resolvePdfImagesAction, type ResolvedImageMap } from '@/app/actions/attachment-actions';
 
 interface ExportPDFButtonProps {
@@ -37,11 +34,17 @@ export function ExportPDFButton({ caseData, author, size = 'sm' }: ExportPDFButt
         }
       }
 
+      // Dynamically import heavy PDF renderer and document component on demand
+      const [{ pdf }, { CaseDocument }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('@/components/pdf/CaseDocument'),
+      ]);
+
       // Resolve images server-side (bypasses browser CORS & prevents PDF crashes)
       const resolvedImages: ResolvedImageMap = await resolvePdfImagesAction(imageUrls);
 
       const blob = await pdf(
-        <CaseDocument caseData={caseData} author={author} resolvedImages={resolvedImages} />
+        React.createElement(CaseDocument, { caseData, author, resolvedImages }) as any
       ).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');

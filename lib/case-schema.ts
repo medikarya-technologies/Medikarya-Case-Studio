@@ -134,6 +134,15 @@ export const caseSchema = z.object({
     ).optional(),
   }),
   learning_points: z.array(z.string()),
+  custom_fields: z.array(
+    z.object({
+      id: z.string(),
+      sectionId: z.string(),
+      label: z.string().min(1, 'Field name is required'),
+      type: z.enum(['text', 'textarea']),
+      value: z.string(),
+    })
+  ).optional(),
 });
 
 export type CaseFormData = z.infer<typeof caseSchema>;

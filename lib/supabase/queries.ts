@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createServerSupabaseClient, createServiceClient } from './server';
 import type { Case, CaseReview, User, CaseComment, Notification, AnalyticsSummary, NotificationType, CaseAttachment } from '@/lib/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -8,42 +9,7 @@ function logSupabaseError(operation: string, error: unknown) {
 }
 
 // --- User Operations ---
-export async function getOrCreateUser(
-  clerkId: string,
-  name: string,
-  email: string,
-  role: string = 'author'
-): Promise<User> {
-  const supabase = createServiceClient();
-
-  let { data: user, error: fetchError } = await supabase
-    .from('users')
-    .select('*')
-    .eq('clerk_id', clerkId)
-    .single();
-
-  if (fetchError) {
-    logSupabaseError('getOrCreateUser (fetch user)', fetchError);
-  }
-
-  if (!user) {
-    const { data: newUser, error } = await supabase
-      .from('users')
-      .insert([{ clerk_id: clerkId, name, email, role }])
-      .select('*')
-      .single();
-
-    if (error) {
-      logSupabaseError('getOrCreateUser (insert user)', error);
-      throw error;
-    }
-    return newUser as User;
-  }
-
-  return user as User;
-}
-
-export async function getUserByClerkId(clerkId: string): Promise<User | null> {
+export const getUserByClerkId = cache(async (clerkId: string): Promise<User | null> => {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from('users')
@@ -56,7 +22,32 @@ export async function getUserByClerkId(clerkId: string): Promise<User | null> {
   }
 
   return data as User | null;
-}
+});
+
+export const getOrCreateUser = cache(async (
+  clerkId: string,
+  name: string,
+  email: string,
+  role: string = 'author'
+): Promise<User> => {
+  const existingUser = await getUserByClerkId(clerkId);
+  if (existingUser) {
+    return existingUser;
+  }
+
+  const supabase = createServiceClient();
+  const { data: newUser, error } = await supabase
+    .from('users')
+    .insert([{ clerk_id: clerkId, name, email, role }])
+    .select('*')
+    .single();
+
+  if (error) {
+    logSupabaseError('getOrCreateUser (insert user)', error);
+    throw error;
+  }
+  return newUser as User;
+});
 
 // Get all users in the system (for admin user management)
 export async function getAllUsers(): Promise<User[]> {
@@ -99,7 +90,7 @@ export async function getAuthorCases(
   const client = supabase || createServiceClient();
   const { data, error } = await client
     .from('cases')
-    .select('*')
+    .select('*, author:users!author_id(id, name, email), reviews:case_reviews(*)')
     .eq('author_id', userId)
     .order('updated_at', { ascending: false });
 
@@ -110,13 +101,14 @@ export async function getAuthorCases(
   return (data as Case[]) || [];
 }
 
+// PostgREST join select for cases with author and reviews
 export async function getAllCases(
   supabase?: SupabaseClient
 ): Promise<Case[]> {
   const client = supabase || createServiceClient();
   const { data, error } = await client
     .from('cases')
-    .select('*')
+    .select('*, author:users!author_id(id, name, email), reviews:case_reviews(*)')
     .order('updated_at', { ascending: false });
 
   if (error) {
@@ -165,8 +157,12 @@ export async function getCaseById(
     logSupabaseError('getCaseById (fetch attachments)', attachmentsError);
   }
 
+  const rawCustomFields =
+    caseData.custom_fields || (caseData.diagnosis_management as any)?._custom_fields || [];
+
   return {
     ...caseData,
+    custom_fields: Array.isArray(rawCustomFields) ? rawCustomFields : [],
     reviews: reviews || [],
     attachments: (attachments as CaseAttachment[]) || [],
   } as any;
@@ -241,18 +237,39 @@ export async function createCase(
 
   console.log('createCase: inserting into cases:', { author_id: userId, ...caseData });
 
-  const { data: newCase, error: caseError } = await supabase
+  let insertPayload: any = { author_id: userId, ...caseData };
+
+  let { data: newCase, error: caseError } = await supabase
     .from('cases')
-    .insert([{ author_id: userId, ...caseData }])
+    .insert([insertPayload])
     .select('*')
     .single();
+
+  if (caseError && (caseError.message?.includes('custom_fields') || caseError.details?.includes('custom_fields'))) {
+    console.warn('custom_fields column missing on cases table, falling back to embedded _custom_fields');
+    const { custom_fields, diagnosis_management, ...rest } = caseData as any;
+    insertPayload = {
+      author_id: userId,
+      ...rest,
+      diagnosis_management: {
+        ...(diagnosis_management || {}),
+        _custom_fields: custom_fields || [],
+      },
+    };
+    const res = await supabase.from('cases').insert([insertPayload]).select('*').single();
+    newCase = res.data;
+    caseError = res.error;
+  }
 
   if (caseError) {
     logSupabaseError('createCase', caseError);
     throw caseError;
   }
 
-  return newCase as Case;
+  return {
+    ...newCase,
+    custom_fields: newCase.custom_fields || (newCase.diagnosis_management as any)?._custom_fields || caseData.custom_fields || [],
+  } as Case;
 }
 
 export async function updateCase(
@@ -263,10 +280,26 @@ export async function updateCase(
 
   console.log('updateCase: updating case', caseId, 'with:', caseData);
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from('cases')
     .update({ ...caseData })
     .eq('id', caseId);
+
+  if (error && (error.message?.includes('custom_fields') || error.details?.includes('custom_fields'))) {
+    console.warn('custom_fields column missing on cases table, falling back to embedded _custom_fields');
+    const { custom_fields, diagnosis_management, ...rest } = caseData as any;
+    const updatePayload = {
+      ...rest,
+      ...(diagnosis_management !== undefined && {
+        diagnosis_management: {
+          ...(diagnosis_management || {}),
+          _custom_fields: custom_fields || [],
+        },
+      }),
+    };
+    const res = await supabase.from('cases').update(updatePayload).eq('id', caseId);
+    error = res.error;
+  }
 
   if (error) {
     logSupabaseError('updateCase', error);

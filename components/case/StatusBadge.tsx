@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CaseStatus } from '@/lib/types';
 import { STATUS_LABELS } from '@/lib/constants';
@@ -13,10 +14,10 @@ const statusStyles: Record<CaseStatus, string> = {
   changes_requested: 'bg-status-changes hover:bg-status-changes/90',
 };
 
-export function StatusBadge({ status }: StatusBadgeProps) {
+export const StatusBadge = memo(function StatusBadge({ status }: StatusBadgeProps) {
   return (
     <Badge className={`${statusStyles[status]} text-white`}>
       {STATUS_LABELS[status]}
     </Badge>
   );
-}
+});
