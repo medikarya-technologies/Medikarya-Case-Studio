@@ -32,8 +32,8 @@ export function CustomFieldsSection({ sectionId, sectionTitle }: CustomFieldsSec
 
   // Get current fields matching sectionId
   const sectionCustomFields = fields
-    .map((field, index) => ({ field, index }))
-    .filter(({ field }) => (field as unknown as CustomField).sectionId === sectionId);
+    .map((field: any, index: number) => ({ field, index }))
+    .filter(({ field }: any) => (field as unknown as CustomField).sectionId === sectionId);
 
   const handleConfirmAdd = () => {
     const trimmedLabel = newLabel.trim();
@@ -77,7 +77,7 @@ export function CustomFieldsSection({ sectionId, sectionTitle }: CustomFieldsSec
             </span>
           </div>
 
-          {sectionCustomFields.map(({ field, index }) => {
+          {sectionCustomFields.map(({ field, index }: any) => {
             const customField = field as unknown as CustomField;
             return (
               <div
@@ -111,7 +111,7 @@ export function CustomFieldsSection({ sectionId, sectionTitle }: CustomFieldsSec
                 <Controller
                   name={`custom_fields.${index}.value`}
                   control={control}
-                  render={({ field: inputField }) =>
+                  render={({ field: inputField }: any) =>
                     customField.type === 'textarea' ? (
                       <Textarea
                         placeholder={`Enter ${customField.label.toLowerCase()}...`}

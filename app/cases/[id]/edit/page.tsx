@@ -17,6 +17,7 @@ import { BackButton } from '@/components/ui/BackButton';
 import { useUser } from '@clerk/nextjs';
 import { caseSchema, type CaseFormData } from '@/lib/case-schema';
 import { validateCaseForSubmit } from '@/lib/case-submit-validation';
+import { validateStepAndNotify } from '@/lib/step-validation';
 import type { Case, CaseAttachment } from '@/lib/types';
 import { saveDraftCase, submitCaseAction, fetchCaseById } from '@/app/actions/case-actions';
 import { fetchCaseAttachmentsAction } from '@/app/actions/attachment-actions';
@@ -141,12 +142,12 @@ function ArrayInputField({
     <div className="space-y-2">
       <Label>{label}</Label>
       <div className="space-y-2">
-        {fields.map((field, index) => (
+        {fields.map((field: any, index: number) => (
           <div key={field.id} className="flex gap-2 items-center">
             <Controller
               name={`${name}.${index}`}
               control={control}
-              render={({ field: controllerField }) => (
+              render={({ field: controllerField }: any) => (
                 <Input
                   placeholder={placeholder}
                   {...controllerField}
@@ -181,14 +182,14 @@ function CurrentMedicationsFieldArray({ control }: { control: any }) {
   });
   return (
     <div className="space-y-4">
-      {fields.map((field, index) => (
+      {fields.map((field: any, index: number) => (
         <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
           <div className="col-span-4 space-y-1">
             <Label>Medication</Label>
             <Controller
               name={`current_medications.${index}.name`}
               control={control}
-              render={({ field: f }) => <Input placeholder="Name" {...f} value={f.value || ''} />}
+              render={({ field: f }: any) => <Input placeholder="Name" {...f} value={f.value || ''} />}
             />
           </div>
           <div className="col-span-3 space-y-1">
@@ -196,7 +197,7 @@ function CurrentMedicationsFieldArray({ control }: { control: any }) {
             <Controller
               name={`current_medications.${index}.dose`}
               control={control}
-              render={({ field: f }) => <Input placeholder="Dose" {...f} value={f.value || ''} />}
+              render={({ field: f }: any) => <Input placeholder="Dose" {...f} value={f.value || ''} />}
             />
           </div>
           <div className="col-span-4 space-y-1">
@@ -204,7 +205,7 @@ function CurrentMedicationsFieldArray({ control }: { control: any }) {
             <Controller
               name={`current_medications.${index}.frequency`}
               control={control}
-              render={({ field: f }) => <Input placeholder="Frequency" {...f} value={f.value || ''} />}
+              render={({ field: f }: any) => <Input placeholder="Frequency" {...f} value={f.value || ''} />}
             />
           </div>
           <div className="col-span-1">
@@ -229,14 +230,14 @@ function PrescribedMedicationsFieldArray({ control }: { control: any }) {
   });
   return (
     <div className="space-y-4">
-      {fields.map((field, index) => (
+      {fields.map((field: any, index: number) => (
         <div key={field.id} className="grid grid-cols-16 gap-2 items-end">
           <div className="col-span-4 space-y-1">
             <Label>Drug</Label>
             <Controller
               name={`diagnosis_management.medications_prescribed.${index}.drug`}
               control={control}
-              render={({ field: f }) => <Input placeholder="Drug" {...f} value={f.value || ''} />}
+              render={({ field: f }: any) => <Input placeholder="Drug" {...f} value={f.value || ''} />}
             />
           </div>
           <div className="col-span-3 space-y-1">
@@ -244,7 +245,7 @@ function PrescribedMedicationsFieldArray({ control }: { control: any }) {
             <Controller
               name={`diagnosis_management.medications_prescribed.${index}.dose`}
               control={control}
-              render={({ field: f }) => <Input placeholder="Dose" {...f} value={f.value || ''} />}
+              render={({ field: f }: any) => <Input placeholder="Dose" {...f} value={f.value || ''} />}
             />
           </div>
           <div className="col-span-4 space-y-1">
@@ -252,7 +253,7 @@ function PrescribedMedicationsFieldArray({ control }: { control: any }) {
             <Controller
               name={`diagnosis_management.medications_prescribed.${index}.frequency`}
               control={control}
-              render={({ field: f }) => <Input placeholder="Frequency" {...f} value={f.value || ''} />}
+              render={({ field: f }: any) => <Input placeholder="Frequency" {...f} value={f.value || ''} />}
             />
           </div>
           <div className="col-span-4 space-y-1">
@@ -260,7 +261,7 @@ function PrescribedMedicationsFieldArray({ control }: { control: any }) {
             <Controller
               name={`diagnosis_management.medications_prescribed.${index}.duration`}
               control={control}
-              render={({ field: f }) => <Input placeholder="Duration" {...f} value={f.value || ''} />}
+              render={({ field: f }: any) => <Input placeholder="Duration" {...f} value={f.value || ''} />}
             />
           </div>
           <div className="col-span-1">
@@ -290,7 +291,7 @@ function InvestigationsFieldArray({ control }: { control: any }) {
   });
   return (
     <div className="space-y-6">
-      {fields.map((field, index) => (
+      {fields.map((field: any, index: number) => (
         <Card key={field.id} className="p-4">
           <div className="flex items-center justify-between mb-4">
             <h4 className="font-medium">Investigation {index + 1}</h4>
@@ -304,7 +305,7 @@ function InvestigationsFieldArray({ control }: { control: any }) {
               <Controller
                 name={`investigations.${index}.type`}
                 control={control}
-                render={({ field: f }) => (
+                render={({ field: f }: any) => (
                   <select
                     {...f}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
@@ -322,7 +323,7 @@ function InvestigationsFieldArray({ control }: { control: any }) {
               <Controller
                 name={`investigations.${index}.test_name`}
                 control={control}
-                render={({ field: f }) => <Input placeholder="Test name" {...f} value={f.value || ''} />}
+                render={({ field: f }: any) => <Input placeholder="Test name" {...f} value={f.value || ''} />}
               />
             </div>
             <div className="col-span-2 space-y-2">
@@ -330,7 +331,7 @@ function InvestigationsFieldArray({ control }: { control: any }) {
               <Controller
                 name={`investigations.${index}.date`}
                 control={control}
-                render={({ field: f }) => <Input type="date" {...f} value={f.value || ''} />}
+                render={({ field: f }: any) => <Input type="date" {...f} value={f.value || ''} />}
               />
             </div>
             <div className="col-span-3 space-y-2">
@@ -338,7 +339,7 @@ function InvestigationsFieldArray({ control }: { control: any }) {
               <Controller
                 name={`investigations.${index}.result`}
                 control={control}
-                render={({ field: f }) => <Input placeholder="Result" {...f} value={f.value || ''} />}
+                render={({ field: f }: any) => <Input placeholder="Result" {...f} value={f.value || ''} />}
               />
             </div>
             <div className="col-span-4 space-y-2">
@@ -346,7 +347,7 @@ function InvestigationsFieldArray({ control }: { control: any }) {
               <Controller
                 name={`investigations.${index}.normal_range`}
                 control={control}
-                render={({ field: f }) => <Input placeholder="Normal range" {...f} value={f.value || ''} />}
+                render={({ field: f }: any) => <Input placeholder="Normal range" {...f} value={f.value || ''} />}
               />
             </div>
             <div className="col-span-8 space-y-2">
@@ -354,7 +355,7 @@ function InvestigationsFieldArray({ control }: { control: any }) {
               <Controller
                 name={`investigations.${index}.interpretation`}
                 control={control}
-                render={({ field: f }) => <Textarea placeholder="Interpretation" {...f} value={f.value || ''} />}
+                render={({ field: f }: any) => <Textarea placeholder="Interpretation" {...f} value={f.value || ''} />}
               />
             </div>
             <div className="col-span-12 space-y-2">
@@ -362,7 +363,7 @@ function InvestigationsFieldArray({ control }: { control: any }) {
               <Controller
                 name={`investigations.${index}.image_url`}
                 control={control}
-                render={({ field: f }) => <Input placeholder="https://example.com/scan.jpg" {...f} value={f.value || ''} />}
+                render={({ field: f }: any) => <Input placeholder="https://example.com/scan.jpg" {...f} value={f.value || ''} />}
               />
             </div>
           </div>
@@ -388,14 +389,14 @@ function ReferencePdfsFieldArray({ control }: { control: any }) {
   });
   return (
     <div className="space-y-4">
-      {fields.map((field, index) => (
+      {fields.map((field: any, index: number) => (
         <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
           <div className="col-span-5 space-y-1">
             <Label>Document Name</Label>
             <Controller
               name={`diagnosis_management.reference_pdfs.${index}.filename`}
               control={control}
-              render={({ field: f }) => <Input placeholder="e.g. Scanned Lab Report.pdf" {...f} value={f.value || ''} />}
+              render={({ field: f }: any) => <Input placeholder="e.g. Scanned Lab Report.pdf" {...f} value={f.value || ''} />}
             />
           </div>
           <div className="col-span-6 space-y-1">
@@ -403,7 +404,7 @@ function ReferencePdfsFieldArray({ control }: { control: any }) {
             <Controller
               name={`diagnosis_management.reference_pdfs.${index}.url`}
               control={control}
-              render={({ field: f }) => <Input placeholder="https://example.com/doc.pdf" {...f} value={f.value || ''} />}
+              render={({ field: f }: any) => <Input placeholder="https://example.com/doc.pdf" {...f} value={f.value || ''} />}
             />
           </div>
           <div className="col-span-1">
@@ -567,22 +568,8 @@ export default function EditCasePage() {
   };
 
   // Step validation
-  const validateStep = async (step: number) => {
-    let fieldsToValidate: (keyof CaseFormData)[] = [];
-    if (step === 1) fieldsToValidate = ['title', 'specialty', 'difficulty', 'tags', 'patient_details'];
-    if (step === 2) fieldsToValidate = ['chief_complaint_history'];
-    if (step === 3) fieldsToValidate = ['medical_history', 'current_medications', 'review_of_systems'];
-    if (step === 4) fieldsToValidate = ['examination_findings'];
-    if (step === 5) fieldsToValidate = ['investigations'];
-    if (step === 6) fieldsToValidate = ['diagnosis_management', 'learning_points'];
-
-    // Trigger validation on subset of fields
-    const result = await methods.trigger(fieldsToValidate as any);
-    return result;
-  };
-
   const handleNextStep = async () => {
-    const isValid = await validateStep(currentStep);
+    const isValid = await validateStepAndNotify(currentStep, methods);
     if (isValid) {
       setIsNavigatingNext(true);
       try {
@@ -592,6 +579,22 @@ export default function EditCasePage() {
         setIsNavigatingNext(false);
       }
     }
+  };
+
+  const handleStepClick = async (targetStep: number) => {
+    if (targetStep === currentStep) return;
+    if (targetStep < currentStep) {
+      setCurrentStep(targetStep);
+      return;
+    }
+    for (let s = currentStep; s < targetStep; s++) {
+      const isValid = await validateStepAndNotify(s, methods);
+      if (!isValid) {
+        setCurrentStep(s);
+        return;
+      }
+    }
+    setCurrentStep(targetStep);
   };
 
   const handlePrevStep = () => {
@@ -653,7 +656,7 @@ export default function EditCasePage() {
           </div>
           {data.tags.length > 0 && (
             <div className="flex gap-2">
-              {data.tags.map((tag, i) => (
+              {data.tags.map((tag: any, i: number) => (
                 <Badge key={i} variant="outline">{tag}</Badge>
               ))}
             </div>
@@ -698,18 +701,22 @@ export default function EditCasePage() {
         <div className="flex items-center justify-between overflow-x-auto pb-2">
           {steps.map((step, i) => (
             <div key={step.number} className="flex items-center min-w-0">
-              <div className="flex flex-col items-center">
-                <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 text-xs sm:text-sm font-semibold shrink-0 ${
+              <button
+                type="button"
+                onClick={() => handleStepClick(step.number)}
+                className="flex flex-col items-center focus:outline-none group cursor-pointer"
+              >
+                <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 text-xs sm:text-sm font-semibold shrink-0 transition-colors ${
                   step.number < currentStep
-                    ? 'bg-primary border-primary text-primary-foreground'
+                    ? 'bg-primary border-primary text-primary-foreground group-hover:bg-primary/90'
                     : step.number === currentStep
                     ? 'border-primary text-primary'
-                    : 'border-muted-foreground text-muted-foreground'
+                    : 'border-muted-foreground text-muted-foreground group-hover:border-primary/50'
                 }`}>
                   {step.number < currentStep ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : step.number}
                 </div>
                 <span className="mt-2 text-xs font-medium text-center w-16 sm:w-20 hidden sm:block">{step.title}</span>
-              </div>
+              </button>
               {i < steps.length - 1 && (
                 <div className={`flex-1 h-1 mx-1 sm:mx-2 min-w-[12px] ${
                   step.number < currentStep ? 'bg-primary' : 'bg-muted-foreground/30'
@@ -727,22 +734,23 @@ export default function EditCasePage() {
                 <CardHeader><CardTitle>Case Metadata</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="title">Title *</Label>
+                    <Label htmlFor="title">Title <span className="text-destructive">*</span></Label>
                     <Controller
                       name="title"
                       control={control}
-                      render={({ field }) => <Input id="title" placeholder="Case title..." {...field} />}
+                      render={({ field }: any) => <Input id="title" placeholder="Case title..." {...field} />}
                     />
                     {errors.title && <p className="text-sm text-destructive">{errors.title.message}</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Specialty</Label>
+                      <Label htmlFor="specialty">Specialty <span className="text-destructive">*</span></Label>
                       <Controller
                         name="specialty"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }: any) => (
                           <select
+                            id="specialty"
                             {...field}
                             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                           >
@@ -760,13 +768,14 @@ export default function EditCasePage() {
                           </select>
                         )}
                       />
+                      {errors.specialty && <p className="text-sm text-destructive">{errors.specialty.message}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label>Difficulty</Label>
                       <Controller
                         name="difficulty"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }: any) => (
                           <select
                             {...field}
                             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
@@ -795,7 +804,7 @@ export default function EditCasePage() {
                     <Controller
                       name="patient_details.patient_id"
                       control={control}
-                      render={({ field }) => <Input placeholder="Patient ID" {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Input placeholder="Patient ID" {...field} value={field.value || ''} />}
                     />
                   </div>
                   <div className="space-y-2">
@@ -803,7 +812,7 @@ export default function EditCasePage() {
                     <Controller
                       name="patient_details.age"
                       control={control}
-                      render={({ field }) => (
+                      render={({ field }: any) => (
                         <Input
                           type="number"
                           placeholder="Age"
@@ -821,7 +830,7 @@ export default function EditCasePage() {
                     <Controller
                       name="patient_details.gender"
                       control={control}
-                      render={({ field }) => (
+                      render={({ field }: any) => (
                         <select
                           {...field}
                           className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
@@ -839,7 +848,7 @@ export default function EditCasePage() {
                     <Controller
                       name="patient_details.presenting_date"
                       control={control}
-                      render={({ field }) => <Input type="date" {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Input type="date" {...field} value={field.value || ''} />}
                     />
                   </div>
                   <div className="space-y-2 col-span-2">
@@ -847,7 +856,7 @@ export default function EditCasePage() {
                     <Controller
                       name="patient_details.occupation"
                       control={control}
-                      render={({ field }) => <Input placeholder="Occupation" {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Input placeholder="Occupation" {...field} value={field.value || ''} />}
                     />
                   </div>
                   <div className="space-y-2 col-span-2">
@@ -855,7 +864,7 @@ export default function EditCasePage() {
                     <Controller
                       name="patient_details.location"
                       control={control}
-                      render={({ field }) => <Input placeholder="Location" {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Input placeholder="Location" {...field} value={field.value || ''} />}
                     />
                   </div>
                 </CardContent>
@@ -870,11 +879,11 @@ export default function EditCasePage() {
               <CardHeader><CardTitle>Chief Complaint & History of Present Illness</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="chief_complaint">Chief Complaint *</Label>
+                  <Label htmlFor="chief_complaint">Chief Complaint <span className="text-destructive">*</span></Label>
                   <Controller
                     name="chief_complaint_history.chief_complaint"
                     control={control}
-                    render={({ field }) => <Input id="chief_complaint" placeholder="Chief complaint..." {...field} />}
+                    render={({ field }: any) => <Input id="chief_complaint" placeholder="Chief complaint..." {...field} />}
                   />
                   {errors.chief_complaint_history?.chief_complaint && (
                     <p className="text-sm text-destructive">{errors.chief_complaint_history.chief_complaint.message}</p>
@@ -886,7 +895,7 @@ export default function EditCasePage() {
                     <Controller
                       name="chief_complaint_history.hpi_duration"
                       control={control}
-                      render={({ field }) => <Input placeholder="e.g. 3 days" {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Input placeholder="e.g. 3 days" {...field} value={field.value || ''} />}
                     />
                   </div>
                   <div className="space-y-2">
@@ -894,7 +903,7 @@ export default function EditCasePage() {
                     <Controller
                       name="chief_complaint_history.hpi_onset"
                       control={control}
-                      render={({ field }) => <Input placeholder="e.g. sudden" {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Input placeholder="e.g. sudden" {...field} value={field.value || ''} />}
                     />
                   </div>
                 </div>
@@ -904,7 +913,7 @@ export default function EditCasePage() {
                     <Controller
                       name="chief_complaint_history.hpi_aggravating"
                       control={control}
-                      render={({ field }) => <Textarea placeholder="Aggravating factors..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Textarea placeholder="Aggravating factors..." {...field} value={field.value || ''} />}
                     />
                   </div>
                   <div className="space-y-2">
@@ -912,24 +921,28 @@ export default function EditCasePage() {
                     <Controller
                       name="chief_complaint_history.hpi_relieving"
                       control={control}
-                      render={({ field }) => <Textarea placeholder="Relieving factors..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Textarea placeholder="Relieving factors..." {...field} value={field.value || ''} />}
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Additional History</Label>
+                  <Label htmlFor="hpi_additional">History of Present Illness <span className="text-destructive">*</span></Label>
+                  <p className="text-xs text-muted-foreground">Required for submission — describe the history of present illness</p>
                   <Controller
                     name="chief_complaint_history.hpi_additional"
                     control={control}
-                    render={({ field }) => <Textarea placeholder="Additional history..." rows={4} {...field} value={field.value || ''} />}
+                    render={({ field }: any) => <Textarea id="hpi_additional" placeholder="Additional history..." rows={4} {...field} value={field.value || ''} />}
                   />
+                  {errors.chief_complaint_history?.hpi_additional && (
+                    <p className="text-sm text-destructive">{errors.chief_complaint_history.hpi_additional.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Associated Symptoms</Label>
                   <Controller
                     name="chief_complaint_history.associated_symptoms"
                     control={control}
-                    render={({ field }) => <Textarea placeholder="Associated symptoms..." {...field} value={field.value || ''} />}
+                    render={({ field }: any) => <Textarea placeholder="Associated symptoms..." {...field} value={field.value || ''} />}
                   />
                 </div>
                 <CustomFieldsSection sectionId="chief_complaint" sectionTitle="Chief Complaint" />
@@ -949,7 +962,7 @@ export default function EditCasePage() {
                         key={pmh}
                         name="medical_history.past_medical_history"
                         control={control}
-                        render={({ field }) => {
+                        render={({ field }: any) => {
                           const isChecked = (field.value || []).includes(pmh);
                           return (
                             <label className="flex items-center gap-2">
@@ -975,7 +988,7 @@ export default function EditCasePage() {
                     <Controller
                       name="medical_history.custom_medical_history"
                       control={control}
-                      render={({ field }) => <Input placeholder="Other conditions..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Input placeholder="Other conditions..." {...field} value={field.value || ''} />}
                     />
                   </div>
                 </CardContent>
@@ -987,7 +1000,7 @@ export default function EditCasePage() {
                     <Controller
                       name="medical_history.family_history"
                       control={control}
-                      render={({ field }) => <Textarea placeholder="Family history..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Textarea placeholder="Family history..." {...field} value={field.value || ''} />}
                     />
                   </CardContent>
                 </Card>
@@ -999,7 +1012,7 @@ export default function EditCasePage() {
                       <Controller
                         name="medical_history.social_history_smoking"
                         control={control}
-                        render={({ field }) => <Input placeholder="Smoking history..." {...field} value={field.value || ''} />}
+                        render={({ field }: any) => <Input placeholder="Smoking history..." {...field} value={field.value || ''} />}
                       />
                     </div>
                     <div className="space-y-2">
@@ -1007,7 +1020,7 @@ export default function EditCasePage() {
                       <Controller
                         name="medical_history.social_history_alcohol"
                         control={control}
-                        render={({ field }) => <Input placeholder="Alcohol use..." {...field} value={field.value || ''} />}
+                        render={({ field }: any) => <Input placeholder="Alcohol use..." {...field} value={field.value || ''} />}
                       />
                     </div>
                     <div className="space-y-2">
@@ -1015,7 +1028,7 @@ export default function EditCasePage() {
                       <Controller
                         name="medical_history.social_history_occupation"
                         control={control}
-                        render={({ field }) => <Input placeholder="Occupational risks..." {...field} value={field.value || ''} />}
+                        render={({ field }: any) => <Input placeholder="Occupational risks..." {...field} value={field.value || ''} />}
                       />
                     </div>
                   </CardContent>
@@ -1056,7 +1069,7 @@ export default function EditCasePage() {
                       <Controller
                         name={`review_of_systems.${item.key}` as any} 
                         control={control}
-                        render={({ field }) => <Textarea placeholder={`${item.label}...`} {...field} value={field.value || ''} />}
+                        render={({ field }: any) => <Textarea placeholder={`${item.label}...`} {...field} value={field.value || ''} />}
                       />
                     </div>
                   ))}
@@ -1070,13 +1083,16 @@ export default function EditCasePage() {
           {currentStep === 4 && (
             <div className="space-y-4">
               <Card>
-                <CardHeader><CardTitle>General Appearance</CardTitle></CardHeader>
+                <CardHeader><CardTitle>General Appearance <span className="text-destructive">*</span></CardTitle></CardHeader>
                 <CardContent>
                   <Controller
                     name="examination_findings.general_appearance"
                     control={control}
-                    render={({ field }) => <Textarea placeholder="General appearance..." {...field} value={field.value || ''} />}
+                    render={({ field }: any) => <Textarea placeholder="General appearance..." {...field} value={field.value || ''} />}
                   />
+                  {errors.examination_findings?.general_appearance && (
+                    <p className="text-sm text-destructive mt-2">{errors.examination_findings.general_appearance.message}</p>
+                  )}
                 </CardContent>
               </Card>
               <Card>
@@ -1098,7 +1114,7 @@ export default function EditCasePage() {
                       <Controller
                         name={`examination_findings.vital_signs.${item.key}` as any}
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }: any) => (
                           <Input
                             type="number"
                             placeholder={item.placeholder}
@@ -1133,7 +1149,7 @@ export default function EditCasePage() {
                       <Controller
                         name={`examination_findings.systemic.${item.key}` as any}
                         control={control}
-                        render={({ field }) => <Textarea placeholder={`${item.label}...`} {...field} value={field.value || ''} />}
+                        render={({ field }: any) => <Textarea placeholder={`${item.label}...`} {...field} value={field.value || ''} />}
                       />
                     </div>
                   ))}
@@ -1189,7 +1205,7 @@ export default function EditCasePage() {
                     <Controller
                       name="diagnosis_management.provisional_diagnosis"
                       control={control}
-                      render={({ field }) => <Input placeholder="Provisional diagnosis..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Input placeholder="Provisional diagnosis..." {...field} value={field.value || ''} />}
                     />
                   </div>
                   <div className="space-y-2">
@@ -1201,11 +1217,11 @@ export default function EditCasePage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Final Diagnosis *</Label>
+                    <Label htmlFor="final_diagnosis">Final Diagnosis <span className="text-destructive">*</span></Label>
                     <Controller
                       name="diagnosis_management.final_diagnosis"
                       control={control}
-                      render={({ field }) => <Input placeholder="Final diagnosis..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Input id="final_diagnosis" placeholder="Final diagnosis..." {...field} value={field.value || ''} />}
                     />
                     {errors.diagnosis_management?.final_diagnosis && (
                       <p className="text-sm text-destructive">{errors.diagnosis_management.final_diagnosis.message}</p>
@@ -1217,11 +1233,11 @@ export default function EditCasePage() {
                 <CardHeader><CardTitle>Management</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Treatment Plan *</Label>
+                    <Label htmlFor="treatment_plan">Treatment Plan <span className="text-destructive">*</span></Label>
                     <Controller
                       name="diagnosis_management.treatment_plan"
                       control={control}
-                      render={({ field }) => <Textarea placeholder="Treatment plan..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Textarea id="treatment_plan" placeholder="Treatment plan..." {...field} value={field.value || ''} />}
                     />
                     {errors.diagnosis_management?.treatment_plan && (
                       <p className="text-sm text-destructive">{errors.diagnosis_management.treatment_plan.message}</p>
@@ -1237,7 +1253,7 @@ export default function EditCasePage() {
                       <Controller
                         name="diagnosis_management.follow_up_plan"
                         control={control}
-                        render={({ field }) => <Textarea placeholder="Follow-up..." {...field} value={field.value || ''} />}
+                        render={({ field }: any) => <Textarea placeholder="Follow-up..." {...field} value={field.value || ''} />}
                       />
                     </div>
                     <div className="space-y-2">
@@ -1245,17 +1261,17 @@ export default function EditCasePage() {
                       <Controller
                         name="diagnosis_management.prognosis"
                         control={control}
-                        render={({ field }) => <Textarea placeholder="Prognosis..." {...field} value={field.value || ''} />}
+                        render={({ field }: any) => <Textarea placeholder="Prognosis..." {...field} value={field.value || ''} />}
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Outcome *</Label>
+                    <Label htmlFor="outcome">Outcome <span className="text-destructive">*</span></Label>
                     <p className="text-xs text-muted-foreground">Document the patient outcome (e.g. &quot;Recovered and discharged&quot;, &quot;Ongoing follow-up&quot;)</p>
                     <Controller
                       name="diagnosis_management.outcome"
                       control={control}
-                      render={({ field }) => <Textarea placeholder="Patient outcome..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Textarea id="outcome" placeholder="Patient outcome..." {...field} value={field.value || ''} />}
                     />
                     {errors.diagnosis_management?.outcome && (
                       <p className="text-sm text-destructive">{errors.diagnosis_management.outcome.message}</p>
