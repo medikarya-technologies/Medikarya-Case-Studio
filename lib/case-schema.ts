@@ -35,7 +35,7 @@ export const caseSchema = z.object({
     hpi_onset: z.string().optional(),
     hpi_aggravating: z.string().optional(),
     hpi_relieving: z.string().optional(),
-    hpi_additional: z.string().optional(),
+    hpi_additional: z.string().min(10, 'History of present illness is required (minimum 10 characters)').optional(),
     associated_symptoms: z.string().optional(),
   }),
 
@@ -71,7 +71,7 @@ export const caseSchema = z.object({
 
   // Step4: Examination
   examination_findings: z.object({
-    general_appearance: z.string().optional(),
+    general_appearance: z.string().min(5, 'General appearance is required (minimum 5 characters)').optional(),
     vital_signs: z.object({
       bp_systolic: z.number().optional(),
       bp_diastolic: z.number().optional(),
@@ -112,8 +112,8 @@ export const caseSchema = z.object({
   diagnosis_management: z.object({
     provisional_diagnosis: z.string().optional(),
     differential_diagnoses: z.array(z.string()),
-    final_diagnosis: z.string().optional(),
-    treatment_plan: z.string().optional(),
+    final_diagnosis: z.string().min(3, 'Final diagnosis is required').optional(),
+    treatment_plan: z.string().min(5, 'Treatment plan is required (minimum 5 characters)').optional(),
     medications_prescribed: z.array(
       z.object({
         id: z.string().optional(),
@@ -125,7 +125,7 @@ export const caseSchema = z.object({
     ),
     follow_up_plan: z.string().optional(),
     prognosis: z.string().optional(),
-    outcome: z.string().optional(),
+    outcome: z.string().min(3, 'Outcome is required (e.g. "Recovered", "Ongoing follow-up")').optional(),
     reference_pdfs: z.array(
       z.object({
         filename: z.string().min(1, 'Filename is required'),
