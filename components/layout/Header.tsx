@@ -6,15 +6,15 @@ export function Header() {
   const { user, isSignedIn } = useUser();
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 py-2">
+    <header className="bg-card border-b border-border px-4 py-2">
       <div className="flex justify-end items-center">
         {!isSignedIn ? (
           <div className="flex gap-2">
             <SignInButton mode="modal">
-              <button className="px-4 py-2 text-gray-700 hover:text-blue-600">Sign in</button>
+              <button className="px-4 py-2 text-foreground hover:text-primary font-medium transition-colors">Sign in</button>
             </SignInButton>
             <SignUpButton mode="modal">
-              <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Sign up</button>
+              <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-brand-light font-medium transition-colors">Sign up</button>
             </SignUpButton>
           </div>
         ) : (

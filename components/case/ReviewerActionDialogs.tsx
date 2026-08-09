@@ -163,7 +163,7 @@ export function RequestChangesModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto">
       <div className="bg-card border rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 my-8">
         <div className="flex items-start gap-3 border-b pb-4">
-          <div className="p-2.5 bg-amber-100 dark:bg-amber-950/60 rounded-full text-amber-600 dark:text-amber-400 shrink-0">
+          <div className="p-2.5 bg-amber-100 dark:bg-amber-950/80 rounded-full text-amber-800 dark:text-amber-300 shrink-0">
             <AlertCircle className="w-5 h-5" />
           </div>
           <div>
@@ -208,7 +208,7 @@ export function RequestChangesModal({
         )}
 
         {/* Mini Comment Form */}
-        <div className="space-y-3 p-4 border rounded-xl bg-amber-500/5 border-amber-500/20">
+        <div className="space-y-3 p-4 border rounded-xl bg-amber-50/50 border-amber-300 dark:bg-amber-950/30 dark:border-amber-800">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Target Section for Comment</Label>
             <select

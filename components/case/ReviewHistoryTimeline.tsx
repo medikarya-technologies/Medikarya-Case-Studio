@@ -56,7 +56,7 @@ export const ReviewHistoryTimeline = memo(function ReviewHistoryTimeline({ revie
                 {/* Timeline node icon */}
                 <div
                   className={`absolute -left-[31px] top-1 w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold ${
-                    isApproved ? 'bg-emerald-600 ring-4 ring-emerald-100 dark:ring-emerald-950' : 'bg-amber-500 ring-4 ring-amber-100 dark:ring-amber-950'
+                    isApproved ? 'bg-emerald-600 ring-4 ring-emerald-100 dark:ring-emerald-950' : 'bg-amber-600 ring-4 ring-amber-100 dark:ring-amber-950'
                   }`}
                 >
                   {roundNumber}
@@ -75,7 +75,7 @@ export const ReviewHistoryTimeline = memo(function ReviewHistoryTimeline({ revie
                           Approved
                         </Badge>
                       ) : (
-                        <Badge variant="secondary" className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 text-xs flex items-center gap-1">
+                        <Badge variant="secondary" className="bg-amber-100 text-amber-950 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-700 text-xs font-medium flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />
                           Changes Requested
                         </Badge>
@@ -111,7 +111,7 @@ export const ReviewHistoryTimeline = memo(function ReviewHistoryTimeline({ revie
                               variant="outline"
                               className={`text-[11px] font-medium ${
                                 sc.sectionId === 'general'
-                                  ? 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-200'
+                                  ? 'bg-muted text-muted-foreground border-border'
                                   : 'bg-primary/10 text-primary border-primary/30'
                               }`}
                             >
