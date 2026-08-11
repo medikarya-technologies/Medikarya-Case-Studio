@@ -6,6 +6,7 @@ import { Plus, X, Type, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/case/form/RichTextEditor';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -113,12 +114,12 @@ export function CustomFieldsSection({ sectionId, sectionTitle }: CustomFieldsSec
                   control={control}
                   render={({ field: inputField }: any) =>
                     customField.type === 'textarea' ? (
-                      <Textarea
+                      <RichTextEditor
                         placeholder={`Enter ${customField.label.toLowerCase()}...`}
-                        {...inputField}
                         value={inputField.value || ''}
+                        onChange={inputField.onChange}
                         className="bg-background text-sm"
-                        rows={3}
+                        minHeight="90px"
                       />
                     ) : (
                       <Input
@@ -205,12 +206,12 @@ export function CustomFieldsSection({ sectionId, sectionTitle }: CustomFieldsSec
             <div className="space-y-1.5">
               <Label className="text-xs">Initial Value (Optional)</Label>
               {newType === 'textarea' ? (
-                <Textarea
+                <RichTextEditor
                   placeholder="Enter initial value..."
                   value={newValue}
-                  onChange={(e) => setNewValue(e.target.value)}
+                  onChange={setNewValue}
                   className="text-sm bg-background"
-                  rows={2}
+                  minHeight="80px"
                 />
               ) : (
                 <Input

@@ -2,6 +2,7 @@ import { Document, Page, Text, View, StyleSheet, Image, Link } from '@react-pdf/
 import type { Case, User, CustomField } from '@/lib/types';
 import type { ResolvedImageMap } from '@/app/actions/attachment-actions';
 import { formatSpecialtyLabel } from '@/lib/specialtyIcons';
+import { PDFRichText } from './PDFRichText';
 
 function PDFCustomFields({
   customFields,
@@ -14,13 +15,13 @@ function PDFCustomFields({
   if (fields.length === 0) return null;
 
   return (
-    <View style={{ marginTop: 6, paddingTop: 4, borderTopWidth: 0.5, borderTopColor: '#cbd5e1' }} wrap={false}>
+    <View style={{ marginTop: 6, paddingTop: 4, borderTopWidth: 0.5, borderTopColor: '#cbd5e1' }}>
       {fields.map((cf, idx) => (
-        <View key={idx} style={{ marginBottom: 4 }} wrap={false}>
-          <Text style={{ fontFamily: 'Helvetica-Bold', color: '#475569', fontSize: 8.5 }}>
-            {cf.label} [Custom]:{' '}
+        <View key={idx} style={{ marginBottom: 6 }}>
+          <Text style={{ fontFamily: 'Helvetica-Bold', color: '#475569', fontSize: 8.5, marginBottom: 2 }}>
+            {cf.label} [Custom]:
           </Text>
-          <Text style={{ fontSize: 9.5, color: '#1e293b' }}>{cf.value || 'N/A'}</Text>
+          <PDFRichText content={cf.value || 'N/A'} primaryColor={pdfTheme.colors.primary} />
         </View>
       ))}
     </View>
@@ -712,7 +713,7 @@ export function CaseDocument({
           <ClinicalSection title="Chief Complaint & HPI">
             <View style={styles.paragraph}>
               <Text style={styles.boldLabel}>Chief Complaint: </Text>
-              <Text>{cc.chief_complaint}</Text>
+              <PDFRichText content={cc.chief_complaint} primaryColor={pdfTheme.colors.primary} />
             </View>
             <View style={styles.grid}>
               {cc.hpi_onset && (
@@ -743,13 +744,13 @@ export function CaseDocument({
             {cc.associated_symptoms && (
               <View style={styles.paragraph}>
                 <Text style={styles.boldLabel}>Associated Symptoms: </Text>
-                <Text>{cc.associated_symptoms}</Text>
+                <PDFRichText content={cc.associated_symptoms} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
             {cc.hpi_additional && (
               <View style={styles.paragraph}>
                 <Text style={styles.boldLabel}>Additional HPI Notes: </Text>
-                <Text>{cc.hpi_additional}</Text>
+                <PDFRichText content={cc.hpi_additional} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
             <PDFCustomFields customFields={caseData.custom_fields} sectionId="chief_complaint" />
@@ -768,13 +769,13 @@ export function CaseDocument({
             {mh?.custom_medical_history && (
               <View style={styles.paragraph}>
                 <Text style={styles.boldLabel}>Clinical History Details: </Text>
-                <Text>{mh.custom_medical_history}</Text>
+                <PDFRichText content={mh.custom_medical_history} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
             {mh?.family_history && (
               <View style={styles.paragraph}>
                 <Text style={styles.boldLabel}>Family History: </Text>
-                <Text>{mh.family_history}</Text>
+                <PDFRichText content={mh.family_history} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
             {mh?.allergies && mh.allergies.length > 0 && (
@@ -813,7 +814,7 @@ export function CaseDocument({
             {exam.general_appearance && (
               <View style={styles.paragraph}>
                 <Text style={styles.boldLabel}>General Appearance: </Text>
-                <Text>{exam.general_appearance}</Text>
+                <PDFRichText content={exam.general_appearance} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
             {/* Vitals Grid Table */}
@@ -826,43 +827,43 @@ export function CaseDocument({
                   {exam.systemic.cardiovascular && (
                     <View style={[styles.gridCol, { width: '50%' }]}>
                       <Text style={styles.gridLabel}>Cardiovascular: </Text>
-                      <Text style={styles.gridValue}>{exam.systemic.cardiovascular}</Text>
+                      <PDFRichText content={exam.systemic.cardiovascular} primaryColor={pdfTheme.colors.primary} />
                     </View>
                   )}
                   {exam.systemic.respiratory && (
                     <View style={[styles.gridCol, { width: '50%' }]}>
                       <Text style={styles.gridLabel}>Respiratory: </Text>
-                      <Text style={styles.gridValue}>{exam.systemic.respiratory}</Text>
+                      <PDFRichText content={exam.systemic.respiratory} primaryColor={pdfTheme.colors.primary} />
                     </View>
                   )}
                   {exam.systemic.gastrointestinal && (
                     <View style={[styles.gridCol, { width: '50%' }]}>
                       <Text style={styles.gridLabel}>Gastrointestinal: </Text>
-                      <Text style={styles.gridValue}>{exam.systemic.gastrointestinal}</Text>
+                      <PDFRichText content={exam.systemic.gastrointestinal} primaryColor={pdfTheme.colors.primary} />
                     </View>
                   )}
                   {exam.systemic.neurological && (
                     <View style={[styles.gridCol, { width: '50%' }]}>
                       <Text style={styles.gridLabel}>Neurological: </Text>
-                      <Text style={styles.gridValue}>{exam.systemic.neurological}</Text>
+                      <PDFRichText content={exam.systemic.neurological} primaryColor={pdfTheme.colors.primary} />
                     </View>
                   )}
                   {exam.systemic.musculoskeletal && (
                     <View style={[styles.gridCol, { width: '50%' }]}>
                       <Text style={styles.gridLabel}>Musculoskeletal: </Text>
-                      <Text style={styles.gridValue}>{exam.systemic.musculoskeletal}</Text>
+                      <PDFRichText content={exam.systemic.musculoskeletal} primaryColor={pdfTheme.colors.primary} />
                     </View>
                   )}
                   {exam.systemic.dermatological && (
                     <View style={[styles.gridCol, { width: '50%' }]}>
                       <Text style={styles.gridLabel}>Dermatological: </Text>
-                      <Text style={styles.gridValue}>{exam.systemic.dermatological}</Text>
+                      <PDFRichText content={exam.systemic.dermatological} primaryColor={pdfTheme.colors.primary} />
                     </View>
                   )}
                   {exam.systemic.thyroid && (
                     <View style={[styles.gridCol, { width: '50%' }]}>
                       <Text style={styles.gridLabel}>Thyroid: </Text>
-                      <Text style={styles.gridValue}>{exam.systemic.thyroid}</Text>
+                      <PDFRichText content={exam.systemic.thyroid} primaryColor={pdfTheme.colors.primary} />
                     </View>
                   )}
                 </View>
@@ -886,7 +887,7 @@ export function CaseDocument({
             {dx.provisional_diagnosis && (
               <View style={styles.paragraph}>
                 <Text style={styles.boldLabel}>Provisional Diagnosis: </Text>
-                <Text>{dx.provisional_diagnosis}</Text>
+                <PDFRichText content={dx.provisional_diagnosis} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
             {dx.differential_diagnoses && dx.differential_diagnoses.length > 0 && (
@@ -898,13 +899,13 @@ export function CaseDocument({
             {dx.final_diagnosis && (
               <View style={styles.paragraph}>
                 <Text style={styles.boldLabel}>Final Diagnosis: </Text>
-                <Text style={{ fontFamily: pdfTheme.fonts.bodyBold }}>{dx.final_diagnosis}</Text>
+                <PDFRichText content={dx.final_diagnosis} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
             {dx.treatment_plan && (
               <View style={styles.paragraph}>
                 <Text style={styles.boldLabel}>Treatment & Management Plan: </Text>
-                <Text>{dx.treatment_plan}</Text>
+                <PDFRichText content={dx.treatment_plan} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
             {/* Prescribed Medications Table */}
@@ -912,19 +913,19 @@ export function CaseDocument({
             {dx.follow_up_plan && (
               <View style={styles.paragraph}>
                 <Text style={styles.boldLabel}>Follow-up Plan: </Text>
-                <Text>{dx.follow_up_plan}</Text>
+                <PDFRichText content={dx.follow_up_plan} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
             {dx.prognosis && (
               <View style={styles.paragraph}>
                 <Text style={styles.boldLabel}>Prognosis: </Text>
-                <Text>{dx.prognosis}</Text>
+                <PDFRichText content={dx.prognosis} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
             {dx.outcome && (
               <View style={styles.paragraph}>
                 <Text style={styles.boldLabel}>Outcome: </Text>
-                <Text>{dx.outcome}</Text>
+                <PDFRichText content={dx.outcome} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
             <PDFCustomFields customFields={caseData.custom_fields} sectionId="diagnosis" />
@@ -938,9 +939,8 @@ export function CaseDocument({
         {caseData.learning_points && caseData.learning_points.length > 0 && (
           <ClinicalSection title="Learning Points">
             {caseData.learning_points.map((pt, idx) => (
-              <View key={idx} style={{ flexDirection: 'row', marginBottom: 4 }} wrap={false}>
-                <Text style={{ marginRight: 6, color: pdfTheme.colors.primary }}>•</Text>
-                <Text style={{ flex: 1 }}>{pt}</Text>
+              <View key={idx} style={{ marginBottom: 4 }}>
+                <PDFRichText content={pt} primaryColor={pdfTheme.colors.primary} />
               </View>
             ))}
           </ClinicalSection>
