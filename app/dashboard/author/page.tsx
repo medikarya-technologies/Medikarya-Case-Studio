@@ -316,7 +316,7 @@ export default function AuthorDashboard() {
               {isLoading ? (
                 <div className="space-y-3">
                   {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="border border-[#E2E8F0] rounded-lg p-4 flex items-center justify-between">
+                    <div key={i} className="border border-border rounded-lg p-4 flex items-center justify-between">
                       <div className="space-y-2 flex-1">
                         <Skeleton className="h-5 w-48" />
                         <Skeleton className="h-4 w-32" />

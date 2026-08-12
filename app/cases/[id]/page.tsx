@@ -25,6 +25,7 @@ import type { User } from '@/lib/types';
 import { getCaseCompleteness } from '@/lib/case-completeness';
 import { ReviewHistoryTimeline } from '@/components/case/ReviewHistoryTimeline';
 import { ApproveConfirmModal, RequestChangesModal } from '@/components/case/ReviewerActionDialogs';
+import { RichTextRenderer } from '@/components/ui/RichTextRenderer';
 
 const SectionCustomFields = memo(function SectionCustomFields({
   customFields,
@@ -51,12 +52,12 @@ const SectionCustomFields = memo(function SectionCustomFields({
               <p className="text-sm font-semibold text-foreground">{cf.label}</p>
               <Badge
                 variant="outline"
-                className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/60 dark:text-amber-300 dark:border-amber-700"
+                className="text-xs px-1.5 py-0 bg-amber-100 text-amber-950 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-700 font-medium"
               >
                 Custom
               </Badge>
             </div>
-            <p className="text-sm text-foreground whitespace-pre-wrap">{cf.value || 'N/A'}</p>
+            <RichTextRenderer content={cf.value || 'N/A'} />
           </div>
         ))}
       </div>
@@ -203,7 +204,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
             <div className="space-y-1">
               <h3 className="font-bold text-foreground text-base flex items-center gap-2">
                 <span>Review Action Required</span>
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">
+                <Badge variant="secondary" className="bg-secondary/15 text-secondary border-secondary/30 dark:bg-secondary/30 dark:text-secondary-foreground font-medium">
                   {completeness.score}% Complete
                 </Badge>
               </h3>
@@ -234,10 +235,10 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
 
       {/* Incomplete Fields Summary Banner */}
       {completeness.incompleteItems.length > 0 && (
-        <Card className="border-amber-400/50 bg-amber-50/60 dark:bg-amber-950/30 p-4 space-y-3">
+        <Card className="border-amber-400/80 bg-amber-100/70 dark:bg-amber-950/70 border p-4 space-y-3 shadow-xs">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
-              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div className="flex items-center gap-2 text-amber-950 dark:text-amber-100">
+              <AlertTriangle className="w-5 h-5 text-amber-800 dark:text-amber-300 shrink-0" />
               <span className="font-semibold text-sm">
                 Incomplete or Thin Fields ({completeness.incompleteItems.length}) — Case is {completeness.score}% complete
               </span>
@@ -251,11 +252,11 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 variant="outline"
                 size="sm"
                 onClick={() => scrollToSection(item.sectionId)}
-                className="h-7 text-xs bg-background hover:bg-amber-100 dark:hover:bg-amber-900/60 border-amber-300 dark:border-amber-700 gap-1 text-amber-900 dark:text-amber-200"
+                className="h-7 text-xs bg-amber-50 hover:bg-amber-200/80 dark:bg-amber-900/60 dark:hover:bg-amber-800/80 border-amber-400 dark:border-amber-600 gap-1.5 text-amber-950 dark:text-amber-100 font-medium"
               >
                 <span>{item.sectionTitle}:</span>
                 <span className="font-semibold">{item.fieldName}</span>
-                <ArrowRight className="w-3 h-3 opacity-60" />
+                <ArrowRight className="w-3.5 h-3.5 text-amber-800 dark:text-amber-300 opacity-80" />
               </Button>
             ))}
           </div>
@@ -274,7 +275,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                   <Badge key={i} variant="outline">{tag}</Badge>
                 ))}
               </div>
-              <p className="text-gray-500 mt-2">
+              <p className="text-muted-foreground mt-2">
                 Created: {new Date(caseData.created_at).toLocaleDateString()}
               </p>
             </div>
@@ -300,7 +301,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 <div className="flex items-center justify-between">
                   <CardTitle>Patient Details</CardTitle>
                   {completeness.isIncompleteSection('patient_details') && (
-                    <Badge variant="outline" className="text-xs text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700">
+                    <Badge variant="outline" className="text-xs text-amber-950 bg-amber-100 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-600 font-medium">
                       <AlertTriangle className="w-3 h-3 mr-1" />
                       Incomplete
                     </Badge>
@@ -308,12 +309,12 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-4">
-                {caseData.patient_details.patient_id && <div><p className="text-sm text-gray-500">Patient ID</p><p>{caseData.patient_details.patient_id}</p></div>}
-                {caseData.patient_details.age && <div><p className="text-sm text-gray-500">Age</p><p>{caseData.patient_details.age}</p></div>}
-                {caseData.patient_details.gender && <div><p className="text-sm text-gray-500">Gender</p><p>{caseData.patient_details.gender}</p></div>}
-                {caseData.patient_details.occupation && <div><p className="text-sm text-gray-500">Occupation</p><p>{caseData.patient_details.occupation}</p></div>}
-                {caseData.patient_details.location && <div><p className="text-sm text-gray-500">Location</p><p>{caseData.patient_details.location}</p></div>}
-                {caseData.patient_details.presenting_date && <div><p className="text-sm text-gray-500">Presenting Date</p><p>{new Date(caseData.patient_details.presenting_date).toLocaleDateString()}</p></div>}
+                {caseData.patient_details.patient_id && <div><p className="text-sm text-muted-foreground">Patient ID</p><p>{caseData.patient_details.patient_id}</p></div>}
+                {caseData.patient_details.age && <div><p className="text-sm text-muted-foreground">Age</p><p>{caseData.patient_details.age}</p></div>}
+                {caseData.patient_details.gender && <div><p className="text-sm text-muted-foreground">Gender</p><p>{caseData.patient_details.gender}</p></div>}
+                {caseData.patient_details.occupation && <div><p className="text-sm text-muted-foreground">Occupation</p><p>{caseData.patient_details.occupation}</p></div>}
+                {caseData.patient_details.location && <div><p className="text-sm text-muted-foreground">Location</p><p>{caseData.patient_details.location}</p></div>}
+                {caseData.patient_details.presenting_date && <div><p className="text-sm text-muted-foreground">Presenting Date</p><p>{new Date(caseData.patient_details.presenting_date).toLocaleDateString()}</p></div>}
                 <div className="col-span-2">
                   <SectionCustomFields customFields={caseData.custom_fields} sectionId="patient_details" />
                 </div>
@@ -328,7 +329,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 <div className="flex items-center justify-between">
                   <CardTitle>Chief Complaint & History of Present Illness</CardTitle>
                   {completeness.isIncompleteSection('chief_complaint') && (
-                    <Badge variant="outline" className="text-xs text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700">
+                    <Badge variant="outline" className="text-xs text-amber-950 bg-amber-100 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-600 font-medium">
                       <AlertTriangle className="w-3 h-3 mr-1" />
                       Incomplete
                     </Badge>
@@ -336,13 +337,13 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div><p className="text-sm text-gray-500">Chief Complaint</p><p>{caseData.chief_complaint_history.chief_complaint}</p></div>
-                {caseData.chief_complaint_history.hpi_duration && <div><p className="text-sm text-gray-500">Duration</p><p>{caseData.chief_complaint_history.hpi_duration}</p></div>}
-                {caseData.chief_complaint_history.hpi_onset && <div><p className="text-sm text-gray-500">Onset</p><p>{caseData.chief_complaint_history.hpi_onset}</p></div>}
-                {caseData.chief_complaint_history.hpi_aggravating && <div><p className="text-sm text-gray-500">Aggravating Factors</p><p>{caseData.chief_complaint_history.hpi_aggravating}</p></div>}
-                {caseData.chief_complaint_history.hpi_relieving && <div><p className="text-sm text-gray-500">Relieving Factors</p><p>{caseData.chief_complaint_history.hpi_relieving}</p></div>}
-                {caseData.chief_complaint_history.hpi_additional && <div><p className="text-sm text-gray-500">Additional History</p><p className="whitespace-pre-wrap">{caseData.chief_complaint_history.hpi_additional}</p></div>}
-                {caseData.chief_complaint_history.associated_symptoms && <div><p className="text-sm text-gray-500">Associated Symptoms</p><p className="whitespace-pre-wrap">{caseData.chief_complaint_history.associated_symptoms}</p></div>}
+                <div><p className="text-sm text-muted-foreground">Chief Complaint</p><RichTextRenderer content={caseData.chief_complaint_history.chief_complaint} /></div>
+                {caseData.chief_complaint_history.hpi_duration && <div><p className="text-sm text-muted-foreground">Duration</p><p>{caseData.chief_complaint_history.hpi_duration}</p></div>}
+                {caseData.chief_complaint_history.hpi_onset && <div><p className="text-sm text-muted-foreground">Onset</p><p>{caseData.chief_complaint_history.hpi_onset}</p></div>}
+                {caseData.chief_complaint_history.hpi_aggravating && <div><p className="text-sm text-muted-foreground">Aggravating Factors</p><p>{caseData.chief_complaint_history.hpi_aggravating}</p></div>}
+                {caseData.chief_complaint_history.hpi_relieving && <div><p className="text-sm text-muted-foreground">Relieving Factors</p><p>{caseData.chief_complaint_history.hpi_relieving}</p></div>}
+                {caseData.chief_complaint_history.hpi_additional && <div><p className="text-sm text-muted-foreground">Additional History</p><RichTextRenderer content={caseData.chief_complaint_history.hpi_additional} /></div>}
+                {caseData.chief_complaint_history.associated_symptoms && <div><p className="text-sm text-muted-foreground">Associated Symptoms</p><RichTextRenderer content={caseData.chief_complaint_history.associated_symptoms} /></div>}
                 <SectionCustomFields customFields={caseData.custom_fields} sectionId="chief_complaint" />
               </CardContent>
             </Card>
@@ -354,7 +355,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
               <div className="flex items-center justify-between">
                 <CardTitle>Medical & Personal History</CardTitle>
                 {completeness.isIncompleteSection('medical_history') && (
-                  <Badge variant="outline" className="text-xs text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700">
+                  <Badge variant="outline" className="text-xs text-amber-950 bg-amber-100 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-600 font-medium">
                     <AlertTriangle className="w-3 h-3 mr-1" />
                     Incomplete
                   </Badge>
@@ -363,14 +364,14 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
             </CardHeader>
             <CardContent className="space-y-6">
               {caseData.medical_history?.past_medical_history && caseData.medical_history.past_medical_history.length > 0 && (
-                <div><p className="text-sm text-gray-500">Past Medical History</p><div className="flex flex-wrap gap-2 mt-1">{caseData.medical_history.past_medical_history.map((item, i) => <Badge key={i} variant="outline">{item}</Badge>)}</div>{caseData.medical_history.custom_medical_history && <p className="mt-2">{caseData.medical_history.custom_medical_history}</p>}</div>
+                <div><p className="text-sm text-muted-foreground">Past Medical History</p><div className="flex flex-wrap gap-2 mt-1">{caseData.medical_history.past_medical_history.map((item, i) => <Badge key={i} variant="outline">{item}</Badge>)}</div>{caseData.medical_history.custom_medical_history && <RichTextRenderer content={caseData.medical_history.custom_medical_history} className="mt-2" />}</div>
               )}
-              {caseData.medical_history?.family_history && <div><p className="text-sm text-gray-500">Family History</p><p className="whitespace-pre-wrap">{caseData.medical_history.family_history}</p></div>}
+              {caseData.medical_history?.family_history && <div><p className="text-sm text-muted-foreground">Family History</p><RichTextRenderer content={caseData.medical_history.family_history} /></div>}
               {(caseData.medical_history?.social_history_smoking || caseData.medical_history?.social_history_alcohol || caseData.medical_history?.social_history_occupation) && (
-                <div><p className="text-sm text-gray-500">Social History</p><div className="space-y-1">{caseData.medical_history.social_history_smoking && <p>Smoking: {caseData.medical_history.social_history_smoking}</p>}{caseData.medical_history.social_history_alcohol && <p>Alcohol: {caseData.medical_history.social_history_alcohol}</p>}{caseData.medical_history.social_history_occupation && <p>Occupation Risk: {caseData.medical_history.social_history_occupation}</p>}</div></div>
+                <div><p className="text-sm text-muted-foreground">Social History</p><div className="space-y-1">{caseData.medical_history.social_history_smoking && <p>Smoking: {caseData.medical_history.social_history_smoking}</p>}{caseData.medical_history.social_history_alcohol && <p>Alcohol: {caseData.medical_history.social_history_alcohol}</p>}{caseData.medical_history.social_history_occupation && <p>Occupation Risk: {caseData.medical_history.social_history_occupation}</p>}</div></div>
               )}
               {caseData.medical_history?.allergies && caseData.medical_history.allergies.length > 0 && (
-                <div><p className="text-sm text-gray-500">Allergies</p><div className="flex flex-wrap gap-2 mt-1">{caseData.medical_history.allergies.map((item, i) => <Badge key={i} variant="outline">{item}</Badge>)}</div></div>
+                <div><p className="text-sm text-muted-foreground">Allergies</p><div className="flex flex-wrap gap-2 mt-1">{caseData.medical_history.allergies.map((item, i) => <Badge key={i} variant="outline">{item}</Badge>)}</div></div>
               )}
               <SectionCustomFields customFields={caseData.custom_fields} sectionId="medical_history" />
             </CardContent>
@@ -402,15 +403,15 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 <CardTitle>Review of Systems</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-4">
-                {caseData.review_of_systems.constitutional && <div><p className="text-sm text-gray-500">Constitutional</p><p className="whitespace-pre-wrap">{caseData.review_of_systems.constitutional}</p></div>}
-                {caseData.review_of_systems.cardiovascular && <div><p className="text-sm text-gray-500">Cardiovascular</p><p className="whitespace-pre-wrap">{caseData.review_of_systems.cardiovascular}</p></div>}
-                {caseData.review_of_systems.respiratory && <div><p className="text-sm text-gray-500">Respiratory</p><p className="whitespace-pre-wrap">{caseData.review_of_systems.respiratory}</p></div>}
-                {caseData.review_of_systems.gastrointestinal && <div><p className="text-sm text-gray-500">GI</p><p className="whitespace-pre-wrap">{caseData.review_of_systems.gastrointestinal}</p></div>}
-                {caseData.review_of_systems.neurological && <div><p className="text-sm text-gray-500">Neurological</p><p className="whitespace-pre-wrap">{caseData.review_of_systems.neurological}</p></div>}
-                {caseData.review_of_systems.musculoskeletal && <div><p className="text-sm text-gray-500">MSK</p><p className="whitespace-pre-wrap">{caseData.review_of_systems.musculoskeletal}</p></div>}
-                {caseData.review_of_systems.dermatological && <div><p className="text-sm text-gray-500">Dermatological</p><p className="whitespace-pre-wrap">{caseData.review_of_systems.dermatological}</p></div>}
-                {caseData.review_of_systems.psychiatric && <div><p className="text-sm text-gray-500">Psychiatric</p><p className="whitespace-pre-wrap">{caseData.review_of_systems.psychiatric}</p></div>}
-                {caseData.review_of_systems.other && <div><p className="text-sm text-gray-500">Other</p><p className="whitespace-pre-wrap">{caseData.review_of_systems.other}</p></div>}
+                {caseData.review_of_systems.constitutional && <div><p className="text-sm text-gray-500">Constitutional</p><RichTextRenderer content={caseData.review_of_systems.constitutional} /></div>}
+                {caseData.review_of_systems.cardiovascular && <div><p className="text-sm text-gray-500">Cardiovascular</p><RichTextRenderer content={caseData.review_of_systems.cardiovascular} /></div>}
+                {caseData.review_of_systems.respiratory && <div><p className="text-sm text-gray-500">Respiratory</p><RichTextRenderer content={caseData.review_of_systems.respiratory} /></div>}
+                {caseData.review_of_systems.gastrointestinal && <div><p className="text-sm text-gray-500">GI</p><RichTextRenderer content={caseData.review_of_systems.gastrointestinal} /></div>}
+                {caseData.review_of_systems.neurological && <div><p className="text-sm text-gray-500">Neurological</p><RichTextRenderer content={caseData.review_of_systems.neurological} /></div>}
+                {caseData.review_of_systems.musculoskeletal && <div><p className="text-sm text-gray-500">MSK</p><RichTextRenderer content={caseData.review_of_systems.musculoskeletal} /></div>}
+                {caseData.review_of_systems.dermatological && <div><p className="text-sm text-gray-500">Dermatological</p><RichTextRenderer content={caseData.review_of_systems.dermatological} /></div>}
+                {caseData.review_of_systems.psychiatric && <div><p className="text-sm text-gray-500">Psychiatric</p><RichTextRenderer content={caseData.review_of_systems.psychiatric} /></div>}
+                {caseData.review_of_systems.other && <div><p className="text-sm text-gray-500">Other</p><RichTextRenderer content={caseData.review_of_systems.other} /></div>}
               </CardContent>
             </Card>
           )}
@@ -422,7 +423,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 <div className="flex items-center justify-between">
                   <CardTitle>Examination Findings</CardTitle>
                   {completeness.isIncompleteSection('examination') && (
-                    <Badge variant="outline" className="text-xs text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700">
+                    <Badge variant="outline" className="text-xs text-amber-950 bg-amber-100 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-600 font-medium">
                       <AlertTriangle className="w-3 h-3 mr-1" />
                       Incomplete
                     </Badge>
@@ -430,28 +431,28 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                {caseData.examination_findings.general_appearance && <div><p className="text-sm text-gray-500">General Appearance</p><p className="whitespace-pre-wrap">{caseData.examination_findings.general_appearance}</p></div>}
+                {caseData.examination_findings.general_appearance && <div><p className="text-sm text-muted-foreground">General Appearance</p><RichTextRenderer content={caseData.examination_findings.general_appearance} /></div>}
                 <div>
-                  <p className="text-sm text-gray-500">Vital Signs</p>
+                  <p className="text-sm text-muted-foreground">Vital Signs</p>
                   <div className="grid grid-cols-4 gap-4 mt-2">
-                    {caseData.examination_findings.vital_signs?.bp_systolic && caseData.examination_findings.vital_signs?.bp_diastolic && <div><p className="text-xs text-gray-500">BP</p><p>{caseData.examination_findings.vital_signs.bp_systolic}/{caseData.examination_findings.vital_signs.bp_diastolic}</p></div>}
-                    {caseData.examination_findings.vital_signs?.hr && <div><p className="text-xs text-gray-500">HR</p><p>{caseData.examination_findings.vital_signs.hr} bpm</p></div>}
-                    {caseData.examination_findings.vital_signs?.rr && <div><p className="text-xs text-gray-500">RR</p><p>{caseData.examination_findings.vital_signs.rr}</p></div>}
-                    {caseData.examination_findings.vital_signs?.temp && <div><p className="text-xs text-gray-500">Temp</p><p>{caseData.examination_findings.vital_signs.temp}°C</p></div>}
-                    {caseData.examination_findings.vital_signs?.spo2 && <div><p className="text-xs text-gray-500">SpO2</p><p>{caseData.examination_findings.vital_signs.spo2}%</p></div>}
-                    {caseData.examination_findings.vital_signs?.weight && <div><p className="text-xs text-gray-500">Weight</p><p>{caseData.examination_findings.vital_signs.weight} kg</p></div>}
-                    {caseData.examination_findings.vital_signs?.height && <div><p className="text-xs text-gray-500">Height</p><p>{caseData.examination_findings.vital_signs.height} cm</p></div>}
-                    {caseData.examination_findings.vital_signs?.bmi && <div><p className="text-xs text-gray-500">BMI</p><p>{caseData.examination_findings.vital_signs.bmi}</p></div>}
+                    {caseData.examination_findings.vital_signs?.bp_systolic && caseData.examination_findings.vital_signs?.bp_diastolic && <div><p className="text-xs text-muted-foreground">BP</p><p>{caseData.examination_findings.vital_signs.bp_systolic}/{caseData.examination_findings.vital_signs.bp_diastolic}</p></div>}
+                    {caseData.examination_findings.vital_signs?.hr && <div><p className="text-xs text-muted-foreground">HR</p><p>{caseData.examination_findings.vital_signs.hr} bpm</p></div>}
+                    {caseData.examination_findings.vital_signs?.rr && <div><p className="text-xs text-muted-foreground">RR</p><p>{caseData.examination_findings.vital_signs.rr}</p></div>}
+                    {caseData.examination_findings.vital_signs?.temp && <div><p className="text-xs text-muted-foreground">Temp</p><p>{caseData.examination_findings.vital_signs.temp}°C</p></div>}
+                    {caseData.examination_findings.vital_signs?.spo2 && <div><p className="text-xs text-muted-foreground">SpO2</p><p>{caseData.examination_findings.vital_signs.spo2}%</p></div>}
+                    {caseData.examination_findings.vital_signs?.weight && <div><p className="text-xs text-muted-foreground">Weight</p><p>{caseData.examination_findings.vital_signs.weight} kg</p></div>}
+                    {caseData.examination_findings.vital_signs?.height && <div><p className="text-xs text-muted-foreground">Height</p><p>{caseData.examination_findings.vital_signs.height} cm</p></div>}
+                    {caseData.examination_findings.vital_signs?.bmi && <div><p className="text-xs text-muted-foreground">BMI</p><p>{caseData.examination_findings.vital_signs.bmi}</p></div>}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                   {caseData.examination_findings.systemic?.cardiovascular && <div><p className="text-sm text-gray-500">Cardiovascular</p><p className="whitespace-pre-wrap">{caseData.examination_findings.systemic.cardiovascular}</p></div>}
-                  {caseData.examination_findings.systemic?.respiratory && <div><p className="text-sm text-gray-500">Respiratory</p><p className="whitespace-pre-wrap">{caseData.examination_findings.systemic.respiratory}</p></div>}
-                  {caseData.examination_findings.systemic?.gastrointestinal && <div><p className="text-sm text-gray-500">GI</p><p className="whitespace-pre-wrap">{caseData.examination_findings.systemic.gastrointestinal}</p></div>}
-                  {caseData.examination_findings.systemic?.neurological && <div><p className="text-sm text-gray-500">Neurological</p><p className="whitespace-pre-wrap">{caseData.examination_findings.systemic.neurological}</p></div>}
-                  {caseData.examination_findings.systemic?.musculoskeletal && <div><p className="text-sm text-gray-500">MSK</p><p className="whitespace-pre-wrap">{caseData.examination_findings.systemic.musculoskeletal}</p></div>}
-                  {caseData.examination_findings.systemic?.dermatological && <div><p className="text-sm text-gray-500">Dermatological</p><p className="whitespace-pre-wrap">{caseData.examination_findings.systemic.dermatological}</p></div>}
-                  {caseData.examination_findings.systemic?.thyroid && <div><p className="text-sm text-gray-500">Thyroid</p><p className="whitespace-pre-wrap">{caseData.examination_findings.systemic.thyroid}</p></div>}
+                   {caseData.examination_findings.systemic?.cardiovascular && <div><p className="text-sm text-muted-foreground">Cardiovascular</p><RichTextRenderer content={caseData.examination_findings.systemic.cardiovascular} /></div>}
+                  {caseData.examination_findings.systemic?.respiratory && <div><p className="text-sm text-muted-foreground">Respiratory</p><RichTextRenderer content={caseData.examination_findings.systemic.respiratory} /></div>}
+                  {caseData.examination_findings.systemic?.gastrointestinal && <div><p className="text-sm text-muted-foreground">GI</p><RichTextRenderer content={caseData.examination_findings.systemic.gastrointestinal} /></div>}
+                  {caseData.examination_findings.systemic?.neurological && <div><p className="text-sm text-muted-foreground">Neurological</p><RichTextRenderer content={caseData.examination_findings.systemic.neurological} /></div>}
+                  {caseData.examination_findings.systemic?.musculoskeletal && <div><p className="text-sm text-muted-foreground">MSK</p><RichTextRenderer content={caseData.examination_findings.systemic.musculoskeletal} /></div>}
+                  {caseData.examination_findings.systemic?.dermatological && <div><p className="text-sm text-muted-foreground">Dermatological</p><RichTextRenderer content={caseData.examination_findings.systemic.dermatological} /></div>}
+                  {caseData.examination_findings.systemic?.thyroid && <div><p className="text-sm text-muted-foreground">Thyroid</p><RichTextRenderer content={caseData.examination_findings.systemic.thyroid} /></div>}
                 </div>
                 <SectionCustomFields customFields={caseData.custom_fields} sectionId="examination" />
               </CardContent>
@@ -465,7 +466,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 <div className="flex items-center justify-between">
                   <CardTitle>Investigations & Reports</CardTitle>
                   {completeness.isIncompleteSection('investigations') && (
-                    <Badge variant="outline" className="text-xs text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700">
+                    <Badge variant="outline" className="text-xs text-amber-950 bg-amber-100 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-600 font-medium">
                       <AlertTriangle className="w-3 h-3 mr-1" />
                       Incomplete
                     </Badge>
@@ -492,7 +493,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                             {inv.result && <div><p className="text-sm text-gray-500">Result</p><p>{inv.result}</p></div>}
                             {inv.normal_range && <div><p className="text-sm text-gray-500">Normal Range</p><p>{inv.normal_range}</p></div>}
                           </div>
-                          {inv.interpretation && <div className="mt-4"><p className="text-sm text-gray-500">Interpretation</p><p className="whitespace-pre-wrap">{inv.interpretation}</p></div>}
+                          {inv.interpretation && <div className="mt-4"><p className="text-sm text-gray-500">Interpretation</p><RichTextRenderer content={inv.interpretation} /></div>}
                           {inv.image_url && (
                             <div className="mt-4 border rounded-md overflow-hidden bg-gray-50 p-2 max-w-md mx-auto">
                               <p className="text-xs text-gray-500 mb-1">Attached Scan / Image</p>
@@ -550,7 +551,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 <div className="flex items-center justify-between">
                   <CardTitle>Diagnosis & Management</CardTitle>
                   {completeness.isIncompleteSection('diagnosis') && (
-                    <Badge variant="outline" className="text-xs text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700">
+                    <Badge variant="outline" className="text-xs text-amber-950 bg-amber-100 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-600 font-medium">
                       <AlertTriangle className="w-3 h-3 mr-1" />
                       Incomplete
                     </Badge>
@@ -558,37 +559,37 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                {caseData.diagnosis_management.provisional_diagnosis && <div><p className="text-sm text-gray-500">Provisional Diagnosis</p><p>{caseData.diagnosis_management.provisional_diagnosis}</p></div>}
-                {caseData.diagnosis_management.differential_diagnoses && caseData.diagnosis_management.differential_diagnoses.length > 0 && <div><p className="text-sm text-gray-500">Differential Diagnoses</p><ul className="list-disc list-inside mt-1">{caseData.diagnosis_management.differential_diagnoses.map((ddx, i) => <li key={i}>{ddx}</li>)}</ul></div>}
-                {caseData.diagnosis_management.final_diagnosis && <div><p className="text-sm text-gray-500">Final Diagnosis</p><p>{caseData.diagnosis_management.final_diagnosis}</p></div>}
-                {caseData.diagnosis_management.treatment_plan && <div><p className="text-sm text-gray-500">Treatment Plan</p><p className="whitespace-pre-wrap">{caseData.diagnosis_management.treatment_plan}</p></div>}
+                {caseData.diagnosis_management.provisional_diagnosis && <div><p className="text-sm text-muted-foreground">Provisional Diagnosis</p><RichTextRenderer content={caseData.diagnosis_management.provisional_diagnosis} /></div>}
+                {caseData.diagnosis_management.differential_diagnoses && caseData.diagnosis_management.differential_diagnoses.length > 0 && <div><p className="text-sm text-muted-foreground">Differential Diagnoses</p><ul className="list-disc list-inside mt-1">{caseData.diagnosis_management.differential_diagnoses.map((ddx, i) => <li key={i}>{ddx}</li>)}</ul></div>}
+                {caseData.diagnosis_management.final_diagnosis && <div><p className="text-sm text-muted-foreground">Final Diagnosis</p><RichTextRenderer content={caseData.diagnosis_management.final_diagnosis} /></div>}
+                {caseData.diagnosis_management.treatment_plan && <div><p className="text-sm text-muted-foreground">Treatment Plan</p><RichTextRenderer content={caseData.diagnosis_management.treatment_plan} /></div>}
                 {caseData.diagnosis_management.medications_prescribed && caseData.diagnosis_management.medications_prescribed.length > 0 && (
                   <div>
-                    <p className="text-sm text-gray-500">Medications Prescribed</p>
-                    <div className="space-y-2 mt-1">
+                    <p className="text-sm text-muted-foreground">Medications Prescribed</p>
+                    <div className="space-y-2 mt-2">
                       {caseData.diagnosis_management.medications_prescribed.map((med, i) => (
                         <div key={i} className="border rounded-lg p-3">
                           <p className="font-semibold">{med.drug}</p>
-                          <p className="text-sm text-gray-500">{med.dose} • {med.frequency} • {med.duration}</p>
+                          <p className="text-sm text-muted-foreground">{med.dose} • {med.frequency} • {med.duration}</p>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-                {caseData.diagnosis_management.follow_up_plan && <div><p className="text-sm text-muted-foreground">Follow-up Plan</p><p className="whitespace-pre-wrap">{caseData.diagnosis_management.follow_up_plan}</p></div>}
-                {caseData.diagnosis_management.prognosis && <div><p className="text-sm text-muted-foreground">Prognosis</p><p className="whitespace-pre-wrap">{caseData.diagnosis_management.prognosis}</p></div>}
+                {caseData.diagnosis_management.follow_up_plan && <div><p className="text-sm text-muted-foreground">Follow-up Plan</p><RichTextRenderer content={caseData.diagnosis_management.follow_up_plan} /></div>}
+                {caseData.diagnosis_management.prognosis && <div><p className="text-sm text-muted-foreground">Prognosis</p><RichTextRenderer content={caseData.diagnosis_management.prognosis} /></div>}
                 {caseData.diagnosis_management.outcome && (
                   <div>
                     <p className="text-sm text-muted-foreground">Outcome</p>
-                    <p className="whitespace-pre-wrap">{caseData.diagnosis_management.outcome}</p>
+                    <RichTextRenderer content={caseData.diagnosis_management.outcome} />
                   </div>
                 )}
                 {caseData.diagnosis_management.reference_pdfs && caseData.diagnosis_management.reference_pdfs.length > 0 && (
                   <div className="pt-4 border-t">
-                    <p className="text-sm text-gray-500 font-semibold mb-2">Attached References</p>
+                    <p className="text-sm text-muted-foreground font-semibold mb-2">Attached References</p>
                     <div className="space-y-2">
                       {caseData.diagnosis_management.reference_pdfs.map((pdf, i) => (
-                        <div key={i} className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                        <div key={i} className="flex items-center gap-2 text-sm text-primary hover:underline font-medium">
                           <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                           </svg>
@@ -613,7 +614,11 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
               </CardHeader>
               <CardContent>
                 <ul className="list-disc list-inside space-y-2">
-                  {caseData.learning_points.map((point, i) => <li key={i}>{point}</li>)}
+                  {caseData.learning_points.map((point, i) => (
+                    <li key={i} className="text-sm text-foreground">
+                      <RichTextRenderer content={point} className="inline-block align-top" />
+                    </li>
+                  ))}
                 </ul>
               </CardContent>
             </Card>

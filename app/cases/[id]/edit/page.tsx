@@ -10,6 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/case/form/RichTextEditor';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -127,11 +128,13 @@ function ArrayInputField({
   label,
   placeholder,
   control,
+  useRichText = false,
 }: {
   name: any;
   label: string;
   placeholder: string;
   control: any;
+  useRichText?: boolean;
 }) {
   const { fields, append, remove } = useFieldArray({
     control,
@@ -143,19 +146,30 @@ function ArrayInputField({
       <Label>{label}</Label>
       <div className="space-y-2">
         {fields.map((field: any, index: number) => (
-          <div key={field.id} className="flex gap-2 items-center">
-            <Controller
-              name={`${name}.${index}`}
-              control={control}
-              render={({ field: controllerField }: any) => (
-                <Input
-                  placeholder={placeholder}
-                  {...controllerField}
-                  value={controllerField.value || ''}
-                />
-              )}
-            />
-            <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
+          <div key={field.id} className="flex gap-2 items-start">
+            <div className="flex-1">
+              <Controller
+                name={`${name}.${index}`}
+                control={control}
+                render={({ field: controllerField }: any) =>
+                  useRichText ? (
+                    <RichTextEditor
+                      placeholder={placeholder}
+                      value={controllerField.value || ''}
+                      onChange={controllerField.onChange}
+                      minHeight="70px"
+                    />
+                  ) : (
+                    <Input
+                      placeholder={placeholder}
+                      {...controllerField}
+                      value={controllerField.value || ''}
+                    />
+                  )
+                }
+              />
+            </div>
+            <Button type="button" variant="destructive" size="icon" className="shrink-0 mt-1" onClick={() => remove(index)}>
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -355,7 +369,7 @@ function InvestigationsFieldArray({ control }: { control: any }) {
               <Controller
                 name={`investigations.${index}.interpretation`}
                 control={control}
-                render={({ field: f }: any) => <Textarea placeholder="Interpretation" {...f} value={f.value || ''} />}
+                render={({ field: f }: any) => <RichTextEditor placeholder="Interpretation" value={f.value || ''} onChange={f.onChange} minHeight="80px" />}
               />
             </div>
             <div className="col-span-12 space-y-2">
@@ -883,7 +897,7 @@ export default function EditCasePage() {
                   <Controller
                     name="chief_complaint_history.chief_complaint"
                     control={control}
-                    render={({ field }: any) => <Input id="chief_complaint" placeholder="Chief complaint..." {...field} />}
+                    render={({ field }: any) => <RichTextEditor placeholder="Chief complaint..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                   />
                   {errors.chief_complaint_history?.chief_complaint && (
                     <p className="text-sm text-destructive">{errors.chief_complaint_history.chief_complaint.message}</p>
@@ -913,7 +927,7 @@ export default function EditCasePage() {
                     <Controller
                       name="chief_complaint_history.hpi_aggravating"
                       control={control}
-                      render={({ field }: any) => <Textarea placeholder="Aggravating factors..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <RichTextEditor placeholder="Aggravating factors..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                     />
                   </div>
                   <div className="space-y-2">
@@ -921,7 +935,7 @@ export default function EditCasePage() {
                     <Controller
                       name="chief_complaint_history.hpi_relieving"
                       control={control}
-                      render={({ field }: any) => <Textarea placeholder="Relieving factors..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <RichTextEditor placeholder="Relieving factors..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                     />
                   </div>
                 </div>
@@ -931,7 +945,7 @@ export default function EditCasePage() {
                   <Controller
                     name="chief_complaint_history.hpi_additional"
                     control={control}
-                    render={({ field }: any) => <Textarea id="hpi_additional" placeholder="Additional history..." rows={4} {...field} value={field.value || ''} />}
+                    render={({ field }: any) => <RichTextEditor placeholder="Additional history..." value={field.value || ''} onChange={field.onChange} minHeight="120px" />}
                   />
                   {errors.chief_complaint_history?.hpi_additional && (
                     <p className="text-sm text-destructive">{errors.chief_complaint_history.hpi_additional.message}</p>
@@ -942,7 +956,7 @@ export default function EditCasePage() {
                   <Controller
                     name="chief_complaint_history.associated_symptoms"
                     control={control}
-                    render={({ field }: any) => <Textarea placeholder="Associated symptoms..." {...field} value={field.value || ''} />}
+                    render={({ field }: any) => <RichTextEditor placeholder="Associated symptoms..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
                   />
                 </div>
                 <CustomFieldsSection sectionId="chief_complaint" sectionTitle="Chief Complaint" />
@@ -988,7 +1002,7 @@ export default function EditCasePage() {
                     <Controller
                       name="medical_history.custom_medical_history"
                       control={control}
-                      render={({ field }: any) => <Input placeholder="Other conditions..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <RichTextEditor placeholder="Clinical history details..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
                     />
                   </div>
                 </CardContent>
@@ -1000,7 +1014,7 @@ export default function EditCasePage() {
                     <Controller
                       name="medical_history.family_history"
                       control={control}
-                      render={({ field }: any) => <Textarea placeholder="Family history..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <RichTextEditor placeholder="Family history..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
                     />
                   </CardContent>
                 </Card>
@@ -1067,9 +1081,9 @@ export default function EditCasePage() {
                     <div key={item.key} className="space-y-2">
                       <Label>{item.label}</Label>
                       <Controller
-                        name={`review_of_systems.${item.key}` as any} 
+                        name={`review_of_systems.${item.key}` as any}
                         control={control}
-                        render={({ field }: any) => <Textarea placeholder={`${item.label}...`} {...field} value={field.value || ''} />}
+                        render={({ field }: any) => <RichTextEditor placeholder={`${item.label}...`} value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                       />
                     </div>
                   ))}
@@ -1088,7 +1102,7 @@ export default function EditCasePage() {
                   <Controller
                     name="examination_findings.general_appearance"
                     control={control}
-                    render={({ field }: any) => <Textarea placeholder="General appearance..." {...field} value={field.value || ''} />}
+                    render={({ field }: any) => <RichTextEditor placeholder="General appearance..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
                   />
                   {errors.examination_findings?.general_appearance && (
                     <p className="text-sm text-destructive mt-2">{errors.examination_findings.general_appearance.message}</p>
@@ -1149,7 +1163,7 @@ export default function EditCasePage() {
                       <Controller
                         name={`examination_findings.systemic.${item.key}` as any}
                         control={control}
-                        render={({ field }: any) => <Textarea placeholder={`${item.label}...`} {...field} value={field.value || ''} />}
+                        render={({ field }: any) => <RichTextEditor placeholder={`${item.label}...`} value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                       />
                     </div>
                   ))}
@@ -1205,7 +1219,7 @@ export default function EditCasePage() {
                     <Controller
                       name="diagnosis_management.provisional_diagnosis"
                       control={control}
-                      render={({ field }: any) => <Input placeholder="Provisional diagnosis..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <RichTextEditor placeholder="Provisional diagnosis..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                     />
                   </div>
                   <div className="space-y-2">
@@ -1221,7 +1235,7 @@ export default function EditCasePage() {
                     <Controller
                       name="diagnosis_management.final_diagnosis"
                       control={control}
-                      render={({ field }: any) => <Input id="final_diagnosis" placeholder="Final diagnosis..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <RichTextEditor placeholder="Final diagnosis..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                     />
                     {errors.diagnosis_management?.final_diagnosis && (
                       <p className="text-sm text-destructive">{errors.diagnosis_management.final_diagnosis.message}</p>
@@ -1237,7 +1251,7 @@ export default function EditCasePage() {
                     <Controller
                       name="diagnosis_management.treatment_plan"
                       control={control}
-                      render={({ field }: any) => <Textarea id="treatment_plan" placeholder="Treatment plan..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <RichTextEditor placeholder="Treatment plan..." value={field.value || ''} onChange={field.onChange} minHeight="120px" />}
                     />
                     {errors.diagnosis_management?.treatment_plan && (
                       <p className="text-sm text-destructive">{errors.diagnosis_management.treatment_plan.message}</p>
@@ -1253,7 +1267,7 @@ export default function EditCasePage() {
                       <Controller
                         name="diagnosis_management.follow_up_plan"
                         control={control}
-                        render={({ field }: any) => <Textarea placeholder="Follow-up..." {...field} value={field.value || ''} />}
+                        render={({ field }: any) => <RichTextEditor placeholder="Follow-up..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
                       />
                     </div>
                     <div className="space-y-2">
@@ -1261,7 +1275,7 @@ export default function EditCasePage() {
                       <Controller
                         name="diagnosis_management.prognosis"
                         control={control}
-                        render={({ field }: any) => <Textarea placeholder="Prognosis..." {...field} value={field.value || ''} />}
+                        render={({ field }: any) => <RichTextEditor placeholder="Prognosis..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
                       />
                     </div>
                   </div>
@@ -1271,7 +1285,7 @@ export default function EditCasePage() {
                     <Controller
                       name="diagnosis_management.outcome"
                       control={control}
-                      render={({ field }: any) => <Textarea id="outcome" placeholder="Patient outcome..." {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <RichTextEditor placeholder="Patient outcome..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
                     />
                     {errors.diagnosis_management?.outcome && (
                       <p className="text-sm text-destructive">{errors.diagnosis_management.outcome.message}</p>

@@ -6,6 +6,7 @@ import { Plus, X, Type, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/case/form/RichTextEditor';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -91,7 +92,7 @@ export function CustomFieldsSection({ sectionId, sectionTitle }: CustomFieldsSec
                     </Label>
                     <Badge
                       variant="outline"
-                      className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700"
+                      className="text-xs px-1.5 py-0 bg-amber-100 text-amber-950 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-700 font-medium"
                     >
                       Custom
                     </Badge>
@@ -113,12 +114,12 @@ export function CustomFieldsSection({ sectionId, sectionTitle }: CustomFieldsSec
                   control={control}
                   render={({ field: inputField }: any) =>
                     customField.type === 'textarea' ? (
-                      <Textarea
+                      <RichTextEditor
                         placeholder={`Enter ${customField.label.toLowerCase()}...`}
-                        {...inputField}
                         value={inputField.value || ''}
+                        onChange={inputField.onChange}
                         className="bg-background text-sm"
-                        rows={3}
+                        minHeight="90px"
                       />
                     ) : (
                       <Input
@@ -138,13 +139,13 @@ export function CustomFieldsSection({ sectionId, sectionTitle }: CustomFieldsSec
 
       {/* Inline Mini-Form to Add New Custom Field */}
       {isAdding ? (
-        <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-4">
+        <Card className="border-amber-400/80 bg-amber-50/60 dark:bg-amber-950/30 p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <span>Add Custom Field</span>
               <Badge
                 variant="outline"
-                className="text-[10px] bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-200"
+                className="text-xs px-1.5 py-0 bg-amber-100 text-amber-950 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-700 font-medium"
               >
                 This Case Only
               </Badge>
@@ -205,12 +206,12 @@ export function CustomFieldsSection({ sectionId, sectionTitle }: CustomFieldsSec
             <div className="space-y-1.5">
               <Label className="text-xs">Initial Value (Optional)</Label>
               {newType === 'textarea' ? (
-                <Textarea
+                <RichTextEditor
                   placeholder="Enter initial value..."
                   value={newValue}
-                  onChange={(e) => setNewValue(e.target.value)}
+                  onChange={setNewValue}
                   className="text-sm bg-background"
-                  rows={2}
+                  minHeight="80px"
                 />
               ) : (
                 <Input

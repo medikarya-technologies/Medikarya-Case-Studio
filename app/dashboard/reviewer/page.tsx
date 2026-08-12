@@ -46,11 +46,11 @@ const ReviewerCaseCard = memo(function ReviewerCaseCard({
           <StatusBadge status={caseItem.status} />
         </div>
         <div className="flex flex-wrap gap-1.5 pt-2">
-          <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">
+          <Badge variant="secondary" className="text-xs bg-secondary/15 text-secondary border-secondary/30 dark:bg-secondary/30 dark:text-secondary-foreground font-medium">
             {completeness.score}% Complete
           </Badge>
           {resubmitCount > 0 && (
-            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700">
+            <Badge variant="outline" className="text-xs bg-amber-100 text-amber-950 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-700 font-medium">
               Resubmitted {resubmitCount}x
             </Badge>
           )}
@@ -79,7 +79,7 @@ const ReviewerCaseCard = memo(function ReviewerCaseCard({
               <Button
                 variant="outline"
                 size="sm"
-                className="text-[#16A34A] border-[#16A34A] hover:bg-green-50"
+                className="text-emerald-700 border-emerald-500 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-600 dark:hover:bg-emerald-950/40"
                 onClick={() => onApproveClick(caseItem)}
                 disabled={isProcessing}
               >
@@ -89,7 +89,7 @@ const ReviewerCaseCard = memo(function ReviewerCaseCard({
               <Button
                 variant="outline"
                 size="sm"
-                className="text-[#D97706] border-[#D97706] hover:bg-amber-50"
+                className="text-amber-800 border-amber-500 hover:bg-amber-50 dark:text-amber-300 dark:border-amber-600 dark:hover:bg-amber-950/40"
                 onClick={() => onRequestChangesClick(caseItem)}
                 disabled={isProcessing}
               >
