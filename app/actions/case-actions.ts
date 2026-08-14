@@ -358,3 +358,189 @@ export async function setPortfolioPublicAction(isPublic: boolean): Promise<void>
 export async function fetchPublicPortfolioAction(userId: string) {
   return getPublicPortfolio(userId);
 }
+
+export interface AuthorCaseSummary {
+  authorId: string;
+  name: string;
+  email: string;
+  totalCases: number;
+  completedCases: number;
+  incompleteCases: number;
+  submittedCases: number;
+  approvedCases: number;
+  changesRequestedCases: number;
+  cases: Case[];
+}
+
+export interface AuthorCaseSummaryOverview {
+  authors: AuthorCaseSummary[];
+  totalAuthors: number;
+  totalCases: number;
+  totalSubmitted: number;
+  totalApproved: number;
+  totalChangesRequested: number;
+}
+
+export async function fetchAuthorCaseSummary(): Promise<AuthorCaseSummaryOverview> {
+  const user = await getOrCreateCurrentUser();
+  if (user.role !== 'reviewer' && user.role !== 'admin') {
+    throw new Error('Only reviewers can access author case tracking summaries');
+  }
+
+  const { getCaseCompleteness } = await import('@/lib/case-completeness');
+  const supabase = (await import('@/lib/supabase/server')).createServiceClient();
+
+  // Fetch all users with role = 'author'
+  const { data: authorsData, error: authorsError } = await supabase
+    .from('users')
+    .select('id, name, email, role')
+    .eq('role', 'author')
+    .order('name', { ascending: true });
+
+  if (authorsError) {
+    console.error('Error fetching author users:', authorsError);
+    throw authorsError;
+  }
+
+  // Fetch all cases with author and reviews join
+  const { data: casesData, error: casesError } = await supabase
+    .from('cases')
+    .select('*, author:users!author_id(id, name, email), reviews:case_reviews(*)')
+    .order('updated_at', { ascending: false });
+
+  if (casesError) {
+    console.error('Error fetching cases for author summary:', casesError);
+    throw casesError;
+  }
+
+  const allCases = (casesData as Case[]) || [];
+  const authorUsers = (authorsData as { id: string; name: string; email: string }[]) || [];
+
+  // Group cases by author_id
+  const casesByAuthorMap = new Map<string, Case[]>();
+  for (const c of allCases) {
+    if (!casesByAuthorMap.has(c.author_id)) {
+      casesByAuthorMap.set(c.author_id, []);
+    }
+    casesByAuthorMap.get(c.author_id)!.push(c);
+  }
+
+  // Construct summaries per author (only authors who have created cases, or role = author)
+  const summaries: AuthorCaseSummary[] = [];
+
+  for (const author of authorUsers) {
+    const authorCases = casesByAuthorMap.get(author.id) || [];
+    
+    // Only include authors with at least 1 case created
+    if (authorCases.length === 0) continue;
+
+    let completedCount = 0;
+    let incompleteCount = 0;
+    let submittedCount = 0;
+    let approvedCount = 0;
+    let changesRequestedCount = 0;
+
+    for (const c of authorCases) {
+      const completeness = getCaseCompleteness(c);
+      if (completeness.incompleteItems.length === 0) {
+        completedCount += 1;
+      } else {
+        incompleteCount += 1;
+      }
+
+      if (c.status === 'submitted') submittedCount += 1;
+      else if (c.status === 'approved') approvedCount += 1;
+      else if (c.status === 'changes_requested') changesRequestedCount += 1;
+    }
+
+    summaries.push({
+      authorId: author.id,
+      name: author.name,
+      email: author.email,
+      totalCases: authorCases.length,
+      completedCases: completedCount,
+      incompleteCases: incompleteCount,
+      submittedCases: submittedCount,
+      approvedCases: approvedCount,
+      changesRequestedCases: changesRequestedCount,
+      cases: authorCases,
+    });
+  }
+
+  // Also check if there are cases belonging to authors not in authorUsers (edge case fallback)
+  // (In case a user role changed or wasn't marked as author)
+  for (const [authorId, authorCases] of casesByAuthorMap.entries()) {
+    if (!authorUsers.some((u) => u.id === authorId) && authorCases.length > 0) {
+      const firstCase = authorCases[0];
+      const authorInfo = firstCase.author;
+      
+      // Verify user's role if possible
+      const { data: userRoleData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', authorId)
+        .single();
+
+      if (userRoleData?.role === 'author') {
+        let completedCount = 0;
+        let incompleteCount = 0;
+        let submittedCount = 0;
+        let approvedCount = 0;
+        let changesRequestedCount = 0;
+
+        for (const c of authorCases) {
+          const completeness = getCaseCompleteness(c);
+          if (completeness.incompleteItems.length === 0) {
+            completedCount += 1;
+          } else {
+            incompleteCount += 1;
+          }
+
+          if (c.status === 'submitted') submittedCount += 1;
+          else if (c.status === 'approved') approvedCount += 1;
+          else if (c.status === 'changes_requested') changesRequestedCount += 1;
+        }
+
+        summaries.push({
+          authorId,
+          name: authorInfo?.name || 'Unknown Author',
+          email: authorInfo?.email || '',
+          totalCases: authorCases.length,
+          completedCases: completedCount,
+          incompleteCases: incompleteCount,
+          submittedCases: submittedCount,
+          approvedCases: approvedCount,
+          changesRequestedCases: changesRequestedCount,
+          cases: authorCases,
+        });
+      }
+    }
+  }
+
+  // Default sort: authors with most pending/submitted cases first, then totalCases desc
+  summaries.sort((a, b) => {
+    if (b.submittedCases !== a.submittedCases) {
+      return b.submittedCases - a.submittedCases;
+    }
+    if (b.changesRequestedCases !== a.changesRequestedCases) {
+      return b.changesRequestedCases - a.changesRequestedCases;
+    }
+    return b.totalCases - a.totalCases;
+  });
+
+  const totalAuthors = summaries.length;
+  const totalCases = summaries.reduce((acc, s) => acc + s.totalCases, 0);
+  const totalSubmitted = summaries.reduce((acc, s) => acc + s.submittedCases, 0);
+  const totalApproved = summaries.reduce((acc, s) => acc + s.approvedCases, 0);
+  const totalChangesRequested = summaries.reduce((acc, s) => acc + s.changesRequestedCases, 0);
+
+  return {
+    authors: summaries,
+    totalAuthors,
+    totalCases,
+    totalSubmitted,
+    totalApproved,
+    totalChangesRequested,
+  };
+}
+
