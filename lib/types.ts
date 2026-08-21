@@ -7,7 +7,21 @@ export interface User {
   email: string;
   role: UserRole;
   portfolio_public?: boolean;
+  name_edited_once?: boolean;
   created_at: string;
+}
+
+export type NameChangeRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface NameChangeRequest {
+  id: string;
+  user_id: string;
+  requested_name: string;
+  status: NameChangeRequestStatus;
+  created_at: string;
+  resolved_at?: string | null;
+  resolved_by?: string | null;
+  user?: User;
 }
 
 export type CaseStatus = 'draft' | 'submitted' | 'approved' | 'changes_requested';
@@ -27,6 +41,7 @@ export type MedicalSpecialty =
 
 // --- Patient Details ---
 export interface PatientDetails {
+  patient_name?: string;
   patient_id?: string;
   age?: number;
   gender?: 'male' | 'female' | 'other';
@@ -89,6 +104,16 @@ export interface VitalSigns {
   bmi?: number;
 }
 
+export interface LocalExamination {
+  location_extent?: string;
+  surface_margins?: string;
+  consistency?: string;
+  tenderness?: string;
+  mobility_fixity?: string;
+  regional_lymph_nodes?: string;
+  other_local_findings?: string;
+}
+
 export interface SystemicExamination {
   cardiovascular?: string;
   respiratory?: string;
@@ -102,6 +127,7 @@ export interface SystemicExamination {
 export interface ExaminationFindings {
   general_appearance?: string;
   vital_signs: VitalSigns;
+  local?: LocalExamination;
   systemic: SystemicExamination;
 }
 
@@ -174,6 +200,7 @@ export interface Case {
   approved_at: string | null;
   assigned_reviewer_id?: string | null;
   added_to_platform?: boolean;
+  original_author_name?: string | null;
   author?: User;
   reviews?: CaseReview[];
 

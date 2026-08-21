@@ -30,6 +30,11 @@ import {
   setPortfolioPublic,
   getPublicPortfolio,
   updateCaseAddedToPlatform,
+  updateUserName,
+  createNameChangeRequest,
+  getPendingNameChangeRequests,
+  getUserLatestNameChangeRequest,
+  resolveNameChangeRequest,
 } from '@/lib/supabase/queries';
 import type { CaseFormData } from '@/lib/case-schema';
 import type {
@@ -38,6 +43,7 @@ import type {
   CaseComment,
   Notification,
   AnalyticsSummary,
+  NameChangeRequest,
 } from '@/lib/types';
 import { validateCaseForSubmit } from '@/lib/case-submit-validation';
 import { caseTemplates } from '@/lib/caseTemplates';
@@ -554,5 +560,50 @@ export async function toggleCaseAddedToPlatformAction(
     throw new Error('Only admins can update platform status');
   }
   await updateCaseAddedToPlatform(caseId, addedToPlatform);
+}
+
+export async function firstTimeEditNameAction(newName: string): Promise<void> {
+  const user = await getOrCreateCurrentUser();
+  if (user.name_edited_once) {
+    throw new Error('You have already edited your name once. Please submit a name change request for further changes.');
+  }
+  const trimmed = newName.trim();
+  if (!trimmed) {
+    throw new Error('Name cannot be empty.');
+  }
+  await updateUserName(user.id, trimmed, true);
+}
+
+export async function requestNameChangeAction(requestedName: string): Promise<NameChangeRequest> {
+  const user = await getOrCreateCurrentUser();
+  const trimmed = requestedName.trim();
+  if (!trimmed) {
+    throw new Error('Requested name cannot be empty.');
+  }
+  return createNameChangeRequest(user.id, trimmed);
+}
+
+export async function fetchPendingNameChangeRequestsAction(): Promise<NameChangeRequest[]> {
+  const user = await getOrCreateCurrentUser();
+  if (user.role !== 'admin') {
+    throw new Error('Only admins can view pending name change requests.');
+  }
+  return getPendingNameChangeRequests();
+}
+
+export async function resolveNameChangeRequestAction(
+  requestId: string,
+  status: 'approved' | 'rejected'
+): Promise<void> {
+  const user = await getOrCreateCurrentUser();
+  if (user.role !== 'admin') {
+    throw new Error('Only admins can resolve name change requests.');
+  }
+  await resolveNameChangeRequest(requestId, status, user.id);
+}
+
+export async function fetchMyNameChangeRequestAction(): Promise<NameChangeRequest | null> {
+  const user = await getOrCreateCurrentUser();
+  return getUserLatestNameChangeRequest(user.id);
 }
 

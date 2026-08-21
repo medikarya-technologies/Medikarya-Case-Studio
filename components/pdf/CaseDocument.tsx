@@ -393,6 +393,10 @@ function RunningFooter() {
 }
 
 function PatientBanner({ caseData, author }: { caseData: Case; author?: User }) {
+  const authorLine = caseData.original_author_name
+    ? `Written by: ${caseData.original_author_name}   |   Uploaded by: ${author?.name || 'Medical Contributor'}`
+    : `Author: ${author?.name || 'Medical Contributor'}`;
+
   return (
     <View style={styles.banner}>
       <View style={styles.bannerTop}>
@@ -401,7 +405,7 @@ function PatientBanner({ caseData, author }: { caseData: Case; author?: User }) 
       </View>
       <Text style={styles.caseTitle}>{caseData.title}</Text>
       <Text style={styles.caseMeta}>
-        Specialty: {formatSpecialtyLabel(caseData.specialty)}   |   Difficulty: {caseData.difficulty.toUpperCase()}   |   Author: {author?.name || 'Medical Contributor'}
+        Specialty: {formatSpecialtyLabel(caseData.specialty)}   |   Difficulty: {caseData.difficulty.toUpperCase()}   |   {authorLine}
       </Text>
     </View>
   );
@@ -415,6 +419,12 @@ function DemographicsBox({ caseData }: { caseData: Case }) {
     <View style={styles.demographicsBox}>
       <Text style={styles.demographicsTitle}>Patient Demographics</Text>
       <View style={styles.grid}>
+        {pd.patient_name && (
+          <View style={[styles.gridCol, { width: '100%', marginBottom: 2 }]}>
+            <Text style={styles.gridLabel}>Patient Name: </Text>
+            <Text style={[styles.gridValue, { fontFamily: pdfTheme.fonts.bodyBold }]}>{pd.patient_name}</Text>
+          </View>
+        )}
         <View style={styles.gridCol}>
           <Text style={styles.gridLabel}>Patient ID:</Text>
           <Text style={styles.gridValue}>{pd.patient_id || 'N/A'}</Text>
@@ -439,6 +449,44 @@ function DemographicsBox({ caseData }: { caseData: Case }) {
         </View>
       </View>
       <PDFCustomFields customFields={caseData.custom_fields} sectionId="patient_details" />
+    </View>
+  );
+}
+
+function LocalExamBox({ local }: { local?: any }) {
+  if (!local) return null;
+  const items = [
+    { label: 'Location & Extent', val: local.location_extent },
+    { label: 'Surface & Margins', val: local.surface_margins },
+    { label: 'Consistency', val: local.consistency },
+    { label: 'Tenderness', val: local.tenderness },
+    { label: 'Mobility / Fixity', val: local.mobility_fixity },
+    { label: 'Regional Lymph Nodes', val: local.regional_lymph_nodes },
+  ].filter(i => !!i.val);
+
+  if (items.length === 0 && !local.other_local_findings) return null;
+
+  return (
+    <View style={{ marginTop: 6 }} wrap={false}>
+      <Text style={[styles.boldLabel, { fontSize: 9.5, marginTop: 4, marginBottom: 2 }]}>
+        2. Local Examination:
+      </Text>
+      {items.length > 0 && (
+        <View style={styles.grid}>
+          {items.map((item, idx) => (
+            <View key={idx} style={[styles.gridCol, { width: '50%' }]}>
+              <Text style={styles.gridLabel}>{item.label}: </Text>
+              <Text style={styles.gridValue}>{item.val}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+      {local.other_local_findings && (
+        <View style={[styles.paragraph, { marginTop: 3 }]}>
+          <Text style={styles.boldLabel}>Other Local Findings: </Text>
+          <PDFRichText content={local.other_local_findings} primaryColor={pdfTheme.colors.primary} />
+        </View>
+      )}
     </View>
   );
 }
@@ -811,18 +859,30 @@ export function CaseDocument({
         {/* 3. Examination Findings */}
         {exam && (
           <ClinicalSection title="Examination Findings">
-            {exam.general_appearance && (
-              <View style={styles.paragraph}>
-                <Text style={styles.boldLabel}>General Appearance: </Text>
-                <PDFRichText content={exam.general_appearance} primaryColor={pdfTheme.colors.primary} />
-              </View>
-            )}
-            {/* Vitals Grid Table */}
-            <VitalSignsBox exam={exam} />
-            {/* Systemic Exam */}
+            {/* Sub-section 1: General Physical Examination */}
+            <View wrap={false}>
+              <Text style={[styles.boldLabel, { fontSize: 9.5, color: pdfTheme.colors.primary, marginBottom: 2 }]}>
+                1. General Physical Examination:
+              </Text>
+              {exam.general_appearance && (
+                <View style={styles.paragraph}>
+                  <Text style={styles.boldLabel}>General Appearance: </Text>
+                  <PDFRichText content={exam.general_appearance} primaryColor={pdfTheme.colors.primary} />
+                </View>
+              )}
+              {/* Vitals Grid Table */}
+              <VitalSignsBox exam={exam} />
+            </View>
+
+            {/* Sub-section 2: Local Examination */}
+            <LocalExamBox local={exam.local} />
+
+            {/* Sub-section 3: Systemic Examination */}
             {exam.systemic && Object.values(exam.systemic).some(Boolean) && (
-              <View style={{ marginTop: 6 }}>
-                <Text style={styles.boldLabel}>Systemic Examination:</Text>
+              <View style={{ marginTop: 6 }} wrap={false}>
+                <Text style={[styles.boldLabel, { fontSize: 9.5, color: pdfTheme.colors.primary, marginBottom: 2 }]}>
+                  3. Systemic Examination:
+                </Text>
                 <View style={styles.grid}>
                   {exam.systemic.cardiovascular && (
                     <View style={[styles.gridCol, { width: '50%' }]}>
@@ -862,7 +922,7 @@ export function CaseDocument({
                   )}
                   {exam.systemic.thyroid && (
                     <View style={[styles.gridCol, { width: '50%' }]}>
-                      <Text style={styles.gridLabel}>Thyroid: </Text>
+                      <Text style={styles.gridLabel}>Thyroid & Endocrine: </Text>
                       <PDFRichText content={exam.systemic.thyroid} primaryColor={pdfTheme.colors.primary} />
                     </View>
                   )}
