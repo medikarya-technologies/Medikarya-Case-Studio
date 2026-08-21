@@ -79,7 +79,7 @@ const ReviewerCaseCard = memo(function ReviewerCaseCard({
               <Button
                 variant="outline"
                 size="sm"
-                className="text-emerald-700 border-emerald-500 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-600 dark:hover:bg-emerald-950/40"
+                className="text-emerald-700 border-emerald-500 bg-emerald-50/50 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 dark:text-emerald-400 dark:border-emerald-600 dark:hover:bg-emerald-600 dark:hover:text-white transition-colors"
                 onClick={() => onApproveClick(caseItem)}
                 disabled={isProcessing}
               >
@@ -89,7 +89,7 @@ const ReviewerCaseCard = memo(function ReviewerCaseCard({
               <Button
                 variant="outline"
                 size="sm"
-                className="text-amber-800 border-amber-500 hover:bg-amber-50 dark:text-amber-300 dark:border-amber-600 dark:hover:bg-amber-950/40"
+                className="text-amber-800 border-amber-500 bg-amber-50/50 hover:bg-amber-600 hover:text-white hover:border-amber-600 dark:text-amber-300 dark:border-amber-600 dark:hover:bg-amber-600 dark:hover:text-white transition-colors"
                 onClick={() => onRequestChangesClick(caseItem)}
                 disabled={isProcessing}
               >

@@ -173,6 +173,7 @@ export interface Case {
   updated_at: string;
   approved_at: string | null;
   assigned_reviewer_id?: string | null;
+  added_to_platform?: boolean;
   author?: User;
   reviews?: CaseReview[];
 

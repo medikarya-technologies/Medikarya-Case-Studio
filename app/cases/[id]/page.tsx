@@ -215,7 +215,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
             <div className="flex gap-2 shrink-0">
               <Button
                 variant="outline"
-                className="text-amber-700 border-amber-400 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300"
+                className="text-amber-800 border-amber-500 bg-amber-50 hover:bg-amber-600 hover:text-white hover:border-amber-600 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-600 dark:hover:text-white transition-colors"
                 onClick={() => setIsRequestChangesOpen(true)}
               >
                 <XCircle className="w-4 h-4 mr-2" />
@@ -252,7 +252,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 variant="outline"
                 size="sm"
                 onClick={() => scrollToSection(item.sectionId)}
-                className="h-7 text-xs bg-amber-50 hover:bg-amber-200/80 dark:bg-amber-900/60 dark:hover:bg-amber-800/80 border-amber-400 dark:border-amber-600 gap-1.5 text-amber-950 dark:text-amber-100 font-medium"
+                className="h-7 text-xs bg-amber-50 hover:bg-amber-200/80 hover:text-amber-950 dark:bg-amber-900/60 dark:hover:bg-amber-800/80 dark:hover:text-amber-100 border-amber-400 dark:border-amber-600 gap-1.5 text-amber-950 dark:text-amber-100 font-medium transition-colors"
               >
                 <span>{item.sectionTitle}:</span>
                 <span className="font-semibold">{item.fieldName}</span>
