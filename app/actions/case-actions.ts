@@ -29,6 +29,7 @@ import {
   getApprovedCasesByAuthor,
   setPortfolioPublic,
   getPublicPortfolio,
+  updateCaseAddedToPlatform,
 } from '@/lib/supabase/queries';
 import type { CaseFormData } from '@/lib/case-schema';
 import type {
@@ -542,5 +543,16 @@ export async function fetchAuthorCaseSummary(): Promise<AuthorCaseSummaryOvervie
     totalApproved,
     totalChangesRequested,
   };
+}
+
+export async function toggleCaseAddedToPlatformAction(
+  caseId: string,
+  addedToPlatform: boolean
+): Promise<void> {
+  const user = await getOrCreateCurrentUser();
+  if (user.role !== 'admin') {
+    throw new Error('Only admins can update platform status');
+  }
+  await updateCaseAddedToPlatform(caseId, addedToPlatform);
 }
 

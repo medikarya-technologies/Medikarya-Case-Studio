@@ -5,42 +5,109 @@ import Link from 'next/link';
 import { Eye, Edit, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/case/StatusBadge';
 import { CaseListFilters, filterCases } from '@/components/case/CaseListFilters';
 import { Case, CaseStatus } from '@/lib/types';
-import { fetchAllCases } from '@/app/actions/case-actions';
+import { fetchAllCases, toggleCaseAddedToPlatformAction } from '@/app/actions/case-actions';
 import { useAuth } from '@clerk/nextjs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
-const AdminCaseRow = memo(function AdminCaseRow({ caseItem }: { caseItem: Case }) {
+function cn(...inputs: any[]) {
+  return twMerge(clsx(inputs));
+}
+
+interface AdminCaseRowProps {
+  caseItem: Case;
+  onToggleAdded: (caseId: string, currentAdded: boolean) => Promise<void>;
+}
+
+const AdminCaseRow = memo(function AdminCaseRow({ caseItem, onToggleAdded }: AdminCaseRowProps) {
   const canEdit = caseItem.status === 'draft' || caseItem.status === 'changes_requested';
+  const isAdded = !!caseItem.added_to_platform;
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleToggle = async () => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    try {
+      await onToggleAdded(caseItem.id, isAdded);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
-    <div className="border border-border rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-muted/30 hover:shadow-sm transition-all">
+    <div className="border border-border rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/30 hover:shadow-sm transition-all">
       <div className="flex-1 min-w-0">
-        <h3 className="font-semibold truncate">{caseItem.title}</h3>
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
+        <h3 className="font-semibold truncate text-foreground">{caseItem.title}</h3>
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap text-sm">
           <StatusBadge status={caseItem.status as CaseStatus} />
-          <span className="text-sm text-muted-foreground">
+          
+          {/* Platform Added Badge */}
+          {isAdded ? (
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-700 font-medium">
+              Added
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 font-medium">
+              Not Added
+            </Badge>
+          )}
+
+          <span className="text-xs text-muted-foreground">
             Created {new Date(caseItem.created_at).toLocaleDateString()}
           </span>
         </div>
       </div>
-      <div className="flex gap-2 shrink-0">
-        <Link href={`/cases/${caseItem.id}`}>
-          <Button variant="secondary" size="sm" className="min-h-[36px]">
-            <Eye className="h-4 w-4 mr-1" />
-            View
-          </Button>
-        </Link>
-        {canEdit && (
-          <Link href={`/cases/${caseItem.id}/edit`}>
-            <Button variant="outline" size="sm" className="min-h-[36px]">
-              <Edit className="h-4 w-4 mr-1" />
-              Edit
+
+      <div className="flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
+        {/* Toggle Switch */}
+        <div className="flex items-center gap-2 bg-muted/40 border border-border/60 px-3 py-1.5 rounded-lg">
+          <span className="text-xs font-medium text-muted-foreground">Platform:</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isAdded}
+            onClick={handleToggle}
+            disabled={isUpdating}
+            className={cn(
+              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50",
+              isAdded ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"
+            )}
+            title={isAdded ? "Mark as Not Added" : "Mark as Added to Platform"}
+          >
+            <span
+              className={cn(
+                "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out",
+                isAdded ? "translate-x-4" : "translate-x-0"
+              )}
+            />
+          </button>
+          <span className={cn("text-xs font-semibold min-w-[58px]", isAdded ? "text-emerald-700 dark:text-emerald-400" : "text-slate-600 dark:text-slate-400")}>
+            {isAdded ? "Added" : "Not Added"}
+          </span>
+        </div>
+
+        <div className="flex gap-2">
+          <Link href={`/cases/${caseItem.id}`}>
+            <Button variant="secondary" size="sm" className="min-h-[36px]">
+              <Eye className="h-4 w-4 mr-1" />
+              View
             </Button>
           </Link>
-        )}
+          {canEdit && (
+            <Link href={`/cases/${caseItem.id}/edit`}>
+              <Button variant="outline" size="sm" className="min-h-[36px]">
+                <Edit className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -54,6 +121,7 @@ export default function AdminCasesPage() {
   const [search, setSearch] = useState('');
   const [specialty, setSpecialty] = useState('all');
   const [status, setStatus] = useState('all');
+  const [addedFilter, setAddedFilter] = useState('all');
 
   const fetchCases = useCallback(async (retryCount = 0) => {
     setIsLoading(true);
@@ -78,17 +146,40 @@ export default function AdminCasesPage() {
     fetchCases();
   }, [isLoaded, isSignedIn, fetchCases]);
 
+  const handleToggleAdded = useCallback(async (caseId: string, currentAdded: boolean) => {
+    const nextValue = !currentAdded;
+    // Optimistic update
+    setCases((prev) =>
+      prev.map((c) => (c.id === caseId ? { ...c, added_to_platform: nextValue } : c))
+    );
+
+    try {
+      await toggleCaseAddedToPlatformAction(caseId, nextValue);
+      toast.success(
+        nextValue ? 'Case marked as Added to Platform' : 'Case marked as Not Added'
+      );
+    } catch (error) {
+      // Revert on error
+      setCases((prev) =>
+        prev.map((c) => (c.id === caseId ? { ...c, added_to_platform: currentAdded } : c))
+      );
+      toast.error('Failed to update platform status');
+    }
+  }, []);
+
   const filteredCases = useMemo(
-    () => filterCases(cases, search, specialty, status),
-    [cases, search, specialty, status]
+    () => filterCases(cases, search, specialty, status, addedFilter),
+    [cases, search, specialty, status, addedFilter]
   );
 
-  const hasActiveFilters = search.trim() !== '' || specialty !== 'all' || status !== 'all';
+  const hasActiveFilters =
+    search.trim() !== '' || specialty !== 'all' || status !== 'all' || addedFilter !== 'all';
 
   const clearFilters = useCallback(() => {
     setSearch('');
     setSpecialty('all');
     setStatus('all');
+    setAddedFilter('all');
   }, []);
 
   if (isLoading) {
@@ -115,7 +206,7 @@ export default function AdminCasesPage() {
       <div>
         <h1>All Cases</h1>
         <p className="text-muted-foreground mt-2">
-          View and manage every case across the platform
+          View and manage every case across the platform and track real case additions
         </p>
       </div>
 
@@ -127,6 +218,8 @@ export default function AdminCasesPage() {
           onSpecialtyChange={setSpecialty}
           status={status}
           onStatusChange={setStatus}
+          addedFilter={addedFilter}
+          onAddedFilterChange={setAddedFilter}
           onClear={clearFilters}
           hasActiveFilters={hasActiveFilters}
         />
@@ -162,7 +255,11 @@ export default function AdminCasesPage() {
           ) : (
             <div className="space-y-2">
               {filteredCases.map((caseItem) => (
-                <AdminCaseRow key={caseItem.id} caseItem={caseItem} />
+                <AdminCaseRow
+                  key={caseItem.id}
+                  caseItem={caseItem}
+                  onToggleAdded={handleToggleAdded}
+                />
               ))}
             </div>
           )}

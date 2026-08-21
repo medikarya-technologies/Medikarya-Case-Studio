@@ -638,3 +638,19 @@ export async function getPublicPortfolio(userId: string): Promise<{ user: User; 
   const cases = await getApprovedCasesByAuthor(userId);
   return { user: user as User, cases };
 }
+
+export async function updateCaseAddedToPlatform(
+  caseId: string,
+  addedToPlatform: boolean
+): Promise<void> {
+  const supabase = createServiceClient();
+  const { error } = await supabase
+    .from('cases')
+    .update({ added_to_platform: addedToPlatform })
+    .eq('id', caseId);
+
+  if (error) {
+    logSupabaseError('updateCaseAddedToPlatform', error);
+    throw error;
+  }
+}

@@ -185,7 +185,7 @@ export function AttachmentUploader({
             type="button"
             variant="outline"
             size="sm"
-            className="mt-1 text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-100/50"
+            className="mt-1 text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-100/50 hover:text-emerald-950"
             onClick={(e) => {
               e.stopPropagation();
               fileInputRef.current?.click();

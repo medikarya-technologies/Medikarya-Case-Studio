@@ -30,6 +30,8 @@ interface CaseListFiltersProps {
   onSpecialtyChange: (value: string) => void;
   status: string;
   onStatusChange: (value: string) => void;
+  addedFilter?: string;
+  onAddedFilterChange?: (value: string) => void;
   onClear: () => void;
   hasActiveFilters: boolean;
 }
@@ -41,6 +43,8 @@ export const CaseListFilters = memo(function CaseListFilters({
   onSpecialtyChange,
   status,
   onStatusChange,
+  addedFilter,
+  onAddedFilterChange,
   onClear,
   hasActiveFilters,
 }: CaseListFiltersProps) {
@@ -48,8 +52,8 @@ export const CaseListFilters = memo(function CaseListFilters({
     'flex h-10 w-full sm:w-auto rounded-md border border-input bg-card px-3 py-2 text-sm min-w-[140px]';
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3">
-      <div className="relative flex-1 max-w-md">
+    <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+      <div className="relative flex-1 max-w-md min-w-[200px]">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           placeholder="Search by title…"
@@ -84,6 +88,18 @@ export const CaseListFilters = memo(function CaseListFilters({
           </option>
         ))}
       </select>
+      {onAddedFilterChange && addedFilter !== undefined && (
+        <select
+          value={addedFilter}
+          onChange={(e) => onAddedFilterChange(e.target.value)}
+          className={selectClass}
+          aria-label="Filter by platform added status"
+        >
+          <option value="all">All Platform Status</option>
+          <option value="not_added">Not Added (Backlog)</option>
+          <option value="added">Added</option>
+        </select>
+      )}
       {hasActiveFilters && (
         <Button variant="ghost" size="sm" onClick={onClear} className="shrink-0">
           <X className="h-4 w-4 mr-1" />
@@ -94,17 +110,24 @@ export const CaseListFilters = memo(function CaseListFilters({
   );
 });
 
-export function filterCases<T extends { title: string; specialty?: string; status: string }>(
+export function filterCases<T extends { title: string; specialty?: string; status: string; added_to_platform?: boolean }>(
   cases: T[],
   search: string,
   specialty: string,
-  status: string
+  status: string,
+  addedFilter: string = 'all'
 ): T[] {
   return cases.filter((c) => {
     const matchesSearch =
       !search.trim() || c.title.toLowerCase().includes(search.toLowerCase());
     const matchesSpecialty = specialty === 'all' || c.specialty === specialty;
     const matchesStatus = status === 'all' || c.status === status;
-    return matchesSearch && matchesSpecialty && matchesStatus;
+    const matchesAdded =
+      addedFilter === 'all'
+        ? true
+        : addedFilter === 'added'
+        ? !!c.added_to_platform
+        : !c.added_to_platform;
+    return matchesSearch && matchesSpecialty && matchesStatus && matchesAdded;
   });
 }
