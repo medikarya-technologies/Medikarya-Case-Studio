@@ -4,6 +4,7 @@ import { z } from 'zod';
 export const caseSchema = z.object({
   // Step 1: Patient & Metadata
   title: z.string().min(5, 'Title must be at least 5 characters'),
+  original_author_name: z.string().optional(),
   specialty: z.enum([
     'cardiology',
     'pulmonology',
@@ -20,6 +21,7 @@ export const caseSchema = z.object({
   difficulty: z.enum(['beginner', 'intermediate', 'advanced']),
   tags: z.array(z.string()),
   patient_details: z.object({
+    patient_name: z.string().optional(),
     patient_id: z.string().optional(),
     age: z.number().optional(),
     gender: z.enum(['male', 'female', 'other']).optional(),
@@ -83,6 +85,15 @@ export const caseSchema = z.object({
       height: z.number().optional(),
       bmi: z.number().optional(),
     }),
+    local: z.object({
+      location_extent: z.string().optional(),
+      surface_margins: z.string().optional(),
+      consistency: z.string().optional(),
+      tenderness: z.string().optional(),
+      mobility_fixity: z.string().optional(),
+      regional_lymph_nodes: z.string().optional(),
+      other_local_findings: z.string().optional(),
+    }).optional(),
     systemic: z.object({
       cardiovascular: z.string().optional(),
       respiratory: z.string().optional(),

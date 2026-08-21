@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import { createServerSupabaseClient, createServiceClient } from './server';
-import type { Case, CaseReview, User, CaseComment, Notification, AnalyticsSummary, NotificationType, CaseAttachment } from '@/lib/types';
+import type { Case, CaseReview, User, CaseComment, Notification, AnalyticsSummary, NotificationType, CaseAttachment, NameChangeRequest } from '@/lib/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Helper to log full Supabase error
@@ -652,5 +652,130 @@ export async function updateCaseAddedToPlatform(
   if (error) {
     logSupabaseError('updateCaseAddedToPlatform', error);
     throw error;
+  }
+}
+
+export async function updateUserName(
+  userId: string,
+  name: string,
+  setEditedOnce: boolean = false
+): Promise<void> {
+  const supabase = createServiceClient();
+  const updateData: Record<string, any> = { name };
+  if (setEditedOnce) {
+    updateData.name_edited_once = true;
+  }
+  const { error } = await supabase
+    .from('users')
+    .update(updateData)
+    .eq('id', userId);
+
+  if (error) {
+    logSupabaseError('updateUserName', error);
+    throw error;
+  }
+}
+
+export async function createNameChangeRequest(
+  userId: string,
+  requestedName: string
+): Promise<NameChangeRequest> {
+  const supabase = createServiceClient();
+  const { data: existing } = await supabase
+    .from('name_change_requests')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'pending')
+    .maybeSingle();
+
+  if (existing) {
+    throw new Error('You already have a pending name change request.');
+  }
+
+  const { data, error } = await supabase
+    .from('name_change_requests')
+    .insert([{ user_id: userId, requested_name: requestedName, status: 'pending' }])
+    .select('*')
+    .single();
+
+  if (error) {
+    logSupabaseError('createNameChangeRequest', error);
+    throw error;
+  }
+
+  return data as NameChangeRequest;
+}
+
+export async function getPendingNameChangeRequests(): Promise<NameChangeRequest[]> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from('name_change_requests')
+    .select('*, user:users!user_id(*)')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    logSupabaseError('getPendingNameChangeRequests', error);
+    throw error;
+  }
+
+  return (data as NameChangeRequest[]) || [];
+}
+
+export async function getUserLatestNameChangeRequest(userId: string): Promise<NameChangeRequest | null> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from('name_change_requests')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    logSupabaseError('getUserLatestNameChangeRequest', error);
+    return null;
+  }
+
+  return data as NameChangeRequest | null;
+}
+
+export async function resolveNameChangeRequest(
+  requestId: string,
+  status: 'approved' | 'rejected',
+  adminUserId: string
+): Promise<void> {
+  const supabase = createServiceClient();
+
+  const { data: request, error: reqError } = await supabase
+    .from('name_change_requests')
+    .select('*')
+    .eq('id', requestId)
+    .single();
+
+  if (reqError || !request) {
+    throw new Error('Name change request not found');
+  }
+
+  if (request.status !== 'pending') {
+    throw new Error('This name change request has already been resolved.');
+  }
+
+  if (status === 'approved') {
+    await updateUserName(request.user_id, request.requested_name, true);
+  }
+
+  const { error: updateError } = await supabase
+    .from('name_change_requests')
+    .update({
+      status,
+      resolved_at: new Date().toISOString(),
+      resolved_by: adminUserId,
+    })
+    .eq('id', requestId);
+
+  if (updateError) {
+    logSupabaseError('resolveNameChangeRequest', updateError);
+    throw updateError;
   }
 }

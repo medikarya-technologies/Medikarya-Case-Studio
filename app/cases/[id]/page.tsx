@@ -275,9 +275,17 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                   <Badge key={i} variant="outline">{tag}</Badge>
                 ))}
               </div>
-              <p className="text-muted-foreground mt-2">
-                Created: {new Date(caseData.created_at).toLocaleDateString()}
-              </p>
+              <div className="text-sm text-muted-foreground mt-2 space-y-0.5">
+                {caseData.original_author_name ? (
+                  <>
+                    <p><span className="font-semibold text-foreground">Written by:</span> {caseData.original_author_name}</p>
+                    <p><span className="font-semibold text-foreground">Uploaded by:</span> {caseData.author?.name || 'Unknown'}</p>
+                  </>
+                ) : (
+                  <p><span className="font-semibold text-foreground">Author:</span> {caseData.author?.name || 'Unknown'}</p>
+                )}
+                <p className="text-xs pt-1">Created: {new Date(caseData.created_at).toLocaleDateString()}</p>
+              </div>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
               <StatusBadge status={caseData.status} />
@@ -309,6 +317,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-4">
+                {caseData.patient_details.patient_name && <div><p className="text-sm text-muted-foreground">Patient Name</p><p className="font-semibold">{caseData.patient_details.patient_name}</p></div>}
                 {caseData.patient_details.patient_id && <div><p className="text-sm text-muted-foreground">Patient ID</p><p>{caseData.patient_details.patient_id}</p></div>}
                 {caseData.patient_details.age && <div><p className="text-sm text-muted-foreground">Age</p><p>{caseData.patient_details.age}</p></div>}
                 {caseData.patient_details.gender && <div><p className="text-sm text-muted-foreground">Gender</p><p>{caseData.patient_details.gender}</p></div>}
@@ -431,29 +440,103 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                {caseData.examination_findings.general_appearance && <div><p className="text-sm text-muted-foreground">General Appearance</p><RichTextRenderer content={caseData.examination_findings.general_appearance} /></div>}
-                <div>
-                  <p className="text-sm text-muted-foreground">Vital Signs</p>
-                  <div className="grid grid-cols-4 gap-4 mt-2">
-                    {caseData.examination_findings.vital_signs?.bp_systolic && caseData.examination_findings.vital_signs?.bp_diastolic && <div><p className="text-xs text-muted-foreground">BP</p><p>{caseData.examination_findings.vital_signs.bp_systolic}/{caseData.examination_findings.vital_signs.bp_diastolic}</p></div>}
-                    {caseData.examination_findings.vital_signs?.hr && <div><p className="text-xs text-muted-foreground">HR</p><p>{caseData.examination_findings.vital_signs.hr} bpm</p></div>}
-                    {caseData.examination_findings.vital_signs?.rr && <div><p className="text-xs text-muted-foreground">RR</p><p>{caseData.examination_findings.vital_signs.rr}</p></div>}
-                    {caseData.examination_findings.vital_signs?.temp && <div><p className="text-xs text-muted-foreground">Temp</p><p>{caseData.examination_findings.vital_signs.temp}°C</p></div>}
-                    {caseData.examination_findings.vital_signs?.spo2 && <div><p className="text-xs text-muted-foreground">SpO2</p><p>{caseData.examination_findings.vital_signs.spo2}%</p></div>}
-                    {caseData.examination_findings.vital_signs?.weight && <div><p className="text-xs text-muted-foreground">Weight</p><p>{caseData.examination_findings.vital_signs.weight} kg</p></div>}
-                    {caseData.examination_findings.vital_signs?.height && <div><p className="text-xs text-muted-foreground">Height</p><p>{caseData.examination_findings.vital_signs.height} cm</p></div>}
-                    {caseData.examination_findings.vital_signs?.bmi && <div><p className="text-xs text-muted-foreground">BMI</p><p>{caseData.examination_findings.vital_signs.bmi}</p></div>}
+                {/* 1. General Physical Examination */}
+                <div className="space-y-3 p-4 rounded-lg bg-muted/20 border border-border/50">
+                  <h4 className="font-bold text-sm uppercase tracking-wider text-primary border-b pb-1">
+                    1. General Physical Examination
+                  </h4>
+                  {caseData.examination_findings.general_appearance && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase">General Appearance</p>
+                      <RichTextRenderer content={caseData.examination_findings.general_appearance} className="mt-1" />
+                    </div>
+                  )}
+                  {caseData.examination_findings.vital_signs && (
+                    <div className="pt-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase mb-1.5">Vital Signs</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-card p-3 rounded-md border">
+                        {caseData.examination_findings.vital_signs.bp_systolic && caseData.examination_findings.vital_signs.bp_diastolic && (
+                          <div><p className="text-xs text-muted-foreground">BP</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.bp_systolic}/{caseData.examination_findings.vital_signs.bp_diastolic} mmHg</p></div>
+                        )}
+                        {caseData.examination_findings.vital_signs.hr && (
+                          <div><p className="text-xs text-muted-foreground">HR</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.hr} bpm</p></div>
+                        )}
+                        {caseData.examination_findings.vital_signs.rr && (
+                          <div><p className="text-xs text-muted-foreground">RR</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.rr} /min</p></div>
+                        )}
+                        {caseData.examination_findings.vital_signs.temp && (
+                          <div><p className="text-xs text-muted-foreground">Temp</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.temp} °C</p></div>
+                        )}
+                        {caseData.examination_findings.vital_signs.spo2 && (
+                          <div><p className="text-xs text-muted-foreground">SpO2</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.spo2} %</p></div>
+                        )}
+                        {caseData.examination_findings.vital_signs.weight && (
+                          <div><p className="text-xs text-muted-foreground">Weight</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.weight} kg</p></div>
+                        )}
+                        {caseData.examination_findings.vital_signs.height && (
+                          <div><p className="text-xs text-muted-foreground">Height</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.height} cm</p></div>
+                        )}
+                        {caseData.examination_findings.vital_signs.bmi && (
+                          <div><p className="text-xs text-muted-foreground">BMI</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.bmi}</p></div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Local Examination */}
+                {caseData.examination_findings.local &&
+                  Object.values(caseData.examination_findings.local).some((val) => !!val) && (
+                  <div className="space-y-3 p-4 rounded-lg bg-muted/20 border border-border/50">
+                    <h4 className="font-bold text-sm uppercase tracking-wider text-primary border-b pb-1">
+                      2. Local Examination
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      {caseData.examination_findings.local.location_extent && (
+                        <div><p className="text-xs font-semibold text-muted-foreground">Location & Extent</p><p className="text-sm font-medium">{caseData.examination_findings.local.location_extent}</p></div>
+                      )}
+                      {caseData.examination_findings.local.surface_margins && (
+                        <div><p className="text-xs font-semibold text-muted-foreground">Surface & Margins</p><p className="text-sm font-medium">{caseData.examination_findings.local.surface_margins}</p></div>
+                      )}
+                      {caseData.examination_findings.local.consistency && (
+                        <div><p className="text-xs font-semibold text-muted-foreground">Consistency</p><p className="text-sm font-medium">{caseData.examination_findings.local.consistency}</p></div>
+                      )}
+                      {caseData.examination_findings.local.tenderness && (
+                        <div><p className="text-xs font-semibold text-muted-foreground">Tenderness</p><p className="text-sm font-medium">{caseData.examination_findings.local.tenderness}</p></div>
+                      )}
+                      {caseData.examination_findings.local.mobility_fixity && (
+                        <div><p className="text-xs font-semibold text-muted-foreground">Mobility / Fixity</p><p className="text-sm font-medium">{caseData.examination_findings.local.mobility_fixity}</p></div>
+                      )}
+                      {caseData.examination_findings.local.regional_lymph_nodes && (
+                        <div><p className="text-xs font-semibold text-muted-foreground">Regional Lymph Nodes</p><p className="text-sm font-medium">{caseData.examination_findings.local.regional_lymph_nodes}</p></div>
+                      )}
+                    </div>
+                    {caseData.examination_findings.local.other_local_findings && (
+                      <div className="pt-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase">Other Local Findings</p>
+                        <RichTextRenderer content={caseData.examination_findings.local.other_local_findings} className="mt-1" />
+                      </div>
+                    )}
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                   {caseData.examination_findings.systemic?.cardiovascular && <div><p className="text-sm text-muted-foreground">Cardiovascular</p><RichTextRenderer content={caseData.examination_findings.systemic.cardiovascular} /></div>}
-                  {caseData.examination_findings.systemic?.respiratory && <div><p className="text-sm text-muted-foreground">Respiratory</p><RichTextRenderer content={caseData.examination_findings.systemic.respiratory} /></div>}
-                  {caseData.examination_findings.systemic?.gastrointestinal && <div><p className="text-sm text-muted-foreground">GI</p><RichTextRenderer content={caseData.examination_findings.systemic.gastrointestinal} /></div>}
-                  {caseData.examination_findings.systemic?.neurological && <div><p className="text-sm text-muted-foreground">Neurological</p><RichTextRenderer content={caseData.examination_findings.systemic.neurological} /></div>}
-                  {caseData.examination_findings.systemic?.musculoskeletal && <div><p className="text-sm text-muted-foreground">MSK</p><RichTextRenderer content={caseData.examination_findings.systemic.musculoskeletal} /></div>}
-                  {caseData.examination_findings.systemic?.dermatological && <div><p className="text-sm text-muted-foreground">Dermatological</p><RichTextRenderer content={caseData.examination_findings.systemic.dermatological} /></div>}
-                  {caseData.examination_findings.systemic?.thyroid && <div><p className="text-sm text-muted-foreground">Thyroid</p><RichTextRenderer content={caseData.examination_findings.systemic.thyroid} /></div>}
-                </div>
+                )}
+
+                {/* 3. Systemic Examination */}
+                {caseData.examination_findings.systemic && (
+                  <div className="space-y-3 p-4 rounded-lg bg-muted/20 border border-border/50">
+                    <h4 className="font-bold text-sm uppercase tracking-wider text-primary border-b pb-1">
+                      3. Systemic Examination
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                      {caseData.examination_findings.systemic.cardiovascular && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Cardiovascular</p><RichTextRenderer content={caseData.examination_findings.systemic.cardiovascular} className="mt-0.5" /></div>}
+                      {caseData.examination_findings.systemic.respiratory && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Respiratory</p><RichTextRenderer content={caseData.examination_findings.systemic.respiratory} className="mt-0.5" /></div>}
+                      {caseData.examination_findings.systemic.gastrointestinal && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Gastrointestinal</p><RichTextRenderer content={caseData.examination_findings.systemic.gastrointestinal} className="mt-0.5" /></div>}
+                      {caseData.examination_findings.systemic.neurological && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Neurological</p><RichTextRenderer content={caseData.examination_findings.systemic.neurological} className="mt-0.5" /></div>}
+                      {caseData.examination_findings.systemic.musculoskeletal && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Musculoskeletal</p><RichTextRenderer content={caseData.examination_findings.systemic.musculoskeletal} className="mt-0.5" /></div>}
+                      {caseData.examination_findings.systemic.dermatological && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Dermatological</p><RichTextRenderer content={caseData.examination_findings.systemic.dermatological} className="mt-0.5" /></div>}
+                      {caseData.examination_findings.systemic.thyroid && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Thyroid & Endocrine</p><RichTextRenderer content={caseData.examination_findings.systemic.thyroid} className="mt-0.5" /></div>}
+                    </div>
+                  </div>
+                )}
                 <SectionCustomFields customFields={caseData.custom_fields} sectionId="examination" />
               </CardContent>
             </Card>

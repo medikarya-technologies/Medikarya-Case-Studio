@@ -42,10 +42,12 @@ const COMMON_PMH = [
 
 const DEFAULT_FORM_DATA: CaseFormData = {
   title: '',
+  original_author_name: '',
   specialty: 'internal_medicine',
   difficulty: 'intermediate',
   tags: [],
   patient_details: {
+    patient_name: '',
     patient_id: '',
     age: undefined,
     gender: undefined,
@@ -95,6 +97,15 @@ const DEFAULT_FORM_DATA: CaseFormData = {
       weight: undefined,
       height: undefined,
       bmi: undefined,
+    },
+    local: {
+      location_extent: '',
+      surface_margins: '',
+      consistency: '',
+      tenderness: '',
+      mobility_fixity: '',
+      regional_lymph_nodes: '',
+      other_local_findings: '',
     },
     systemic: {
       cardiovascular: '',
@@ -499,6 +510,7 @@ export default function EditCasePage() {
           setAttachments(data.attachments || []);
           reset({
             title: data.title || '',
+            original_author_name: data.original_author_name || '',
             specialty: data.specialty || 'internal_medicine',
             difficulty: data.difficulty || 'intermediate',
             tags: data.tags || [],
@@ -802,6 +814,24 @@ export default function EditCasePage() {
                       />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="original_author_name">Original Author (if different from you)</Label>
+                    <Controller
+                      name="original_author_name"
+                      control={control}
+                      render={({ field }: any) => (
+                        <Input
+                          id="original_author_name"
+                          placeholder="e.g. Dr. Jane Doe (leave blank if you are the original author)"
+                          {...field}
+                          value={field.value || ''}
+                        />
+                      )}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Leave blank if you are the original author of this case.
+                    </p>
+                  </div>
                   <ArrayInputField
                     name="tags"
                     label="Tags"
@@ -813,6 +843,16 @@ export default function EditCasePage() {
               <Card>
                 <CardHeader><CardTitle>Patient Details</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Patient Name</Label>
+                    <Controller
+                      name="patient_details.patient_name"
+                      control={control}
+                      render={({ field }: any) => (
+                        <Input placeholder="Full or de-identified patient name (optional)" {...field} value={field.value || ''} />
+                      )}
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label>Patient ID</Label>
                     <Controller
@@ -1095,80 +1135,142 @@ export default function EditCasePage() {
 
           {/* Step4: Examination */}
           {currentStep === 4 && (
-            <div className="space-y-4">
-              <Card>
-                <CardHeader><CardTitle>General Appearance <span className="text-destructive">*</span></CardTitle></CardHeader>
-                <CardContent>
-                  <Controller
-                    name="examination_findings.general_appearance"
-                    control={control}
-                    render={({ field }: any) => <RichTextEditor placeholder="General appearance..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
-                  />
-                  {errors.examination_findings?.general_appearance && (
-                    <p className="text-sm text-destructive mt-2">{errors.examination_findings.general_appearance.message}</p>
-                  )}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle>Vital Signs</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-4 gap-4">
-                  {[
-                    { key: 'bp_systolic', label: 'BP Systolic', placeholder: '120' },
-                    { key: 'bp_diastolic', label: 'BP Diastolic', placeholder: '80' },
-                    { key: 'hr', label: 'HR', placeholder: '72' },
-                    { key: 'rr', label: 'RR', placeholder: '16' },
-                    { key: 'temp', label: 'Temp (°C)', placeholder: '37' },
-                    { key: 'spo2', label: 'SpO2 (%)', placeholder: '98' },
-                    { key: 'weight', label: 'Weight (kg)', placeholder: '70' },
-                    { key: 'height', label: 'Height (cm)', placeholder: '170' },
-                    { key: 'bmi', label: 'BMI', placeholder: '', disabled: true },
-                  ].map((item) => (
-                    <div key={item.key} className="space-y-2">
-                      <Label>{item.label}</Label>
+            <div className="space-y-6">
+              {/* Sub-section 1: General Physical Examination */}
+              <div className="space-y-4">
+                <div className="border-b pb-2">
+                  <h3 className="text-lg font-bold text-foreground">1. General Physical Examination</h3>
+                  <p className="text-xs text-muted-foreground">General appearance and vital signs</p>
+                </div>
+
+                <Card>
+                  <CardHeader><CardTitle className="text-base">General Appearance <span className="text-destructive">*</span></CardTitle></CardHeader>
+                  <CardContent>
+                    <Controller
+                      name="examination_findings.general_appearance"
+                      control={control}
+                      render={({ field }: any) => <RichTextEditor placeholder="General appearance..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
+                    />
+                    {errors.examination_findings?.general_appearance && (
+                      <p className="text-sm text-destructive mt-2">{errors.examination_findings.general_appearance.message}</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader><CardTitle className="text-base">Vital Signs</CardTitle></CardHeader>
+                  <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {[
+                      { key: 'bp_systolic', label: 'BP Systolic', placeholder: '120' },
+                      { key: 'bp_diastolic', label: 'BP Diastolic', placeholder: '80' },
+                      { key: 'hr', label: 'HR (bpm)', placeholder: '72' },
+                      { key: 'rr', label: 'RR (/min)', placeholder: '16' },
+                      { key: 'temp', label: 'Temp (°C)', placeholder: '37' },
+                      { key: 'spo2', label: 'SpO2 (%)', placeholder: '98' },
+                      { key: 'weight', label: 'Weight (kg)', placeholder: '70' },
+                      { key: 'height', label: 'Height (cm)', placeholder: '170' },
+                      { key: 'bmi', label: 'BMI', placeholder: '', disabled: true },
+                    ].map((item) => (
+                      <div key={item.key} className="space-y-2">
+                        <Label>{item.label}</Label>
+                        <Controller
+                          name={`examination_findings.vital_signs.${item.key}` as any}
+                          control={control}
+                          render={({ field }: any) => (
+                            <Input
+                              type="number"
+                              placeholder={item.placeholder}
+                              disabled={item.disabled}
+                              value={field.value ?? ''}
+                              onChange={(e) => {
+                                if (item.disabled) return;
+                                const val = e.target.value;
+                                field.onChange(val === '' ? undefined : Number(val));
+                              }}
+                            />
+                          )}
+                        />
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Sub-section 2: Local Examination */}
+              <div className="space-y-4">
+                <div className="border-b pb-2 pt-2">
+                  <h3 className="text-lg font-bold text-foreground">2. Local Examination</h3>
+                  <p className="text-xs text-muted-foreground">Focused regional & lesion examination findings</p>
+                </div>
+
+                <Card>
+                  <CardHeader><CardTitle className="text-base">Local / Regional Exam Details</CardTitle></CardHeader>
+                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[
+                      { key: 'location_extent', label: 'Location & Extent', placeholder: 'e.g. Right lower quadrant swelling 4x3 cm' },
+                      { key: 'surface_margins', label: 'Surface & Margins', placeholder: 'e.g. Smooth surface, well-defined margins' },
+                      { key: 'consistency', label: 'Consistency', placeholder: 'e.g. Firm, cystic, hard' },
+                      { key: 'tenderness', label: 'Tenderness', placeholder: 'e.g. Tender on deep palpation' },
+                      { key: 'mobility_fixity', label: 'Mobility / Fixity', placeholder: 'e.g. Mobile over underlying structures' },
+                      { key: 'regional_lymph_nodes', label: 'Regional Lymph Nodes', placeholder: 'e.g. Palpable right inguinal nodes 1 cm' },
+                    ].map((item) => (
+                      <div key={item.key} className="space-y-2">
+                        <Label>{item.label}</Label>
+                        <Controller
+                          name={`examination_findings.local.${item.key}` as any}
+                          control={control}
+                          render={({ field }: any) => (
+                            <Input placeholder={item.placeholder} {...field} value={field.value || ''} />
+                          )}
+                        />
+                      </div>
+                    ))}
+                    <div className="sm:col-span-2 space-y-2">
+                      <Label>Other Local Findings</Label>
                       <Controller
-                        name={`examination_findings.vital_signs.${item.key}` as any}
+                        name="examination_findings.local.other_local_findings"
                         control={control}
                         render={({ field }: any) => (
-                          <Input
-                            type="number"
-                            placeholder={item.placeholder}
-                            disabled={item.disabled}
-                            value={field.value ?? ''}
-                            onChange={(e) => {
-                              if (item.disabled) return;
-                              const val = e.target.value;
-                              field.onChange(val === '' ? undefined : Number(val));
-                            }}
-                          />
+                          <RichTextEditor placeholder="Any other local/regional findings..." value={field.value || ''} onChange={field.onChange} minHeight="70px" />
                         )}
                       />
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle>Systemic Examination</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-2 gap-4">
-                  {[
-                    { key: 'cardiovascular', label: 'Cardiovascular' },
-                    { key: 'respiratory', label: 'Respiratory' },
-                    { key: 'gastrointestinal', label: 'GI' },
-                    { key: 'neurological', label: 'Neurological' },
-                    { key: 'musculoskeletal', label: 'MSK' },
-                    { key: 'dermatological', label: 'Dermatological' },
-                    { key: 'thyroid', label: 'Thyroid' },
-                  ].map((item) => (
-                    <div key={item.key} className="space-y-2">
-                      <Label>{item.label}</Label>
-                      <Controller
-                        name={`examination_findings.systemic.${item.key}` as any}
-                        control={control}
-                        render={({ field }: any) => <RichTextEditor placeholder={`${item.label}...`} value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
-                      />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Sub-section 3: Systemic Examination */}
+              <div className="space-y-4">
+                <div className="border-b pb-2 pt-2">
+                  <h3 className="text-lg font-bold text-foreground">3. Systemic Examination</h3>
+                  <p className="text-xs text-muted-foreground">Detailed system-by-system examination</p>
+                </div>
+
+                <Card>
+                  <CardHeader><CardTitle className="text-base">Systemic Findings</CardTitle></CardHeader>
+                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[
+                      { key: 'cardiovascular', label: 'Cardiovascular System' },
+                      { key: 'respiratory', label: 'Respiratory System' },
+                      { key: 'gastrointestinal', label: 'Gastrointestinal System' },
+                      { key: 'neurological', label: 'Neurological System' },
+                      { key: 'musculoskeletal', label: 'Musculoskeletal System' },
+                      { key: 'dermatological', label: 'Dermatological System' },
+                      { key: 'thyroid', label: 'Thyroid & Endocrine System' },
+                    ].map((item) => (
+                      <div key={item.key} className="space-y-2">
+                        <Label>{item.label}</Label>
+                        <Controller
+                          name={`examination_findings.systemic.${item.key}` as any}
+                          control={control}
+                          render={({ field }: any) => <RichTextEditor placeholder={`${item.label}...`} value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
+                        />
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+
               <CustomFieldsSection sectionId="examination" sectionTitle="Examination" />
             </div>
           )}
