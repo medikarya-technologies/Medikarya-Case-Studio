@@ -43,6 +43,10 @@ export function validateCaseForSubmit(
   const age = data.patient_details?.age;
   if (age === undefined || age === null || isNaN(age)) {
     errors.push({ field: 'patient_details.age', message: 'Age is required', step: 1 });
+  } else if (!Number.isInteger(age)) {
+    errors.push({ field: 'patient_details.age', message: 'Age must be a whole number (no decimals)', step: 1 });
+  } else if (age < 0 || age > 120) {
+    errors.push({ field: 'patient_details.age', message: 'Age must be between 0 and 120', step: 1 });
   }
 
   const sex = data.patient_details?.sex || data.patient_details?.gender;

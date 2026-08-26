@@ -26,10 +26,13 @@ export const caseSchema = z
     patient_details: z.object({
       case_no: z.string().min(1, 'Case No. is required'),
       patient_name: z.string().min(1, 'Patient Name is required'),
-      age: z.union([z.number({ required_error: 'Age is required' }), z.nan()]).refine(
-        (val) => !isNaN(val as number),
-        { message: 'Age is required' }
-      ),
+      age: z
+        .union([z.number({ required_error: 'Age is required' }), z.nan()])
+        .refine((val) => !isNaN(val as number), { message: 'Age is required' })
+        .refine((val) => Number.isInteger(val), { message: 'Age must be a whole number (no decimals)' })
+        .refine((val) => (val as number) >= 0 && (val as number) <= 120, {
+          message: 'Age must be between 0 and 120',
+        }),
       sex: z.enum(['male', 'female', 'other'], { required_error: 'Sex is required' }),
       religion: z.string().min(1, 'Religion is required'),
       occupation: z.string().min(1, 'Occupation is required'),

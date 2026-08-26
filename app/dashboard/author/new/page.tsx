@@ -501,11 +501,19 @@ export default function NewCasePage() {
                       render={({ field }: any) => (
                         <Input
                           type="number"
-                          placeholder="Age"
+                          min={0}
+                          max={120}
+                          step={1}
+                          placeholder="Age (0 - 120)"
                           value={field.value ?? ''}
                           onChange={(e) => {
                             const val = e.target.value;
-                            field.onChange(val === '' ? undefined : Number(val));
+                            if (val === '') {
+                              field.onChange(undefined);
+                            } else {
+                              const num = Number(val);
+                              field.onChange(num);
+                            }
                           }}
                         />
                       )}
