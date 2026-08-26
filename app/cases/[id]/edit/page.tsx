@@ -138,6 +138,7 @@ export default function EditCasePage() {
   const { control, handleSubmit, watch, getValues, reset, setError, formState: { errors, isDirty } } = methods;
 
   const localRegion = watch('local_examination.region');
+  const patientSex = watch('patient_details.sex') || watch('patient_details.gender');
 
   useBeforeUnloadWarning(isDirty);
   const { confirmNavigation } = useNavigationGuard(isDirty);
@@ -155,7 +156,6 @@ export default function EditCasePage() {
           setCaseData(data);
           setAttachments(data.attachments || []);
 
-          // Map data safely combining new & legacy fields
           reset({
             title: data.title || '',
             original_author_name: data.original_author_name || '',
@@ -255,8 +255,7 @@ export default function EditCasePage() {
                 '',
             },
             local_examination: {
-              region:
-                data.local_examination?.region || '',
+              region: data.local_examination?.region || '',
               inspection:
                 data.local_examination?.inspection ||
                 data.examination_findings?.local?.other_local_findings ||
@@ -327,7 +326,7 @@ export default function EditCasePage() {
 
   const handleSubmitCase = async () => {
     const data = getValues();
-    const validationErrors = validateCaseForSubmit(data);
+    const validationErrors = validateCaseForSubmit(data, attachments);
 
     if (validationErrors.length > 0) {
       validationErrors.forEach((err) => {
@@ -345,7 +344,7 @@ export default function EditCasePage() {
   };
 
   const handleNextStep = async () => {
-    const isValid = await validateStepAndNotify(currentStep, methods);
+    const isValid = await validateStepAndNotify(currentStep, methods, attachments);
     if (isValid) {
       setIsNavigatingNext(true);
       try {
@@ -364,7 +363,7 @@ export default function EditCasePage() {
       return;
     }
     for (let s = currentStep; s < targetStep; s++) {
-      const isValid = await validateStepAndNotify(s, methods);
+      const isValid = await validateStepAndNotify(s, methods, attachments);
       if (!isValid) {
         setCurrentStep(s);
         return;
@@ -433,7 +432,7 @@ export default function EditCasePage() {
           <Card>
             <CardHeader><CardTitle>1. Patient Details</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 gap-4 text-sm">
-              <div><Label className="text-muted-foreground">Case No.</Label><p>{data.patient_details.case_no || 'N/A'}</p></div>
+              <div><Label className="text-muted-foreground">Case No.</Label><p>{data.patient_details.case_no}</p></div>
               <div><Label className="text-muted-foreground">Patient Name</Label><p className="font-semibold">{data.patient_details.patient_name}</p></div>
               <div><Label className="text-muted-foreground">Age</Label><p>{data.patient_details.age}</p></div>
               <div><Label className="text-muted-foreground">Sex</Label><p className="capitalize">{data.patient_details.sex}</p></div>
@@ -601,12 +600,15 @@ export default function EditCasePage() {
                 <CardHeader><CardTitle>1. Patient Details</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Case No.</Label>
+                    <Label>Case No. <span className="text-destructive">*</span></Label>
                     <Controller
                       name="patient_details.case_no"
                       control={control}
                       render={({ field }: any) => <Input placeholder="Case No." {...field} value={field.value || ''} />}
                     />
+                    {errors.patient_details?.case_no && (
+                      <p className="text-sm text-destructive">{errors.patient_details.case_no.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Patient Name <span className="text-destructive">*</span></Label>
@@ -663,36 +665,48 @@ export default function EditCasePage() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Religion</Label>
+                    <Label>Religion <span className="text-destructive">*</span></Label>
                     <Controller
                       name="patient_details.religion"
                       control={control}
                       render={({ field }: any) => <Input placeholder="Religion" {...field} value={field.value || ''} />}
                     />
+                    {errors.patient_details?.religion && (
+                      <p className="text-sm text-destructive">{errors.patient_details.religion.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Occupation</Label>
+                    <Label>Occupation <span className="text-destructive">*</span></Label>
                     <Controller
                       name="patient_details.occupation"
                       control={control}
                       render={({ field }: any) => <Input placeholder="Occupation" {...field} value={field.value || ''} />}
                     />
+                    {errors.patient_details?.occupation && (
+                      <p className="text-sm text-destructive">{errors.patient_details.occupation.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2 col-span-2">
-                    <Label>Address</Label>
+                    <Label>Address <span className="text-destructive">*</span></Label>
                     <Controller
                       name="patient_details.address"
                       control={control}
                       render={({ field }: any) => <Input placeholder="Address" {...field} value={field.value || ''} />}
                     />
+                    {errors.patient_details?.address && (
+                      <p className="text-sm text-destructive">{errors.patient_details.address.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Date of Admission</Label>
+                    <Label>Date of Admission <span className="text-destructive">*</span></Label>
                     <Controller
                       name="patient_details.date_of_admission"
                       control={control}
                       render={({ field }: any) => <Input type="date" {...field} value={field.value || ''} />}
                     />
+                    {errors.patient_details?.date_of_admission && (
+                      <p className="text-sm text-destructive">{errors.patient_details.date_of_admission.message}</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -734,68 +748,103 @@ export default function EditCasePage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Past History</Label>
+                    <Label>Past History <span className="text-destructive">*</span></Label>
                     <Controller
                       name="history.past_history"
                       control={control}
                       render={({ field }: any) => <RichTextEditor placeholder="Past history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                     />
+                    {errors.history?.past_history && (
+                      <p className="text-sm text-destructive">{errors.history.past_history.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Personal History</Label>
+                    <Label>Personal History <span className="text-destructive">*</span></Label>
                     <Controller
                       name="history.personal_history"
                       control={control}
                       render={({ field }: any) => <RichTextEditor placeholder="Personal history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                     />
+                    {errors.history?.personal_history && (
+                      <p className="text-sm text-destructive">{errors.history.personal_history.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Treatment History</Label>
+                    <Label>Treatment History <span className="text-destructive">*</span></Label>
                     <Controller
                       name="history.treatment_history"
                       control={control}
                       render={({ field }: any) => <RichTextEditor placeholder="Treatment history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                     />
+                    {errors.history?.treatment_history && (
+                      <p className="text-sm text-destructive">{errors.history.treatment_history.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Family History</Label>
+                    <Label>Family History <span className="text-destructive">*</span></Label>
                     <Controller
                       name="history.family_history"
                       control={control}
                       render={({ field }: any) => <RichTextEditor placeholder="Family history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                     />
+                    {errors.history?.family_history && (
+                      <p className="text-sm text-destructive">{errors.history.family_history.message}</p>
+                    )}
                   </div>
+
+                  {/* Conditional Menstrual & Obstetric History based on Sex */}
+                  {patientSex === 'male' ? (
+                    <div className="col-span-2 p-3 border rounded bg-muted/20 text-xs text-muted-foreground italic">
+                      Note: Menstrual History & Obstetric History are marked Not Applicable for Male patients.
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Menstrual History <span className="text-destructive">*</span></Label>
+                        <Controller
+                          name="history.menstrual_history"
+                          control={control}
+                          render={({ field }: any) => <RichTextEditor placeholder="Menstrual history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
+                        />
+                        {errors.history?.menstrual_history && (
+                          <p className="text-sm text-destructive">{errors.history.menstrual_history.message}</p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Obstetric History <span className="text-destructive">*</span></Label>
+                        <Controller
+                          name="history.obstetric_history"
+                          control={control}
+                          render={({ field }: any) => <RichTextEditor placeholder="Obstetric history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
+                        />
+                        {errors.history?.obstetric_history && (
+                          <p className="text-sm text-destructive">{errors.history.obstetric_history.message}</p>
+                        )}
+                      </div>
+                    </>
+                  )}
+
                   <div className="space-y-2">
-                    <Label>Menstrual History</Label>
-                    <Controller
-                      name="history.menstrual_history"
-                      control={control}
-                      render={({ field }: any) => <RichTextEditor placeholder="Menstrual history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Obstetric History</Label>
-                    <Controller
-                      name="history.obstetric_history"
-                      control={control}
-                      render={({ field }: any) => <RichTextEditor placeholder="Obstetric history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Socio-economic History</Label>
+                    <Label>Socio-economic History <span className="text-destructive">*</span></Label>
                     <Controller
                       name="history.socio_economic_history"
                       control={control}
                       render={({ field }: any) => <RichTextEditor placeholder="Socio-economic history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                     />
+                    {errors.history?.socio_economic_history && (
+                      <p className="text-sm text-destructive">{errors.history.socio_economic_history.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Any Other</Label>
+                    <Label>Any Other <span className="text-destructive">*</span></Label>
                     <Controller
                       name="history.any_other"
                       control={control}
                       render={({ field }: any) => <RichTextEditor placeholder="Any other notes..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                     />
+                    {errors.history?.any_other && (
+                      <p className="text-sm text-destructive">{errors.history.any_other.message}</p>
+                    )}
                   </div>
                 </div>
                 <CustomFieldsSection sectionId="history" sectionTitle="History" />
@@ -810,133 +859,178 @@ export default function EditCasePage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Consciousness / Orientation</Label>
+                    <Label>Consciousness / Orientation <span className="text-destructive">*</span></Label>
                     <Controller
                       name="general_physical_examination.consciousness_orientation"
                       control={control}
                       render={({ field }: any) => <Input placeholder="e.g. Conscious & Oriented x 3" {...field} value={field.value || ''} />}
                     />
+                    {errors.general_physical_examination?.consciousness_orientation && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.consciousness_orientation.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Pulse</Label>
+                    <Label>Pulse <span className="text-destructive">*</span></Label>
                     <Controller
                       name="general_physical_examination.pulse"
                       control={control}
                       render={({ field }: any) => <Input placeholder="e.g. 72 bpm, regular" {...field} value={field.value || ''} />}
                     />
+                    {errors.general_physical_examination?.pulse && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.pulse.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Blood Pressure (BP)</Label>
+                    <Label>Blood Pressure (BP) <span className="text-destructive">*</span></Label>
                     <Controller
                       name="general_physical_examination.bp"
                       control={control}
                       render={({ field }: any) => <Input placeholder="e.g. 120/80 mmHg" {...field} value={field.value || ''} />}
                     />
+                    {errors.general_physical_examination?.bp && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.bp.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Respiratory Rate</Label>
+                    <Label>Respiratory Rate <span className="text-destructive">*</span></Label>
                     <Controller
                       name="general_physical_examination.respiratory_rate"
                       control={control}
                       render={({ field }: any) => <Input placeholder="e.g. 16/min" {...field} value={field.value || ''} />}
                     />
+                    {errors.general_physical_examination?.respiratory_rate && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.respiratory_rate.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Temperature</Label>
+                    <Label>Temperature <span className="text-destructive">*</span></Label>
                     <Controller
                       name="general_physical_examination.temperature"
                       control={control}
                       render={({ field }: any) => <Input placeholder="e.g. 98.6 °F" {...field} value={field.value || ''} />}
                     />
+                    {errors.general_physical_examination?.temperature && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.temperature.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Jugular Venous Pressure (JVP)</Label>
+                    <Label>Jugular Venous Pressure (JVP) <span className="text-destructive">*</span></Label>
                     <Controller
                       name="general_physical_examination.jvp"
                       control={control}
                       render={({ field }: any) => <Input placeholder="e.g. Normal" {...field} value={field.value || ''} />}
                     />
+                    {errors.general_physical_examination?.jvp && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.jvp.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Pallor</Label>
+                    <Label>Pallor <span className="text-destructive">*</span></Label>
                     <Controller
                       name="general_physical_examination.pallor"
                       control={control}
                       render={({ field }: any) => <Input placeholder="Absent / Present" {...field} value={field.value || ''} />}
                     />
+                    {errors.general_physical_examination?.pallor && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.pallor.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Cyanosis</Label>
+                    <Label>Cyanosis <span className="text-destructive">*</span></Label>
                     <Controller
                       name="general_physical_examination.cyanosis"
                       control={control}
                       render={({ field }: any) => <Input placeholder="Absent / Present" {...field} value={field.value || ''} />}
                     />
+                    {errors.general_physical_examination?.cyanosis && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.cyanosis.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Icterus</Label>
+                    <Label>Icterus <span className="text-destructive">*</span></Label>
                     <Controller
                       name="general_physical_examination.icterus"
                       control={control}
                       render={({ field }: any) => <Input placeholder="Absent / Present" {...field} value={field.value || ''} />}
                     />
+                    {errors.general_physical_examination?.icterus && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.icterus.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Peripheral Oedema</Label>
+                    <Label>Peripheral Oedema <span className="text-destructive">*</span></Label>
                     <Controller
                       name="general_physical_examination.peripheral_oedema"
                       control={control}
                       render={({ field }: any) => <Input placeholder="Absent / Present" {...field} value={field.value || ''} />}
                     />
+                    {errors.general_physical_examination?.peripheral_oedema && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.peripheral_oedema.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Clubbing</Label>
+                    <Label>Clubbing <span className="text-destructive">*</span></Label>
                     <Controller
                       name="general_physical_examination.clubbing"
                       control={control}
                       render={({ field }: any) => <Input placeholder="Absent / Present" {...field} value={field.value || ''} />}
                     />
+                    {errors.general_physical_examination?.clubbing && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.clubbing.message}</p>
+                    )}
                   </div>
                 </div>
 
                 {/* Lymph Nodes Sub-fields */}
                 <div className="space-y-2 border p-3 rounded-md bg-muted/20">
-                  <Label className="font-semibold text-sm">Lymph Nodes</Label>
+                  <Label className="font-semibold text-sm">Lymph Nodes <span className="text-destructive">*</span></Label>
                   <div className="grid grid-cols-3 gap-3 pt-1">
                     <div className="space-y-1">
-                      <Label className="text-xs">Cervical</Label>
+                      <Label className="text-xs">Cervical <span className="text-destructive">*</span></Label>
                       <Controller
                         name="general_physical_examination.lymph_nodes.cervical"
                         control={control}
                         render={({ field }: any) => <Input placeholder="Cervical nodes..." {...field} value={field.value || ''} />}
                       />
+                      {errors.general_physical_examination?.lymph_nodes?.cervical && (
+                        <p className="text-xs text-destructive">{errors.general_physical_examination.lymph_nodes.cervical.message}</p>
+                      )}
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Axillary</Label>
+                      <Label className="text-xs">Axillary <span className="text-destructive">*</span></Label>
                       <Controller
                         name="general_physical_examination.lymph_nodes.axillary"
                         control={control}
                         render={({ field }: any) => <Input placeholder="Axillary nodes..." {...field} value={field.value || ''} />}
                       />
+                      {errors.general_physical_examination?.lymph_nodes?.axillary && (
+                        <p className="text-xs text-destructive">{errors.general_physical_examination.lymph_nodes.axillary.message}</p>
+                      )}
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Inguinal</Label>
+                      <Label className="text-xs">Inguinal <span className="text-destructive">*</span></Label>
                       <Controller
                         name="general_physical_examination.lymph_nodes.inguinal"
                         control={control}
                         render={({ field }: any) => <Input placeholder="Inguinal nodes..." {...field} value={field.value || ''} />}
                       />
+                      {errors.general_physical_examination?.lymph_nodes?.inguinal && (
+                        <p className="text-xs text-destructive">{errors.general_physical_examination.lymph_nodes.inguinal.message}</p>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Other Significant Findings</Label>
+                  <Label>Other Significant Findings <span className="text-destructive">*</span></Label>
                   <Controller
                     name="general_physical_examination.other_significant_findings"
                     control={control}
                     render={({ field }: any) => <RichTextEditor placeholder="Other findings..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                   />
+                  {errors.general_physical_examination?.other_significant_findings && (
+                    <p className="text-sm text-destructive">{errors.general_physical_examination.other_significant_findings.message}</p>
+                  )}
                 </div>
                 <CustomFieldsSection sectionId="general_physical_examination" sectionTitle="General Physical Examination" />
               </CardContent>
@@ -956,12 +1050,15 @@ export default function EditCasePage() {
                   { key: 'gastrointestinal_system', label: 'Gastrointestinal System' },
                 ].map((item) => (
                   <div key={item.key} className="space-y-2">
-                    <Label>{item.label}</Label>
+                    <Label>{item.label} <span className="text-destructive">*</span></Label>
                     <Controller
                       name={`systemic_examination.${item.key}` as any}
                       control={control}
                       render={({ field }: any) => <RichTextEditor placeholder={`${item.label}...`} value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
                     />
+                    {(errors.systemic_examination as any)?.[item.key] && (
+                      <p className="text-sm text-destructive">{(errors.systemic_examination as any)[item.key].message}</p>
+                    )}
                   </div>
                 ))}
                 <CustomFieldsSection sectionId="systemic_examination" sectionTitle="Systemic Examination" />
@@ -989,36 +1086,48 @@ export default function EditCasePage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Inspection</Label>
+                    <Label>Inspection <span className="text-destructive">*</span></Label>
                     <Controller
                       name="local_examination.inspection"
                       control={control}
                       render={({ field }: any) => <RichTextEditor placeholder="Inspection findings..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
                     />
+                    {errors.local_examination?.inspection && (
+                      <p className="text-sm text-destructive">{errors.local_examination.inspection.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Palpation</Label>
+                    <Label>Palpation <span className="text-destructive">*</span></Label>
                     <Controller
                       name="local_examination.palpation"
                       control={control}
                       render={({ field }: any) => <RichTextEditor placeholder="Palpation findings..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
                     />
+                    {errors.local_examination?.palpation && (
+                      <p className="text-sm text-destructive">{errors.local_examination.palpation.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Percussion</Label>
+                    <Label>Percussion <span className="text-destructive">*</span></Label>
                     <Controller
                       name="local_examination.percussion"
                       control={control}
                       render={({ field }: any) => <RichTextEditor placeholder="Percussion findings..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
                     />
+                    {errors.local_examination?.percussion && (
+                      <p className="text-sm text-destructive">{errors.local_examination.percussion.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Auscultation</Label>
+                    <Label>Auscultation <span className="text-destructive">*</span></Label>
                     <Controller
                       name="local_examination.auscultation"
                       control={control}
                       render={({ field }: any) => <RichTextEditor placeholder="Auscultation findings..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
                     />
+                    {errors.local_examination?.auscultation && (
+                      <p className="text-sm text-destructive">{errors.local_examination.auscultation.message}</p>
+                    )}
                   </div>
                 </div>
                 <CustomFieldsSection sectionId="local_examination" sectionTitle="Local Examination" />
@@ -1043,12 +1152,15 @@ export default function EditCasePage() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label>Differential Diagnosis</Label>
+                  <Label>Differential Diagnosis <span className="text-destructive">*</span></Label>
                   <Controller
                     name="diagnosis.differential_diagnosis"
                     control={control}
                     render={({ field }: any) => <RichTextEditor placeholder="Differential diagnosis..." value={field.value || ''} onChange={field.onChange} minHeight="100px" />}
                   />
+                  {errors.diagnosis?.differential_diagnosis && (
+                    <p className="text-sm text-destructive">{errors.diagnosis.differential_diagnosis.message}</p>
+                  )}
                 </div>
                 <CustomFieldsSection sectionId="diagnosis" sectionTitle="Diagnosis" />
               </CardContent>
@@ -1062,12 +1174,12 @@ export default function EditCasePage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base font-bold text-foreground">
-                    7.1 Investigations for Confirmation of Diagnosis
+                    7.1 Investigations for Confirmation of Diagnosis <span className="text-destructive">*</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Written Findings & Reports</Label>
+                    <Label>Written Findings & Reports <span className="text-destructive">*</span></Label>
                     <Controller
                       name="investigations_info.investigations_confirmation"
                       control={control}
@@ -1075,9 +1187,15 @@ export default function EditCasePage() {
                         <RichTextEditor placeholder="Lab values, imaging summaries, biopsy results..." value={field.value || ''} onChange={field.onChange} minHeight="100px" />
                       )}
                     />
+                    {errors.investigations_info?.investigations_confirmation && (
+                      <p className="text-sm text-destructive">{errors.investigations_info.investigations_confirmation.message}</p>
+                    )}
                   </div>
                   <div className="space-y-3 pt-2">
-                    <Label className="text-xs font-semibold uppercase text-muted-foreground">Confirmation Reports / Scans Upload</Label>
+                    <Label className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1">
+                      <span>Confirmation Reports / Scans Upload</span>
+                      <span className="text-destructive">* (At least 1 required)</span>
+                    </Label>
                     <AttachmentUploader
                       caseId={caseId}
                       investigationGroup="confirmation"
@@ -1097,12 +1215,12 @@ export default function EditCasePage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base font-bold text-foreground">
-                    7.2 Investigations for Determining Extent of Disease (Staging)
+                    7.2 Investigations for Determining Extent of Disease (Staging) <span className="text-destructive">*</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Written Findings & Staging Reports</Label>
+                    <Label>Written Findings & Staging Reports <span className="text-destructive">*</span></Label>
                     <Controller
                       name="investigations_info.investigations_staging"
                       control={control}
@@ -1110,9 +1228,15 @@ export default function EditCasePage() {
                         <RichTextEditor placeholder="Staging CT/MRI, PET scans, metastasis workup..." value={field.value || ''} onChange={field.onChange} minHeight="100px" />
                       )}
                     />
+                    {errors.investigations_info?.investigations_staging && (
+                      <p className="text-sm text-destructive">{errors.investigations_info.investigations_staging.message}</p>
+                    )}
                   </div>
                   <div className="space-y-3 pt-2">
-                    <Label className="text-xs font-semibold uppercase text-muted-foreground">Staging Reports / Scans Upload</Label>
+                    <Label className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1">
+                      <span>Staging Reports / Scans Upload</span>
+                      <span className="text-destructive">* (At least 1 required)</span>
+                    </Label>
                     <AttachmentUploader
                       caseId={caseId}
                       investigationGroup="staging"
