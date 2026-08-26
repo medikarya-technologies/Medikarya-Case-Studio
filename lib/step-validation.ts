@@ -3,11 +3,11 @@ import { validateCaseForSubmit } from '@/lib/case-submit-validation';
 import { toast } from 'sonner';
 
 /**
- * Validates only the required fields for a specific step in the case wizard.
- * If validation fails:
- * - Sets field-level errors (for inline displays)
- * - Shows a Sonner toast listing the exact missing fields on this step (e.g. "Please fill in: History of Present Illness, Chief Complaint")
- * - Returns false to block navigation
+ * Validates required fields for each of the 7 steps in the case wizard.
+ * Required fields:
+ * Step 1: Case Title, Specialty, Patient Name, Age, Sex
+ * Step 2: Presenting Complaints, History of Present Illness
+ * Step 6: Provisional Diagnosis
  */
 export async function validateStepAndNotify(
   step: number,
@@ -17,16 +17,17 @@ export async function validateStepAndNotify(
 
   let fieldsToValidate: (keyof CaseFormData)[] = [];
   if (step === 1) fieldsToValidate = ['title', 'specialty', 'difficulty', 'tags', 'patient_details'];
-  if (step === 2) fieldsToValidate = ['chief_complaint_history'];
-  if (step === 3) fieldsToValidate = ['medical_history', 'current_medications', 'review_of_systems'];
-  if (step === 4) fieldsToValidate = ['examination_findings'];
-  if (step === 5) fieldsToValidate = ['investigations'];
-  if (step === 6) fieldsToValidate = ['diagnosis_management', 'learning_points'];
+  if (step === 2) fieldsToValidate = ['history'];
+  if (step === 3) fieldsToValidate = ['general_physical_examination'];
+  if (step === 4) fieldsToValidate = ['systemic_examination'];
+  if (step === 5) fieldsToValidate = ['local_examination'];
+  if (step === 6) fieldsToValidate = ['diagnosis'];
+  if (step === 7) fieldsToValidate = ['investigations_info'];
 
-  // Trigger RHF/Zod validation for this step
+  // Trigger Zod validation for this step's fields
   const isValidZod = await trigger(fieldsToValidate as any);
 
-  // Check fallback submit validation for this step
+  // Check submit validation rules for this step
   const data = getValues();
   const submitErrorsForStep = validateCaseForSubmit(data).filter((err) => err.step === step);
 
@@ -48,62 +49,48 @@ export async function validateStepAndNotify(
       if (getFieldState('specialty').error || submitErrorsForStep.some((e) => e.field === 'specialty')) {
         missingLabels.push('Specialty');
       }
+      if (
+        getFieldState('patient_details.patient_name').error ||
+        submitErrorsForStep.some((e) => e.field === 'patient_details.patient_name')
+      ) {
+        missingLabels.push('Patient Name');
+      }
+      if (
+        getFieldState('patient_details.age').error ||
+        submitErrorsForStep.some((e) => e.field === 'patient_details.age')
+      ) {
+        missingLabels.push('Age');
+      }
+      if (
+        getFieldState('patient_details.sex').error ||
+        getFieldState('patient_details.gender').error ||
+        submitErrorsForStep.some((e) => e.field.startsWith('patient_details.sex'))
+      ) {
+        missingLabels.push('Sex');
+      }
     }
 
     if (step === 2) {
       if (
-        getFieldState('chief_complaint_history.chief_complaint').error ||
-        submitErrorsForStep.some((e) => e.field === 'chief_complaint_history.chief_complaint')
+        getFieldState('history.presenting_complaints').error ||
+        submitErrorsForStep.some((e) => e.field === 'history.presenting_complaints')
       ) {
-        missingLabels.push('Chief Complaint');
+        missingLabels.push('Presenting Complaints');
       }
       if (
-        getFieldState('chief_complaint_history.hpi_additional').error ||
-        submitErrorsForStep.some((e) => e.field === 'chief_complaint_history.hpi_additional')
+        getFieldState('history.history_of_present_illness').error ||
+        submitErrorsForStep.some((e) => e.field === 'history.history_of_present_illness')
       ) {
         missingLabels.push('History of Present Illness');
       }
     }
 
-    if (step === 3) {
-      if (getFieldState('current_medications').error) {
-        missingLabels.push('Current Medications');
-      }
-    }
-
-    if (step === 4) {
-      if (
-        getFieldState('examination_findings.general_appearance').error ||
-        submitErrorsForStep.some((e) => e.field === 'examination_findings.general_appearance')
-      ) {
-        missingLabels.push('General Appearance');
-      }
-    }
-
-    if (step === 5) {
-      if (getFieldState('investigations').error) {
-        missingLabels.push('Investigations');
-      }
-    }
-
     if (step === 6) {
       if (
-        getFieldState('diagnosis_management.final_diagnosis').error ||
-        submitErrorsForStep.some((e) => e.field === 'diagnosis_management.final_diagnosis')
+        getFieldState('diagnosis.provisional_diagnosis').error ||
+        submitErrorsForStep.some((e) => e.field === 'diagnosis.provisional_diagnosis')
       ) {
-        missingLabels.push('Final Diagnosis');
-      }
-      if (
-        getFieldState('diagnosis_management.treatment_plan').error ||
-        submitErrorsForStep.some((e) => e.field === 'diagnosis_management.treatment_plan')
-      ) {
-        missingLabels.push('Treatment Plan');
-      }
-      if (
-        getFieldState('diagnosis_management.outcome').error ||
-        submitErrorsForStep.some((e) => e.field === 'diagnosis_management.outcome')
-      ) {
-        missingLabels.push('Outcome');
+        missingLabels.push('Provisional Diagnosis');
       }
     }
 

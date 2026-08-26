@@ -203,17 +203,28 @@ export async function createCaseAttachment(
   attachmentData: Omit<CaseAttachment, 'id' | 'created_at'>
 ): Promise<CaseAttachment> {
   const supabase = createServiceClient();
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('case_attachments')
     .insert([attachmentData])
     .select('*')
     .single();
 
+  if (error && (error.message?.includes('investigation_group') || error.details?.includes('investigation_group'))) {
+    console.warn('investigation_group column missing on case_attachments table, falling back without column');
+    const { investigation_group, ...rest } = attachmentData;
+    const res = await supabase.from('case_attachments').insert([rest]).select('*').single();
+    data = res.data;
+    error = res.error;
+  }
+
   if (error) {
     logSupabaseError('createCaseAttachment', error);
     throw error;
   }
-  return data as CaseAttachment;
+  return {
+    ...data,
+    investigation_group: data?.investigation_group ?? attachmentData.investigation_group ?? null,
+  } as CaseAttachment;
 }
 
 export async function deleteCaseAttachment(attachmentId: string): Promise<void> {

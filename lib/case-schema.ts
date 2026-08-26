@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-// Zod Schema for form validation
+// Zod Schema for form validation matching the 7 consolidated sections
 export const caseSchema = z.object({
-  // Step 1: Patient & Metadata
+  // Metadata
   title: z.string().min(5, 'Title must be at least 5 characters'),
   original_author_name: z.string().optional(),
   specialty: z.enum([
@@ -16,144 +16,121 @@ export const caseSchema = z.object({
     'family_medicine',
     'internal_medicine',
     'pediatrics',
-    'other'
+    'other',
   ]),
   difficulty: z.enum(['beginner', 'intermediate', 'advanced']),
   tags: z.array(z.string()),
+
+  // Section 1: Patient Details
   patient_details: z.object({
-    patient_name: z.string().optional(),
-    patient_id: z.string().optional(),
-    age: z.number().optional(),
-    gender: z.enum(['male', 'female', 'other']).optional(),
+    case_no: z.string().optional(),
+    patient_name: z.string().min(1, 'Patient Name is required'),
+    age: z.union([z.number({ required_error: 'Age is required' }), z.nan()]).refine((val) => !isNaN(val as number), {
+      message: 'Age is required',
+    }),
+    sex: z.enum(['male', 'female', 'other'], { required_error: 'Sex is required' }),
+    religion: z.string().optional(),
     occupation: z.string().optional(),
+    address: z.string().optional(),
+    date_of_admission: z.string().optional(),
+
+    // Backward compatibility fields
+    patient_id: z.string().optional(),
+    gender: z.enum(['male', 'female', 'other']).optional(),
     location: z.string().optional(),
     presenting_date: z.string().optional(),
   }),
 
-  // Step 2: Chief Complaint & HPI
-  chief_complaint_history: z.object({
-    chief_complaint: z.string().min(3, 'Chief complaint is required'),
-    hpi_duration: z.string().optional(),
-    hpi_onset: z.string().optional(),
-    hpi_aggravating: z.string().optional(),
-    hpi_relieving: z.string().optional(),
-    hpi_additional: z.string().min(10, 'History of present illness is required (minimum 10 characters)').optional(),
-    associated_symptoms: z.string().optional(),
-  }),
-
-  // Step3: Medical & Personal History
-  medical_history: z.object({
-    past_medical_history: z.array(z.string()),
-    custom_medical_history: z.string().optional(),
+  // Section 2: History
+  history: z.object({
+    presenting_complaints: z.string().min(1, 'Presenting Complaints is required'),
+    history_of_present_illness: z.string().min(1, 'History of Present Illness is required'),
+    past_history: z.string().optional(),
+    personal_history: z.string().optional(),
+    treatment_history: z.string().optional(),
     family_history: z.string().optional(),
-    social_history_smoking: z.string().optional(),
-    social_history_alcohol: z.string().optional(),
-    social_history_occupation: z.string().optional(),
-    allergies: z.array(z.string()),
-  }),
-  current_medications: z.array(
-    z.object({
-      id: z.string().optional(),
-      name: z.string().min(1, 'Medication name is required'),
-      dose: z.string().min(1, 'Dose is required'),
-      frequency: z.string().min(1, 'Frequency is required'),
-    })
-  ),
-  review_of_systems: z.object({
-    constitutional: z.string().optional(),
-    cardiovascular: z.string().optional(),
-    respiratory: z.string().optional(),
-    gastrointestinal: z.string().optional(),
-    neurological: z.string().optional(),
-    musculoskeletal: z.string().optional(),
-    dermatological: z.string().optional(),
-    psychiatric: z.string().optional(),
-    other: z.string().optional(),
+    menstrual_history: z.string().optional(),
+    obstetric_history: z.string().optional(),
+    socio_economic_history: z.string().optional(),
+    any_other: z.string().optional(),
   }),
 
-  // Step4: Examination
-  examination_findings: z.object({
-    general_appearance: z.string().min(5, 'General appearance is required (minimum 5 characters)').optional(),
-    vital_signs: z.object({
-      bp_systolic: z.number().optional(),
-      bp_diastolic: z.number().optional(),
-      hr: z.number().optional(),
-      rr: z.number().optional(),
-      temp: z.number().optional(),
-      spo2: z.number().optional(),
-      weight: z.number().optional(),
-      height: z.number().optional(),
-      bmi: z.number().optional(),
-    }),
-    local: z.object({
-      location_extent: z.string().optional(),
-      surface_margins: z.string().optional(),
-      consistency: z.string().optional(),
-      tenderness: z.string().optional(),
-      mobility_fixity: z.string().optional(),
-      regional_lymph_nodes: z.string().optional(),
-      other_local_findings: z.string().optional(),
-    }).optional(),
-    systemic: z.object({
-      cardiovascular: z.string().optional(),
-      respiratory: z.string().optional(),
-      gastrointestinal: z.string().optional(),
-      neurological: z.string().optional(),
-      musculoskeletal: z.string().optional(),
-      dermatological: z.string().optional(),
-      thyroid: z.string().optional(),
-    }),
-  }),
-
-  // Step5: Investigations
-  investigations: z.array(
-    z.object({
-      id: z.string().optional(),
-      type: z.enum(['lab', 'imaging', 'biopsy', 'other']),
-      test_name: z.string().min(1, 'Test name is required'),
-      result: z.string().optional(),
-      normal_range: z.string().optional(),
-      date: z.string().optional(),
-      interpretation: z.string().optional(),
-      image_url: z.string().url('Must be a valid URL').or(z.literal('')).optional(),
-    })
-  ),
-
-  // Step6: Diagnosis & Management
-  diagnosis_management: z.object({
-    provisional_diagnosis: z.string().optional(),
-    differential_diagnoses: z.array(z.string()),
-    final_diagnosis: z.string().min(3, 'Final diagnosis is required').optional(),
-    treatment_plan: z.string().min(5, 'Treatment plan is required (minimum 5 characters)').optional(),
-    medications_prescribed: z.array(
-      z.object({
-        id: z.string().optional(),
-        drug: z.string().min(1, 'Drug name is required'),
-        dose: z.string().min(1, 'Dose is required'),
-        frequency: z.string().min(1, 'Frequency is required'),
-        duration: z.string().min(1, 'Duration is required'),
+  // Section 3: General Physical Examination
+  general_physical_examination: z.object({
+    consciousness_orientation: z.string().optional(),
+    pallor: z.string().optional(),
+    cyanosis: z.string().optional(),
+    icterus: z.string().optional(),
+    peripheral_oedema: z.string().optional(),
+    clubbing: z.string().optional(),
+    jvp: z.string().optional(),
+    lymph_nodes: z
+      .object({
+        cervical: z.string().optional(),
+        axillary: z.string().optional(),
+        inguinal: z.string().optional(),
       })
-    ),
-    follow_up_plan: z.string().optional(),
-    prognosis: z.string().optional(),
-    outcome: z.string().min(3, 'Outcome is required (e.g. "Recovered", "Ongoing follow-up")').optional(),
-    reference_pdfs: z.array(
-      z.object({
-        filename: z.string().min(1, 'Filename is required'),
-        url: z.string().url('Must be a valid URL').or(z.literal('')),
-      })
-    ).optional(),
+      .optional(),
+    pulse: z.string().optional(),
+    bp: z.string().optional(),
+    respiratory_rate: z.string().optional(),
+    temperature: z.string().optional(),
+    other_significant_findings: z.string().optional(),
+  }).optional(),
+
+  // Section 4: Systemic Examination
+  systemic_examination: z.object({
+    respiratory_system: z.string().optional(),
+    cardiovascular_system: z.string().optional(),
+    nervous_system: z.string().optional(),
+    genito_urinary_system: z.string().optional(),
+    gastrointestinal_system: z.string().optional(),
+  }).optional(),
+
+  // Section 5: Local Examination
+  local_examination: z.object({
+    region: z.string().optional(),
+    inspection: z.string().optional(),
+    palpation: z.string().optional(),
+    percussion: z.string().optional(),
+    auscultation: z.string().optional(),
+  }).optional(),
+
+  // Section 6: Diagnosis
+  diagnosis: z.object({
+    provisional_diagnosis: z.string().min(1, 'Provisional Diagnosis is required'),
+    differential_diagnosis: z.string().optional(),
   }),
-  learning_points: z.array(z.string()),
-  custom_fields: z.array(
-    z.object({
-      id: z.string(),
-      sectionId: z.string(),
-      label: z.string().min(1, 'Field name is required'),
-      type: z.enum(['text', 'textarea']),
-      value: z.string(),
-    })
-  ).optional(),
+
+  // Section 7: Investigations
+  investigations_info: z.object({
+    investigations_confirmation: z.string().optional(),
+    investigations_staging: z.string().optional(),
+  }).optional(),
+
+  // Per-case custom fields
+  custom_fields: z
+    .array(
+      z.object({
+        id: z.string(),
+        sectionId: z.string(),
+        label: z.string().min(1, 'Field name is required'),
+        type: z.enum(['text', 'textarea']),
+        value: z.string(),
+      })
+    )
+    .optional(),
+
+  // Retain legacy fields as optional for backward compatibility
+  chief_complaint_history: z.any().optional(),
+  medical_history: z.any().optional(),
+  current_medications: z.any().optional(),
+  review_of_systems: z.any().optional(),
+  examination_findings: z.any().optional(),
+  investigations: z.any().optional(),
+  diagnosis_management: z.any().optional(),
+  learning_points: z.any().optional(),
 });
 
 export type CaseFormData = z.infer<typeof caseSchema>;
+

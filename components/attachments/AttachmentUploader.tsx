@@ -10,6 +10,7 @@ import { toast } from '@/components/ui/toaster';
 interface AttachmentUploaderProps {
   caseId: string;
   investigationId?: string | null;
+  investigationGroup?: 'confirmation' | 'staging' | null;
   onAttachmentUploaded?: (attachment: CaseAttachment) => void;
   label?: string;
   description?: string;
@@ -30,6 +31,7 @@ const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
 export function AttachmentUploader({
   caseId,
   investigationId = null,
+  investigationGroup = null,
   onAttachmentUploaded,
   label = 'Upload Investigation Scans & Reports',
   description = 'Drag & drop image scans (JPG, PNG, WEBP) or PDF lab reports (up to 10MB per file)',
@@ -87,6 +89,9 @@ export function AttachmentUploader({
         formData.append('caseId', caseId);
         if (investigationId) {
           formData.append('investigationId', investigationId);
+        }
+        if (investigationGroup) {
+          formData.append('investigationGroup', investigationGroup);
         }
         formData.append('file', file);
 
