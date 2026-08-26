@@ -1,15 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBeforeUnloadWarning, useNavigationGuard } from '@/hooks/use-unsaved-changes';
-import { ArrowLeft, Save, Send, Check, ChevronRight, ChevronLeft, Plus, X, Loader2 } from 'lucide-react';
-import { useForm, useFieldArray, Controller, FormProvider } from 'react-hook-form';
+import { Save, Send, Check, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
+import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { RichTextEditor } from '@/components/case/form/RichTextEditor';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -20,29 +19,21 @@ import { caseSchema, type CaseFormData } from '@/lib/case-schema';
 import { validateCaseForSubmit } from '@/lib/case-submit-validation';
 import { validateStepAndNotify } from '@/lib/step-validation';
 import { saveDraftCase, submitCaseAction } from '@/app/actions/case-actions';
+import { AttachmentUploader } from '@/components/attachments/AttachmentUploader';
+import { AttachmentGallery } from '@/components/attachments/AttachmentGallery';
+import type { CaseAttachment } from '@/lib/types';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CustomFieldsSection } from '@/components/case/form/CustomFieldsSection';
 
 const STEPS = [
-  { number: 1, title: 'Patient & Metadata' },
-  { number: 2, title: 'Chief Complaint' },
-  { number: 3, title: 'Medical History' },
-  { number: 4, title: 'Examination' },
-  { number: 5, title: 'Investigations' },
+  { number: 1, title: 'Patient Details' },
+  { number: 2, title: 'History' },
+  { number: 3, title: 'General Physical Exam' },
+  { number: 4, title: 'Systemic Exam' },
+  { number: 5, title: 'Local Exam' },
   { number: 6, title: 'Diagnosis' },
-];
-
-// Checkbox group for common PMH
-const COMMON_PMH = [
-  'Diabetes',
-  'Hypertension',
-  'Asthma',
-  'CAD',
-  'TB',
-  'COPD',
-  'Hyperlipidemia',
-  'Thyroid Disease',
+  { number: 7, title: 'Investigations' },
 ];
 
 const DEFAULT_FORM_DATA: CaseFormData = {
@@ -52,416 +43,77 @@ const DEFAULT_FORM_DATA: CaseFormData = {
   difficulty: 'intermediate',
   tags: [],
   patient_details: {
+    case_no: '',
     patient_name: '',
-    patient_id: '',
-    age: undefined,
-    gender: undefined,
+    age: undefined as any,
+    sex: undefined as any,
+    religion: '',
     occupation: '',
-    location: '',
-    presenting_date: '',
+    address: '',
+    date_of_admission: '',
   },
-  chief_complaint_history: {
-    chief_complaint: '',
-    hpi_duration: '',
-    hpi_onset: '',
-    hpi_aggravating: '',
-    hpi_relieving: '',
-    hpi_additional: '',
-    associated_symptoms: '',
-  },
-  medical_history: {
-    past_medical_history: [],
-    custom_medical_history: '',
+  history: {
+    presenting_complaints: '',
+    history_of_present_illness: '',
+    past_history: '',
+    personal_history: '',
+    treatment_history: '',
     family_history: '',
-    social_history_smoking: '',
-    social_history_alcohol: '',
-    social_history_occupation: '',
-    allergies: [],
+    menstrual_history: '',
+    obstetric_history: '',
+    socio_economic_history: '',
+    any_other: '',
   },
-  current_medications: [],
-  review_of_systems: {
-    cardiovascular: '',
-    respiratory: '',
-    gastrointestinal: '',
-    neurological: '',
-    musculoskeletal: '',
-    dermatological: '',
-    constitutional: '',
-    psychiatric: '',
-    other: '',
+  general_physical_examination: {
+    consciousness_orientation: '',
+    pallor: '',
+    cyanosis: '',
+    icterus: '',
+    peripheral_oedema: '',
+    clubbing: '',
+    jvp: '',
+    lymph_nodes: {
+      cervical: '',
+      axillary: '',
+      inguinal: '',
+    },
+    pulse: '',
+    bp: '',
+    respiratory_rate: '',
+    temperature: '',
+    other_significant_findings: '',
   },
-  examination_findings: {
-    general_appearance: '',
-    vital_signs: {
-      bp_systolic: undefined,
-      bp_diastolic: undefined,
-      hr: undefined,
-      rr: undefined,
-      temp: undefined,
-      spo2: undefined,
-      weight: undefined,
-      height: undefined,
-      bmi: undefined,
-    },
-    local: {
-      location_extent: '',
-      surface_margins: '',
-      consistency: '',
-      tenderness: '',
-      mobility_fixity: '',
-      regional_lymph_nodes: '',
-      other_local_findings: '',
-    },
-    systemic: {
-      cardiovascular: '',
-      respiratory: '',
-      gastrointestinal: '',
-      neurological: '',
-      musculoskeletal: '',
-      dermatological: '',
-      thyroid: '',
-    },
+  systemic_examination: {
+    respiratory_system: '',
+    cardiovascular_system: '',
+    nervous_system: '',
+    genito_urinary_system: '',
+    gastrointestinal_system: '',
   },
-  investigations: [],
-  diagnosis_management: {
+  local_examination: {
+    region: '',
+    inspection: '',
+    palpation: '',
+    percussion: '',
+    auscultation: '',
+  },
+  diagnosis: {
     provisional_diagnosis: '',
-    differential_diagnoses: [],
-    final_diagnosis: '',
-    treatment_plan: '',
-    medications_prescribed: [],
-    follow_up_plan: '',
-    prognosis: '',
-    outcome: '',
-    reference_pdfs: [],
+    differential_diagnosis: '',
   },
-  learning_points: [],
+  investigations_info: {
+    investigations_confirmation: '',
+    investigations_staging: '',
+  },
   custom_fields: [],
 };
-
-// Array fields helper component
-const ArrayInputField = memo(function ArrayInputField({
-  name,
-  label,
-  placeholder,
-  control,
-  useRichText = false,
-}: {
-  name: any;
-  label: string;
-  placeholder: string;
-  control: any;
-  useRichText?: boolean;
-}) {
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name,
-  });
-
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <div className="space-y-2">
-        {fields.map((field: any, index: number) => (
-          <div key={field.id} className="flex gap-2 items-start">
-            <div className="flex-1">
-              <Controller
-                name={`${name}.${index}`}
-                control={control}
-                render={({ field: controllerField }: any) =>
-                  useRichText ? (
-                    <RichTextEditor
-                      placeholder={placeholder}
-                      value={controllerField.value || ''}
-                      onChange={controllerField.onChange}
-                      minHeight="70px"
-                    />
-                  ) : (
-                    <Input
-                      placeholder={placeholder}
-                      {...controllerField}
-                      value={controllerField.value || ''}
-                    />
-                  )
-                }
-              />
-            </div>
-            <Button type="button" variant="destructive" size="icon" className="shrink-0 mt-1" onClick={() => remove(index)}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        ))}
-      </div>
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        onClick={() => append('')}
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Add {label}
-      </Button>
-    </div>
-  );
-});
-
-// Field array components
-const CurrentMedicationsFieldArray = memo(function CurrentMedicationsFieldArray({ control }: { control: any }) {
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'current_medications',
-  });
-  return (
-    <div className="space-y-4">
-      {fields.map((field: any, index: number) => (
-        <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
-          <div className="col-span-4 space-y-1">
-            <Label>Medication</Label>
-            <Controller
-              name={`current_medications.${index}.name`}
-              control={control}
-              render={({ field: f }: any) => <Input placeholder="Name" {...f} value={f.value || ''} />}
-            />
-          </div>
-          <div className="col-span-3 space-y-1">
-            <Label>Dose</Label>
-            <Controller
-              name={`current_medications.${index}.dose`}
-              control={control}
-              render={({ field: f }: any) => <Input placeholder="Dose" {...f} value={f.value || ''} />}
-            />
-          </div>
-          <div className="col-span-4 space-y-1">
-            <Label>Frequency</Label>
-            <Controller
-              name={`current_medications.${index}.frequency`}
-              control={control}
-              render={({ field: f }: any) => <Input placeholder="Frequency" {...f} value={f.value || ''} />}
-            />
-          </div>
-          <div className="col-span-1">
-            <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      ))}
-      <Button type="button" variant="secondary" size="sm" onClick={() => append({ name: '', dose: '', frequency: '' })}>
-        <Plus className="w-4 h-4 mr-2" />
-        Add Medication
-      </Button>
-    </div>
-  );
-});
-
-const PrescribedMedicationsFieldArray = memo(function PrescribedMedicationsFieldArray({ control }: { control: any }) {
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'diagnosis_management.medications_prescribed',
-  });
-  return (
-    <div className="space-y-4">
-      {fields.map((field: any, index: number) => (
-        <div key={field.id} className="grid grid-cols-16 gap-2 items-end">
-          <div className="col-span-4 space-y-1">
-            <Label>Drug</Label>
-            <Controller
-              name={`diagnosis_management.medications_prescribed.${index}.drug`}
-              control={control}
-              render={({ field: f }: any) => <Input placeholder="Drug" {...f} value={f.value || ''} />}
-            />
-          </div>
-          <div className="col-span-3 space-y-1">
-            <Label>Dose</Label>
-            <Controller
-              name={`diagnosis_management.medications_prescribed.${index}.dose`}
-              control={control}
-              render={({ field: f }: any) => <Input placeholder="Dose" {...f} value={f.value || ''} />}
-            />
-          </div>
-          <div className="col-span-4 space-y-1">
-            <Label>Frequency</Label>
-            <Controller
-              name={`diagnosis_management.medications_prescribed.${index}.frequency`}
-              control={control}
-              render={({ field: f }: any) => <Input placeholder="Frequency" {...f} value={f.value || ''} />}
-            />
-          </div>
-          <div className="col-span-4 space-y-1">
-            <Label>Duration</Label>
-            <Controller
-              name={`diagnosis_management.medications_prescribed.${index}.duration`}
-              control={control}
-              render={({ field: f }: any) => <Input placeholder="Duration" {...f} value={f.value || ''} />}
-            />
-          </div>
-          <div className="col-span-1">
-            <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      ))}
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        onClick={() => append({ drug: '', dose: '', frequency: '', duration: '' })}
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Add Prescribed Medication
-      </Button>
-    </div>
-  );
-});
-
-const InvestigationsFieldArray = memo(function InvestigationsFieldArray({ control }: { control: any }) {
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'investigations',
-  });
-  return (
-    <div className="space-y-6">
-      {fields.map((field: any, index: number) => (
-        <Card key={field.id} className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="font-medium">Investigation {index + 1}</h4>
-            <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-          <div className="grid grid-cols-12 gap-4">
-            <div className="col-span-3 space-y-2">
-              <Label>Type</Label>
-              <Controller
-                name={`investigations.${index}.type`}
-                control={control}
-                render={({ field: f }: any) => (
-                  <select
-                    {...f}
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                  >
-                    <option value="lab">Lab</option>
-                    <option value="imaging">Imaging</option>
-                    <option value="biopsy">Biopsy</option>
-                    <option value="other">Other</option>
-                  </select>
-                )}
-              />
-            </div>
-            <div className="col-span-4 space-y-2">
-              <Label>Test Name</Label>
-              <Controller
-                name={`investigations.${index}.test_name`}
-                control={control}
-                render={({ field: f }: any) => <Input placeholder="Test name" {...f} value={f.value || ''} />}
-              />
-            </div>
-            <div className="col-span-2 space-y-2">
-              <Label>Date</Label>
-              <Controller
-                name={`investigations.${index}.date`}
-                control={control}
-                render={({ field: f }: any) => <Input type="date" {...f} value={f.value || ''} />}
-              />
-            </div>
-            <div className="col-span-3 space-y-2">
-              <Label>Result</Label>
-              <Controller
-                name={`investigations.${index}.result`}
-                control={control}
-                render={({ field: f }: any) => <Input placeholder="Result" {...f} value={f.value || ''} />}
-              />
-            </div>
-            <div className="col-span-4 space-y-2">
-              <Label>Normal Range</Label>
-              <Controller
-                name={`investigations.${index}.normal_range`}
-                control={control}
-                render={({ field: f }: any) => <Input placeholder="Normal range" {...f} value={f.value || ''} />}
-              />
-            </div>
-            <div className="col-span-8 space-y-2">
-              <Label>Interpretation</Label>
-              <Controller
-                name={`investigations.${index}.interpretation`}
-                control={control}
-                render={({ field: f }: any) => <RichTextEditor placeholder="Interpretation" value={f.value || ''} onChange={f.onChange} minHeight="80px" />}
-              />
-            </div>
-            <div className="col-span-12 space-y-2">
-              <Label>Image URL (X-Ray, scan, or chart URL)</Label>
-              <Controller
-                name={`investigations.${index}.image_url`}
-                control={control}
-                render={({ field: f }: any) => <Input placeholder="https://example.com/scan.jpg" {...f} value={f.value || ''} />}
-              />
-            </div>
-          </div>
-        </Card>
-      ))}
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        onClick={() => append({ type: 'lab', test_name: '', result: '', normal_range: '', date: '', interpretation: '', image_url: '' })}
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Add Investigation
-      </Button>
-    </div>
-  );
-});
-
-const ReferencePdfsFieldArray = memo(function ReferencePdfsFieldArray({ control }: { control: any }) {
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'diagnosis_management.reference_pdfs',
-  });
-  return (
-    <div className="space-y-4">
-      {fields.map((field: any, index: number) => (
-        <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
-          <div className="col-span-5 space-y-1">
-            <Label>Document Name</Label>
-            <Controller
-              name={`diagnosis_management.reference_pdfs.${index}.filename`}
-              control={control}
-              render={({ field: f }: any) => <Input placeholder="e.g. Scanned Lab Report.pdf" {...f} value={f.value || ''} />}
-            />
-          </div>
-          <div className="col-span-6 space-y-1">
-            <Label>PDF File URL</Label>
-            <Controller
-              name={`diagnosis_management.reference_pdfs.${index}.url`}
-              control={control}
-              render={({ field: f }: any) => <Input placeholder="https://example.com/doc.pdf" {...f} value={f.value || ''} />}
-            />
-          </div>
-          <div className="col-span-1">
-            <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      ))}
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        onClick={() => append({ filename: '', url: '' })}
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Add Reference PDF URL
-      </Button>
-    </div>
-  );
-});
 
 export default function NewCasePage() {
   const router = useRouter();
   const { isLoaded } = useUser();
   const [currentStep, setCurrentStep] = useState(1);
   const [caseId, setCaseId] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<CaseAttachment[]>([]);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -473,9 +125,11 @@ export default function NewCasePage() {
     resolver: zodResolver(caseSchema),
     defaultValues: DEFAULT_FORM_DATA,
   });
-  const { control, handleSubmit, setValue, watch, getValues, setError, formState: { errors, isDirty } } = methods;
+  const { control, handleSubmit, watch, getValues, setError, formState: { errors, isDirty } } = methods;
 
-  // Update unsaved changes state
+  const localRegion = watch('local_examination.region');
+  const patientSex = watch('patient_details.sex') || watch('patient_details.gender');
+
   useEffect(() => {
     setHasUnsavedChanges(isDirty);
   }, [isDirty]);
@@ -483,56 +137,55 @@ export default function NewCasePage() {
   useBeforeUnloadWarning(hasUnsavedChanges);
   const { confirmNavigation } = useNavigationGuard(hasUnsavedChanges);
 
-  // Watch height and weight to auto-calculate BMI
-  const height = watch('examination_findings.vital_signs.height');
-  const weight = watch('examination_findings.vital_signs.weight');
+  const handleAttachmentUploaded = (newAtt: CaseAttachment) => {
+    setAttachments((prev) => [...prev, newAtt]);
+  };
 
-  useEffect(() => {
-    if (height && weight && height > 0) {
-      const heightInM = height / 100;
-      const bmi = weight / (heightInM * heightInM);
-      setValue('examination_findings.vital_signs.bmi', Math.round(bmi * 100) / 100);
-    }
-  }, [height, weight, setValue]);
+  const handleAttachmentDeleted = (deletedId: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== deletedId));
+  };
 
-  // Function to save draft
-  const saveDraft = useCallback(async (status: 'draft' | 'submitted' = 'draft') => {
-    const data = getValues();
+  const saveDraft = useCallback(
+    async (status: 'draft' | 'submitted' = 'draft') => {
+      const data = getValues();
 
-    if (status === 'draft') {
-      setIsSavingDraft(true);
-    } else {
-      setIsSubmitting(true);
-    }
-
-    try {
-      const result = await saveDraftCase(data, caseId || undefined);
-      setCaseId(result.caseId);
-      setLastSavedAt(new Date());
-      setHasUnsavedChanges(false);
-      
-      if (status === 'submitted') {
-        await submitCaseAction(result.caseId);
-        toast.success('Case submitted successfully');
-      } else {
-        toast.success('Draft saved successfully');
-      }
-    } catch (e) {
-      console.error('Error saving case:', e);
-      const message = e instanceof Error ? e.message : 'Failed to save case';
-      toast.error(message);
-    } finally {
       if (status === 'draft') {
-        setIsSavingDraft(false);
+        setIsSavingDraft(true);
       } else {
-        setIsSubmitting(false);
+        setIsSubmitting(true);
       }
-    }
-  }, [caseId, getValues]);
 
-  // Step validation
+      try {
+        const result = await saveDraftCase(data, caseId || undefined);
+        setCaseId(result.caseId);
+        setLastSavedAt(new Date());
+        setHasUnsavedChanges(false);
+
+        if (status === 'submitted') {
+          await submitCaseAction(result.caseId);
+          toast.success('Case submitted successfully');
+        } else {
+          toast.success('Draft saved successfully');
+        }
+        return result.caseId;
+      } catch (e) {
+        console.error('Error saving case:', e);
+        const message = e instanceof Error ? e.message : 'Failed to save case';
+        toast.error(message);
+        throw e;
+      } finally {
+        if (status === 'draft') {
+          setIsSavingDraft(false);
+        } else {
+          setIsSubmitting(false);
+        }
+      }
+    },
+    [caseId, getValues]
+  );
+
   const handleNextStep = useCallback(async () => {
-    const isValid = await validateStepAndNotify(currentStep, methods);
+    const isValid = await validateStepAndNotify(currentStep, methods, attachments);
     if (isValid) {
       setIsNavigatingNext(true);
       try {
@@ -542,23 +195,26 @@ export default function NewCasePage() {
         setIsNavigatingNext(false);
       }
     }
-  }, [currentStep, methods, saveDraft]);
+  }, [currentStep, methods, attachments, saveDraft]);
 
-  const handleStepClick = useCallback(async (targetStep: number) => {
-    if (targetStep === currentStep) return;
-    if (targetStep < currentStep) {
-      setCurrentStep(targetStep);
-      return;
-    }
-    for (let s = currentStep; s < targetStep; s++) {
-      const isValid = await validateStepAndNotify(s, methods);
-      if (!isValid) {
-        setCurrentStep(s);
+  const handleStepClick = useCallback(
+    async (targetStep: number) => {
+      if (targetStep === currentStep) return;
+      if (targetStep < currentStep) {
+        setCurrentStep(targetStep);
         return;
       }
-    }
-    setCurrentStep(targetStep);
-  }, [currentStep, methods]);
+      for (let s = currentStep; s < targetStep; s++) {
+        const isValid = await validateStepAndNotify(s, methods, attachments);
+        if (!isValid) {
+          setCurrentStep(s);
+          return;
+        }
+      }
+      setCurrentStep(targetStep);
+    },
+    [currentStep, methods, attachments]
+  );
 
   const handlePrevStep = useCallback(() => {
     setCurrentStep((prev) => prev - 1);
@@ -566,7 +222,7 @@ export default function NewCasePage() {
 
   const handleSubmitCase = useCallback(async () => {
     const data = getValues();
-    const validationErrors = validateCaseForSubmit(data);
+    const validationErrors = validateCaseForSubmit(data, attachments);
 
     if (validationErrors.length > 0) {
       validationErrors.forEach((err) => {
@@ -583,7 +239,7 @@ export default function NewCasePage() {
     await saveDraft('submitted');
     router.push('/dashboard/author');
     return true;
-  }, [getValues, setError, saveDraft, router]);
+  }, [getValues, attachments, setError, saveDraft, router]);
 
   const onSubmit = useCallback(async () => {
     await handleSubmitCase();
@@ -594,15 +250,11 @@ export default function NewCasePage() {
       <div className="max-w-4xl mx-auto space-y-6">
         <Skeleton className="h-6 w-40" />
         <div className="flex justify-between">
-          {Array.from({ length: 6 }).map((_, i) => (
+          {Array.from({ length: 7 }).map((_, i) => (
             <Skeleton key={i} className="h-10 w-10 rounded-full" />
           ))}
         </div>
         <Skeleton className="h-64 w-full rounded-lg" />
-        <div className="flex justify-between">
-          <Skeleton className="h-10 w-28" />
-          <Skeleton className="h-10 w-36" />
-        </div>
       </div>
     );
   }
@@ -611,6 +263,10 @@ export default function NewCasePage() {
 
   if (isPreviewMode) {
     const data = getValues();
+    const localTitle = data.local_examination?.region?.trim()
+      ? `Local Examination (${data.local_examination.region.trim()})`
+      : 'Local Examination';
+
     return (
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
@@ -620,50 +276,64 @@ export default function NewCasePage() {
             Back to Edit
           </Button>
         </div>
-        <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold">{data.title}</h1>
-            <Badge>{data.difficulty}</Badge>
-            <Badge variant="secondary">{data.specialty}</Badge>
-          </div>
-          {data.tags.length > 0 && (
-            <div className="flex gap-2">
-              {data.tags.map((tag: any, i: number) => (
-                <Badge key={i} variant="outline">{tag}</Badge>
-              ))}
-            </div>
-          )}
 
-          {/* Patient details section */}
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold">{data.title}</h1>
+            <div className="flex gap-2 items-center">
+              <Badge>{data.difficulty}</Badge>
+              <Badge variant="secondary">{data.specialty}</Badge>
+              {data.original_author_name && (
+                <span className="text-xs text-muted-foreground">Original Author: {data.original_author_name}</span>
+              )}
+            </div>
+          </div>
+
           <Card>
-            <CardHeader><CardTitle>Patient Details</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>Age</Label><p>{data.patient_details.age}</p></div>
-                <div><Label>Gender</Label><p>{data.patient_details.gender}</p></div>
-                <div><Label>Occupation</Label><p>{data.patient_details.occupation}</p></div>
-                <div><Label>Location</Label><p>{data.patient_details.location}</p></div>
-              </div>
+            <CardHeader><CardTitle>1. Patient Details</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4 text-sm">
+              <div><Label className="text-muted-foreground">Case No.</Label><p>{data.patient_details.case_no}</p></div>
+              <div><Label className="text-muted-foreground">Patient Name</Label><p className="font-semibold">{data.patient_details.patient_name}</p></div>
+              <div><Label className="text-muted-foreground">Age</Label><p>{data.patient_details.age}</p></div>
+              <div><Label className="text-muted-foreground">Sex</Label><p className="capitalize">{data.patient_details.sex}</p></div>
+              <div><Label className="text-muted-foreground">Religion</Label><p>{data.patient_details.religion}</p></div>
+              <div><Label className="text-muted-foreground">Occupation</Label><p>{data.patient_details.occupation}</p></div>
+              <div><Label className="text-muted-foreground">Address</Label><p>{data.patient_details.address}</p></div>
+              <div><Label className="text-muted-foreground">Date of Admission</Label><p>{data.patient_details.date_of_admission}</p></div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>2. History</CardTitle></CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div><Label className="text-muted-foreground">Presenting Complaints</Label><p className="font-medium">{data.history.presenting_complaints}</p></div>
+              <div><Label className="text-muted-foreground">History of Present Illness</Label><p>{data.history.history_of_present_illness}</p></div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>5. {localTitle}</CardTitle></CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {data.local_examination?.inspection && <div><Label className="text-muted-foreground">Inspection</Label><p>{data.local_examination.inspection}</p></div>}
+              {data.local_examination?.palpation && <div><Label className="text-muted-foreground">Palpation</Label><p>{data.local_examination.palpation}</p></div>}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>6. Diagnosis</CardTitle></CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div><Label className="text-muted-foreground">Provisional Diagnosis</Label><p className="font-semibold">{data.diagnosis.provisional_diagnosis}</p></div>
+              <div><Label className="text-muted-foreground">Differential Diagnosis</Label><p>{data.diagnosis.differential_diagnosis}</p></div>
             </CardContent>
           </Card>
         </div>
+
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setIsPreviewMode(false)}
-            disabled={isSubmitting}
-          >
+          <Button variant="outline" onClick={() => setIsPreviewMode(false)} disabled={isSubmitting}>
             Back to Edit
           </Button>
-          <Button
-            onClick={handleSubmit(onSubmit)}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4 mr-2" />
-            )}
+          <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
             Submit Case
           </Button>
         </div>
@@ -683,7 +353,7 @@ export default function NewCasePage() {
           </p>
         </div>
 
-        {/* Step Indicator — compact on mobile */}
+        {/* Step Indicator */}
         <div className="flex items-center justify-between overflow-x-auto pb-2">
           {steps.map((step, i) => (
             <div key={step.number} className="flex items-center min-w-0">
@@ -692,28 +362,34 @@ export default function NewCasePage() {
                 onClick={() => handleStepClick(step.number)}
                 className="flex flex-col items-center focus:outline-none group cursor-pointer"
               >
-                <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 text-xs sm:text-sm font-semibold shrink-0 transition-colors ${
-                  step.number < currentStep
-                    ? 'bg-primary border-primary text-primary-foreground group-hover:bg-primary/90'
-                    : step.number === currentStep
-                    ? 'border-primary text-primary'
-                    : 'border-muted-foreground text-muted-foreground group-hover:border-primary/50'
-                }`}>
+                <div
+                  className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 text-xs sm:text-sm font-semibold shrink-0 transition-colors ${
+                    step.number < currentStep
+                      ? 'bg-primary border-primary text-primary-foreground group-hover:bg-primary/90'
+                      : step.number === currentStep
+                      ? 'border-primary text-primary'
+                      : 'border-muted-foreground text-muted-foreground group-hover:border-primary/50'
+                  }`}
+                >
                   {step.number < currentStep ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : step.number}
                 </div>
-                <span className="mt-2 text-xs font-medium text-center w-16 sm:w-20 hidden sm:block">{step.title}</span>
+                <span className="mt-2 text-xs font-medium text-center w-16 sm:w-20 hidden sm:block">
+                  {step.title}
+                </span>
               </button>
               {i < steps.length - 1 && (
-                <div className={`flex-1 h-1 mx-1 sm:mx-2 min-w-[12px] ${
-                  step.number < currentStep ? 'bg-primary' : 'bg-muted-foreground/30'
-                }`} />
+                <div
+                  className={`flex-1 h-1 mx-1 sm:mx-2 min-w-[12px] ${
+                    step.number < currentStep ? 'bg-primary' : 'bg-muted-foreground/30'
+                  }`}
+                />
               )}
             </div>
           ))}
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Step 1: Patient & Metadata */}
+          {/* Step 1: Patient Details & Case Metadata */}
           {currentStep === 1 && (
             <div className="space-y-4">
               <Card>
@@ -788,41 +464,37 @@ export default function NewCasePage() {
                         />
                       )}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Leave blank if you are the original author of this case.
-                    </p>
                   </div>
-                  <ArrayInputField
-                    name="tags"
-                    label="Tags"
-                    placeholder="Add a tag..."
-                    control={control}
-                  />
                 </CardContent>
               </Card>
+
               <Card>
-                <CardHeader><CardTitle>Patient Details</CardTitle></CardHeader>
+                <CardHeader><CardTitle>1. Patient Details</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Patient Name</Label>
+                    <Label>Case No. <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="patient_details.case_no"
+                      control={control}
+                      render={({ field }: any) => <Input placeholder="Case No." {...field} value={field.value || ''} />}
+                    />
+                    {errors.patient_details?.case_no && (
+                      <p className="text-sm text-destructive">{errors.patient_details.case_no.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Patient Name <span className="text-destructive">*</span></Label>
                     <Controller
                       name="patient_details.patient_name"
                       control={control}
-                      render={({ field }: any) => (
-                        <Input placeholder="Full or de-identified patient name (optional)" {...field} value={field.value || ''} />
-                      )}
+                      render={({ field }: any) => <Input placeholder="Full patient name" {...field} value={field.value || ''} />}
                     />
+                    {errors.patient_details?.patient_name && (
+                      <p className="text-sm text-destructive">{errors.patient_details.patient_name.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Patient ID</Label>
-                    <Controller
-                      name="patient_details.patient_id"
-                      control={control}
-                      render={({ field }: any) => <Input placeholder="Patient ID" {...field} value={field.value || ''} />}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Age</Label>
+                    <Label>Age <span className="text-destructive">*</span></Label>
                     <Controller
                       name="patient_details.age"
                       control={control}
@@ -838,519 +510,637 @@ export default function NewCasePage() {
                         />
                       )}
                     />
+                    {errors.patient_details?.age && (
+                      <p className="text-sm text-destructive">{errors.patient_details.age.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Gender</Label>
+                    <Label>Sex <span className="text-destructive">*</span></Label>
                     <Controller
-                      name="patient_details.gender"
+                      name="patient_details.sex"
                       control={control}
                       render={({ field }: any) => (
                         <select
                           {...field}
+                          value={field.value || ''}
                           className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                         >
-                          <option value="">Select gender</option>
+                          <option value="">Select sex</option>
                           <option value="male">Male</option>
                           <option value="female">Female</option>
                           <option value="other">Other</option>
                         </select>
                       )}
                     />
+                    {errors.patient_details?.sex && (
+                      <p className="text-sm text-destructive">{errors.patient_details.sex.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Presenting Date</Label>
+                    <Label>Religion <span className="text-destructive">*</span></Label>
                     <Controller
-                      name="patient_details.presenting_date"
+                      name="patient_details.religion"
                       control={control}
-                      render={({ field }: any) => <Input type="date" {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Input placeholder="Religion" {...field} value={field.value || ''} />}
                     />
+                    {errors.patient_details?.religion && (
+                      <p className="text-sm text-destructive">{errors.patient_details.religion.message}</p>
+                    )}
                   </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label>Occupation</Label>
+                  <div className="space-y-2">
+                    <Label>Occupation <span className="text-destructive">*</span></Label>
                     <Controller
                       name="patient_details.occupation"
                       control={control}
                       render={({ field }: any) => <Input placeholder="Occupation" {...field} value={field.value || ''} />}
                     />
+                    {errors.patient_details?.occupation && (
+                      <p className="text-sm text-destructive">{errors.patient_details.occupation.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2 col-span-2">
-                    <Label>Location</Label>
+                    <Label>Address <span className="text-destructive">*</span></Label>
                     <Controller
-                      name="patient_details.location"
+                      name="patient_details.address"
                       control={control}
-                      render={({ field }: any) => <Input placeholder="Location" {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Input placeholder="Address" {...field} value={field.value || ''} />}
                     />
+                    {errors.patient_details?.address && (
+                      <p className="text-sm text-destructive">{errors.patient_details.address.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Date of Admission <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="patient_details.date_of_admission"
+                      control={control}
+                      render={({ field }: any) => <Input type="date" {...field} value={field.value || ''} />}
+                    />
+                    {errors.patient_details?.date_of_admission && (
+                      <p className="text-sm text-destructive">{errors.patient_details.date_of_admission.message}</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
+
               <CustomFieldsSection sectionId="patient_details" sectionTitle="Patient Details" />
             </div>
           )}
 
-          {/* Step2: Chief Complaint & HPI */}
+          {/* Step 2: History */}
           {currentStep === 2 && (
             <Card>
-              <CardHeader><CardTitle>Chief Complaint & History of Present Illness</CardTitle></CardHeader>
+              <CardHeader><CardTitle>2. History</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="chief_complaint">Chief Complaint <span className="text-destructive">*</span></Label>
+                  <Label>Presenting Complaints <span className="text-destructive">*</span></Label>
                   <Controller
-                    name="chief_complaint_history.chief_complaint"
+                    name="history.presenting_complaints"
                     control={control}
-                    render={({ field }: any) => <RichTextEditor placeholder="Chief complaint..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
+                    render={({ field }: any) => (
+                      <RichTextEditor placeholder="Presenting complaints..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />
+                    )}
                   />
-                  {errors.chief_complaint_history?.chief_complaint && (
-                    <p className="text-sm text-destructive">{errors.chief_complaint_history.chief_complaint.message}</p>
+                  {errors.history?.presenting_complaints && (
+                    <p className="text-sm text-destructive">{errors.history.presenting_complaints.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>History of Present Illness <span className="text-destructive">*</span></Label>
+                  <Controller
+                    name="history.history_of_present_illness"
+                    control={control}
+                    render={({ field }: any) => (
+                      <RichTextEditor placeholder="History of present illness..." value={field.value || ''} onChange={field.onChange} minHeight="120px" />
+                    )}
+                  />
+                  {errors.history?.history_of_present_illness && (
+                    <p className="text-sm text-destructive">{errors.history.history_of_present_illness.message}</p>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Duration</Label>
+                    <Label>Past History <span className="text-destructive">*</span></Label>
                     <Controller
-                      name="chief_complaint_history.hpi_duration"
+                      name="history.past_history"
                       control={control}
-                      render={({ field }: any) => <Input placeholder="e.g. 3 days" {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <RichTextEditor placeholder="Past history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                     />
+                    {errors.history?.past_history && (
+                      <p className="text-sm text-destructive">{errors.history.past_history.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Onset</Label>
+                    <Label>Personal History <span className="text-destructive">*</span></Label>
                     <Controller
-                      name="chief_complaint_history.hpi_onset"
+                      name="history.personal_history"
                       control={control}
-                      render={({ field }: any) => <Input placeholder="e.g. sudden" {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <RichTextEditor placeholder="Personal history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                     />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Aggravating Factors</Label>
-                    <Controller
-                      name="chief_complaint_history.hpi_aggravating"
-                      control={control}
-                      render={({ field }: any) => <RichTextEditor placeholder="Aggravating factors..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
-                    />
+                    {errors.history?.personal_history && (
+                      <p className="text-sm text-destructive">{errors.history.personal_history.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Relieving Factors</Label>
+                    <Label>Treatment History <span className="text-destructive">*</span></Label>
                     <Controller
-                      name="chief_complaint_history.hpi_relieving"
+                      name="history.treatment_history"
                       control={control}
-                      render={({ field }: any) => <RichTextEditor placeholder="Relieving factors..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
+                      render={({ field }: any) => <RichTextEditor placeholder="Treatment history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
                     />
+                    {errors.history?.treatment_history && (
+                      <p className="text-sm text-destructive">{errors.history.treatment_history.message}</p>
+                    )}
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="hpi_additional">History of Present Illness <span className="text-destructive">*</span></Label>
-                  <p className="text-xs text-muted-foreground">Required for submission — describe the history of present illness</p>
-                  <Controller
-                    name="chief_complaint_history.hpi_additional"
-                    control={control}
-                    render={({ field }: any) => <RichTextEditor placeholder="Additional history..." value={field.value || ''} onChange={field.onChange} minHeight="120px" />}
-                  />
-                  {errors.chief_complaint_history?.hpi_additional && (
-                    <p className="text-sm text-destructive">{errors.chief_complaint_history.hpi_additional.message}</p>
+                  <div className="space-y-2">
+                    <Label>Family History <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="history.family_history"
+                      control={control}
+                      render={({ field }: any) => <RichTextEditor placeholder="Family history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
+                    />
+                    {errors.history?.family_history && (
+                      <p className="text-sm text-destructive">{errors.history.family_history.message}</p>
+                    )}
+                  </div>
+
+                  {/* Conditional Menstrual & Obstetric History based on Sex */}
+                  {patientSex === 'male' ? (
+                    <div className="col-span-2 p-3 border rounded bg-muted/20 text-xs text-muted-foreground italic">
+                      Note: Menstrual History & Obstetric History are marked Not Applicable for Male patients.
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Menstrual History <span className="text-destructive">*</span></Label>
+                        <Controller
+                          name="history.menstrual_history"
+                          control={control}
+                          render={({ field }: any) => <RichTextEditor placeholder="Menstrual history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
+                        />
+                        {errors.history?.menstrual_history && (
+                          <p className="text-sm text-destructive">{errors.history.menstrual_history.message}</p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Obstetric History <span className="text-destructive">*</span></Label>
+                        <Controller
+                          name="history.obstetric_history"
+                          control={control}
+                          render={({ field }: any) => <RichTextEditor placeholder="Obstetric history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
+                        />
+                        {errors.history?.obstetric_history && (
+                          <p className="text-sm text-destructive">{errors.history.obstetric_history.message}</p>
+                        )}
+                      </div>
+                    </>
                   )}
+
+                  <div className="space-y-2">
+                    <Label>Socio-economic History <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="history.socio_economic_history"
+                      control={control}
+                      render={({ field }: any) => <RichTextEditor placeholder="Socio-economic history..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
+                    />
+                    {errors.history?.socio_economic_history && (
+                      <p className="text-sm text-destructive">{errors.history.socio_economic_history.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Any Other <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="history.any_other"
+                      control={control}
+                      render={({ field }: any) => <RichTextEditor placeholder="Any other notes..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
+                    />
+                    {errors.history?.any_other && (
+                      <p className="text-sm text-destructive">{errors.history.any_other.message}</p>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Associated Symptoms</Label>
-                  <Controller
-                    name="chief_complaint_history.associated_symptoms"
-                    control={control}
-                    render={({ field }: any) => <RichTextEditor placeholder="Associated symptoms..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
-                  />
-                </div>
-                <CustomFieldsSection sectionId="chief_complaint" sectionTitle="Chief Complaint" />
+                <CustomFieldsSection sectionId="history" sectionTitle="History" />
               </CardContent>
             </Card>
           )}
 
-          {/* Step3: Medical History */}
+          {/* Step 3: General Physical Examination */}
           {currentStep === 3 && (
-            <div className="space-y-4">
-              <Card>
-                <CardHeader><CardTitle>Past Medical History</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    {COMMON_PMH.map((pmh) => (
-                      <Controller
-                        key={pmh}
-                        name="medical_history.past_medical_history"
-                        control={control}
-                        render={({ field }: any) => {
-                          const isChecked = (field.value || []).includes(pmh);
-                          return (
-                            <label className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={(e) => {
-                                  const newValue = e.target.checked
-                                    ? [...(field.value || []), pmh]
-                                    : (field.value || []).filter((x: string) => x !== pmh);
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <span className="text-sm">{pmh}</span>
-                            </label>
-                          );
-                        }}
-                      />
-                    ))}
+            <Card>
+              <CardHeader><CardTitle>3. General Physical Examination</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Consciousness / Orientation <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="general_physical_examination.consciousness_orientation"
+                      control={control}
+                      render={({ field }: any) => <Input placeholder="e.g. Conscious & Oriented x 3" {...field} value={field.value || ''} />}
+                    />
+                    {errors.general_physical_examination?.consciousness_orientation && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.consciousness_orientation.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Custom Medical History</Label>
+                    <Label>Pulse <span className="text-destructive">*</span></Label>
                     <Controller
-                      name="medical_history.custom_medical_history"
+                      name="general_physical_examination.pulse"
                       control={control}
-                      render={({ field }: any) => <RichTextEditor placeholder="Clinical history details..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
+                      render={({ field }: any) => <Input placeholder="e.g. 72 bpm, regular" {...field} value={field.value || ''} />}
                     />
-                  </div>
-                </CardContent>
-              </Card>
-              <div className="grid grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader><CardTitle>Family History</CardTitle></CardHeader>
-                  <CardContent>
-                    <Controller
-                      name="medical_history.family_history"
-                      control={control}
-                      render={({ field }: any) => <RichTextEditor placeholder="Family history..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
-                    />
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader><CardTitle>Social History</CardTitle></CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Smoking</Label>
-                      <Controller
-                        name="medical_history.social_history_smoking"
-                        control={control}
-                        render={({ field }: any) => <Input placeholder="Smoking history..." {...field} value={field.value || ''} />}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Alcohol</Label>
-                      <Controller
-                        name="medical_history.social_history_alcohol"
-                        control={control}
-                        render={({ field }: any) => <Input placeholder="Alcohol use..." {...field} value={field.value || ''} />}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Occupation Risk</Label>
-                      <Controller
-                        name="medical_history.social_history_occupation"
-                        control={control}
-                        render={({ field }: any) => <Input placeholder="Occupational risks..." {...field} value={field.value || ''} />}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              <Card>
-                <CardHeader><CardTitle>Allergies</CardTitle></CardHeader>
-                <CardContent>
-                  <ArrayInputField
-                    name="medical_history.allergies"
-                    label="Allergies"
-                    placeholder="Add an allergy..."
-                    control={control}
-                  />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle>Current Medications</CardTitle></CardHeader>
-                <CardContent>
-                  <CurrentMedicationsFieldArray control={control} />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle>Review of Systems</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-2 gap-4">
-                  {[
-                    { key: 'constitutional', label: 'Constitutional' },
-                    { key: 'cardiovascular', label: 'Cardiovascular' },
-                    { key: 'respiratory', label: 'Respiratory' },
-                    { key: 'gastrointestinal', label: 'GI' },
-                    { key: 'neurological', label: 'Neurological' },
-                    { key: 'musculoskeletal', label: 'MSK' },
-                    { key: 'dermatological', label: 'Dermatological' },
-                    { key: 'psychiatric', label: 'Psychiatric' },
-                  ].map((item) => (
-                    <div key={item.key} className="space-y-2">
-                      <Label>{item.label}</Label>
-                      <Controller
-                        name={`review_of_systems.${item.key}` as any}
-                        control={control}
-                        render={({ field }: any) => <RichTextEditor placeholder={`${item.label}...`} value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
-                      />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-              <CustomFieldsSection sectionId="medical_history" sectionTitle="Medical History" />
-            </div>
-          )}
-
-          {/* Step4: Examination */}
-          {currentStep === 4 && (
-            <div className="space-y-6">
-              {/* Sub-section 1: General Physical Examination */}
-              <div className="space-y-4">
-                <div className="border-b pb-2">
-                  <h3 className="text-lg font-bold text-foreground">1. General Physical Examination</h3>
-                  <p className="text-xs text-muted-foreground">General appearance and vital signs</p>
-                </div>
-
-                <Card>
-                  <CardHeader><CardTitle className="text-base">General Appearance <span className="text-destructive">*</span></CardTitle></CardHeader>
-                  <CardContent>
-                    <Controller
-                      name="examination_findings.general_appearance"
-                      control={control}
-                      render={({ field }: any) => <RichTextEditor placeholder="General appearance..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
-                    />
-                    {errors.examination_findings?.general_appearance && (
-                      <p className="text-sm text-destructive mt-2">{errors.examination_findings.general_appearance.message}</p>
+                    {errors.general_physical_examination?.pulse && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.pulse.message}</p>
                     )}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Vital Signs</CardTitle></CardHeader>
-                  <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {[
-                      { key: 'bp_systolic', label: 'BP Systolic', placeholder: '120' },
-                      { key: 'bp_diastolic', label: 'BP Diastolic', placeholder: '80' },
-                      { key: 'hr', label: 'HR (bpm)', placeholder: '72' },
-                      { key: 'rr', label: 'RR (/min)', placeholder: '16' },
-                      { key: 'temp', label: 'Temp (°C)', placeholder: '37' },
-                      { key: 'spo2', label: 'SpO2 (%)', placeholder: '98' },
-                      { key: 'weight', label: 'Weight (kg)', placeholder: '70' },
-                      { key: 'height', label: 'Height (cm)', placeholder: '170' },
-                      { key: 'bmi', label: 'BMI', placeholder: '', disabled: true },
-                    ].map((item) => (
-                      <div key={item.key} className="space-y-2">
-                        <Label>{item.label}</Label>
-                        <Controller
-                          name={`examination_findings.vital_signs.${item.key}` as any}
-                          control={control}
-                          render={({ field }: any) => (
-                            <Input
-                              type="number"
-                              placeholder={item.placeholder}
-                              disabled={item.disabled}
-                              value={field.value ?? ''}
-                              onChange={(e) => {
-                                if (item.disabled) return;
-                                const val = e.target.value;
-                                field.onChange(val === '' ? undefined : Number(val));
-                              }}
-                            />
-                          )}
-                        />
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Sub-section 2: Local Examination */}
-              <div className="space-y-4">
-                <div className="border-b pb-2 pt-2">
-                  <h3 className="text-lg font-bold text-foreground">2. Local Examination</h3>
-                  <p className="text-xs text-muted-foreground">Focused regional & lesion examination findings</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Blood Pressure (BP) <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="general_physical_examination.bp"
+                      control={control}
+                      render={({ field }: any) => <Input placeholder="e.g. 120/80 mmHg" {...field} value={field.value || ''} />}
+                    />
+                    {errors.general_physical_examination?.bp && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.bp.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Respiratory Rate <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="general_physical_examination.respiratory_rate"
+                      control={control}
+                      render={({ field }: any) => <Input placeholder="e.g. 16/min" {...field} value={field.value || ''} />}
+                    />
+                    {errors.general_physical_examination?.respiratory_rate && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.respiratory_rate.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Temperature <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="general_physical_examination.temperature"
+                      control={control}
+                      render={({ field }: any) => <Input placeholder="e.g. 98.6 °F" {...field} value={field.value || ''} />}
+                    />
+                    {errors.general_physical_examination?.temperature && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.temperature.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Jugular Venous Pressure (JVP) <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="general_physical_examination.jvp"
+                      control={control}
+                      render={({ field }: any) => <Input placeholder="e.g. Normal" {...field} value={field.value || ''} />}
+                    />
+                    {errors.general_physical_examination?.jvp && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.jvp.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Pallor <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="general_physical_examination.pallor"
+                      control={control}
+                      render={({ field }: any) => <Input placeholder="Absent / Present" {...field} value={field.value || ''} />}
+                    />
+                    {errors.general_physical_examination?.pallor && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.pallor.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cyanosis <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="general_physical_examination.cyanosis"
+                      control={control}
+                      render={({ field }: any) => <Input placeholder="Absent / Present" {...field} value={field.value || ''} />}
+                    />
+                    {errors.general_physical_examination?.cyanosis && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.cyanosis.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Icterus <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="general_physical_examination.icterus"
+                      control={control}
+                      render={({ field }: any) => <Input placeholder="Absent / Present" {...field} value={field.value || ''} />}
+                    />
+                    {errors.general_physical_examination?.icterus && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.icterus.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Peripheral Oedema <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="general_physical_examination.peripheral_oedema"
+                      control={control}
+                      render={({ field }: any) => <Input placeholder="Absent / Present" {...field} value={field.value || ''} />}
+                    />
+                    {errors.general_physical_examination?.peripheral_oedema && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.peripheral_oedema.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Clubbing <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="general_physical_examination.clubbing"
+                      control={control}
+                      render={({ field }: any) => <Input placeholder="Absent / Present" {...field} value={field.value || ''} />}
+                    />
+                    {errors.general_physical_examination?.clubbing && (
+                      <p className="text-sm text-destructive">{errors.general_physical_examination.clubbing.message}</p>
+                    )}
+                  </div>
                 </div>
 
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Local / Regional Exam Details</CardTitle></CardHeader>
-                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[
-                      { key: 'location_extent', label: 'Location & Extent', placeholder: 'e.g. Right lower quadrant swelling 4x3 cm' },
-                      { key: 'surface_margins', label: 'Surface & Margins', placeholder: 'e.g. Smooth surface, well-defined margins' },
-                      { key: 'consistency', label: 'Consistency', placeholder: 'e.g. Firm, cystic, hard' },
-                      { key: 'tenderness', label: 'Tenderness', placeholder: 'e.g. Tender on deep palpation' },
-                      { key: 'mobility_fixity', label: 'Mobility / Fixity', placeholder: 'e.g. Mobile over underlying structures' },
-                      { key: 'regional_lymph_nodes', label: 'Regional Lymph Nodes', placeholder: 'e.g. Palpable right inguinal nodes 1 cm' },
-                    ].map((item) => (
-                      <div key={item.key} className="space-y-2">
-                        <Label>{item.label}</Label>
-                        <Controller
-                          name={`examination_findings.local.${item.key}` as any}
-                          control={control}
-                          render={({ field }: any) => (
-                            <Input placeholder={item.placeholder} {...field} value={field.value || ''} />
-                          )}
-                        />
-                      </div>
-                    ))}
-                    <div className="sm:col-span-2 space-y-2">
-                      <Label>Other Local Findings</Label>
+                {/* Lymph Nodes Sub-fields */}
+                <div className="space-y-2 border p-3 rounded-md bg-muted/20">
+                  <Label className="font-semibold text-sm">Lymph Nodes <span className="text-destructive">*</span></Label>
+                  <div className="grid grid-cols-3 gap-3 pt-1">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Cervical <span className="text-destructive">*</span></Label>
                       <Controller
-                        name="examination_findings.local.other_local_findings"
+                        name="general_physical_examination.lymph_nodes.cervical"
                         control={control}
-                        render={({ field }: any) => (
-                          <RichTextEditor placeholder="Any other local/regional findings..." value={field.value || ''} onChange={field.onChange} minHeight="70px" />
-                        )}
+                        render={({ field }: any) => <Input placeholder="Cervical nodes..." {...field} value={field.value || ''} />}
                       />
+                      {errors.general_physical_examination?.lymph_nodes?.cervical && (
+                        <p className="text-xs text-destructive">{errors.general_physical_examination.lymph_nodes.cervical.message}</p>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Sub-section 3: Systemic Examination */}
-              <div className="space-y-4">
-                <div className="border-b pb-2 pt-2">
-                  <h3 className="text-lg font-bold text-foreground">3. Systemic Examination</h3>
-                  <p className="text-xs text-muted-foreground">Detailed system-by-system examination</p>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Axillary <span className="text-destructive">*</span></Label>
+                      <Controller
+                        name="general_physical_examination.lymph_nodes.axillary"
+                        control={control}
+                        render={({ field }: any) => <Input placeholder="Axillary nodes..." {...field} value={field.value || ''} />}
+                      />
+                      {errors.general_physical_examination?.lymph_nodes?.axillary && (
+                        <p className="text-xs text-destructive">{errors.general_physical_examination.lymph_nodes.axillary.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Inguinal <span className="text-destructive">*</span></Label>
+                      <Controller
+                        name="general_physical_examination.lymph_nodes.inguinal"
+                        control={control}
+                        render={({ field }: any) => <Input placeholder="Inguinal nodes..." {...field} value={field.value || ''} />}
+                      />
+                      {errors.general_physical_examination?.lymph_nodes?.inguinal && (
+                        <p className="text-xs text-destructive">{errors.general_physical_examination.lymph_nodes.inguinal.message}</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Systemic Findings</CardTitle></CardHeader>
-                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[
-                      { key: 'cardiovascular', label: 'Cardiovascular System' },
-                      { key: 'respiratory', label: 'Respiratory System' },
-                      { key: 'gastrointestinal', label: 'Gastrointestinal System' },
-                      { key: 'neurological', label: 'Neurological System' },
-                      { key: 'musculoskeletal', label: 'Musculoskeletal System' },
-                      { key: 'dermatological', label: 'Dermatological System' },
-                      { key: 'thyroid', label: 'Thyroid & Endocrine System' },
-                    ].map((item) => (
-                      <div key={item.key} className="space-y-2">
-                        <Label>{item.label}</Label>
-                        <Controller
-                          name={`examination_findings.systemic.${item.key}` as any}
-                          control={control}
-                          render={({ field }: any) => <RichTextEditor placeholder={`${item.label}...`} value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
-                        />
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </div>
-
-              <CustomFieldsSection sectionId="examination" sectionTitle="Examination" />
-            </div>
+                <div className="space-y-2">
+                  <Label>Other Significant Findings <span className="text-destructive">*</span></Label>
+                  <Controller
+                    name="general_physical_examination.other_significant_findings"
+                    control={control}
+                    render={({ field }: any) => <RichTextEditor placeholder="Other findings..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
+                  />
+                  {errors.general_physical_examination?.other_significant_findings && (
+                    <p className="text-sm text-destructive">{errors.general_physical_examination.other_significant_findings.message}</p>
+                  )}
+                </div>
+                <CustomFieldsSection sectionId="general_physical_examination" sectionTitle="General Physical Examination" />
+              </CardContent>
+            </Card>
           )}
 
-          {/* Step5: Investigations */}
+          {/* Step 4: Systemic Examination */}
+          {currentStep === 4 && (
+            <Card>
+              <CardHeader><CardTitle>4. Systemic Examination</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { key: 'respiratory_system', label: 'Respiratory System' },
+                  { key: 'cardiovascular_system', label: 'Cardiovascular System' },
+                  { key: 'nervous_system', label: 'Nervous System' },
+                  { key: 'genito_urinary_system', label: 'Genito-Urinary System' },
+                  { key: 'gastrointestinal_system', label: 'Gastrointestinal System' },
+                ].map((item) => (
+                  <div key={item.key} className="space-y-2">
+                    <Label>{item.label} <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name={`systemic_examination.${item.key}` as any}
+                      control={control}
+                      render={({ field }: any) => <RichTextEditor placeholder={`${item.label}...`} value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
+                    />
+                    {(errors.systemic_examination as any)?.[item.key] && (
+                      <p className="text-sm text-destructive">{(errors.systemic_examination as any)[item.key].message}</p>
+                    )}
+                  </div>
+                ))}
+                <CustomFieldsSection sectionId="systemic_examination" sectionTitle="Systemic Examination" />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 5: Local Examination */}
           {currentStep === 5 && (
             <Card>
-              <CardHeader><CardTitle>Investigations</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle>
+                  5. Local Examination {localRegion?.trim() ? `(${localRegion.trim()})` : ''}
+                </CardTitle>
+              </CardHeader>
               <CardContent className="space-y-4">
-                <InvestigationsFieldArray control={control} />
-                <CustomFieldsSection sectionId="investigations" sectionTitle="Investigations" />
+                <div className="space-y-2 max-w-sm">
+                  <Label htmlFor="region">Body Region / Specialty Area</Label>
+                  <Controller
+                    name="local_examination.region"
+                    control={control}
+                    render={({ field }: any) => <Input id="region" placeholder="e.g. Breast, Neck, Thyroid, Abdomen" {...field} value={field.value || ''} />}
+                  />
+                  <p className="text-xs text-muted-foreground">Specifies the region header (e.g. &quot;Local Examination (Breast)&quot;)</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Inspection <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="local_examination.inspection"
+                      control={control}
+                      render={({ field }: any) => <RichTextEditor placeholder="Inspection findings..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
+                    />
+                    {errors.local_examination?.inspection && (
+                      <p className="text-sm text-destructive">{errors.local_examination.inspection.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Palpation <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="local_examination.palpation"
+                      control={control}
+                      render={({ field }: any) => <RichTextEditor placeholder="Palpation findings..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
+                    />
+                    {errors.local_examination?.palpation && (
+                      <p className="text-sm text-destructive">{errors.local_examination.palpation.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Percussion <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="local_examination.percussion"
+                      control={control}
+                      render={({ field }: any) => <RichTextEditor placeholder="Percussion findings..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
+                    />
+                    {errors.local_examination?.percussion && (
+                      <p className="text-sm text-destructive">{errors.local_examination.percussion.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Auscultation <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="local_examination.auscultation"
+                      control={control}
+                      render={({ field }: any) => <RichTextEditor placeholder="Auscultation findings..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
+                    />
+                    {errors.local_examination?.auscultation && (
+                      <p className="text-sm text-destructive">{errors.local_examination.auscultation.message}</p>
+                    )}
+                  </div>
+                </div>
+                <CustomFieldsSection sectionId="local_examination" sectionTitle="Local Examination" />
               </CardContent>
             </Card>
           )}
 
-          {/* Step6: Diagnosis & Management */}
+          {/* Step 6: Diagnosis */}
           {currentStep === 6 && (
-            <div className="space-y-4">
-              <Card>
-                <CardHeader><CardTitle>Diagnosis</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Provisional Diagnosis</Label>
-                    <Controller
-                      name="diagnosis_management.provisional_diagnosis"
-                      control={control}
-                      render={({ field }: any) => <RichTextEditor placeholder="Provisional diagnosis..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <ArrayInputField
-                      name="diagnosis_management.differential_diagnoses"
-                      label="Differential Diagnoses"
-                      placeholder="Add a differential..."
-                      control={control}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="final_diagnosis">Final Diagnosis <span className="text-destructive">*</span></Label>
-                    <Controller
-                      name="diagnosis_management.final_diagnosis"
-                      control={control}
-                      render={({ field }: any) => <RichTextEditor placeholder="Final diagnosis..." value={field.value || ''} onChange={field.onChange} minHeight="80px" />}
-                    />
-                    {errors.diagnosis_management?.final_diagnosis && (
-                      <p className="text-sm text-destructive">{errors.diagnosis_management.final_diagnosis.message}</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle>Management</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="treatment_plan">Treatment Plan <span className="text-destructive">*</span></Label>
-                    <Controller
-                      name="diagnosis_management.treatment_plan"
-                      control={control}
-                      render={({ field }: any) => <RichTextEditor placeholder="Treatment plan..." value={field.value || ''} onChange={field.onChange} minHeight="120px" />}
-                    />
-                    {errors.diagnosis_management?.treatment_plan && (
-                      <p className="text-sm text-destructive">{errors.diagnosis_management.treatment_plan.message}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Medications Prescribed</Label>
-                    <PrescribedMedicationsFieldArray control={control} />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Follow-up Plan <span className="text-muted-foreground font-normal">(Optional)</span></Label>
-                      <Controller
-                        name="diagnosis_management.follow_up_plan"
-                        control={control}
-                        render={({ field }: any) => <RichTextEditor placeholder="Follow-up..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Prognosis <span className="text-muted-foreground font-normal">(Optional)</span></Label>
-                      <Controller
-                        name="diagnosis_management.prognosis"
-                        control={control}
-                        render={({ field }: any) => <RichTextEditor placeholder="Prognosis..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="outcome">Outcome <span className="text-destructive">*</span></Label>
-                    <p className="text-xs text-muted-foreground">Document the patient outcome (e.g. &quot;Recovered and discharged&quot;, &quot;Ongoing follow-up&quot;)</p>
-                    <Controller
-                      name="diagnosis_management.outcome"
-                      control={control}
-                      render={({ field }: any) => <RichTextEditor placeholder="Patient outcome..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
-                    />
-                    {errors.diagnosis_management?.outcome && (
-                      <p className="text-sm text-destructive">{errors.diagnosis_management.outcome.message}</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle>Reference Documents</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-xs text-muted-foreground">Attach external reference documents or prior summary files (URLs to PDFs).</p>
-                  <ReferencePdfsFieldArray control={control} />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle>Learning Points</CardTitle></CardHeader>
-                <CardContent>
-                  <ArrayInputField
-                    name="learning_points"
-                    label="Learning Points"
-                    placeholder="Add a learning point..."
+            <Card>
+              <CardHeader><CardTitle>6. Diagnosis</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="provisional_diagnosis">Provisional Diagnosis <span className="text-destructive">*</span></Label>
+                  <Controller
+                    name="diagnosis.provisional_diagnosis"
                     control={control}
-                    useRichText
+                    render={({ field }: any) => <RichTextEditor placeholder="Provisional diagnosis..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />}
                   />
+                  {errors.diagnosis?.provisional_diagnosis && (
+                    <p className="text-sm text-destructive">{errors.diagnosis.provisional_diagnosis.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>Differential Diagnosis <span className="text-destructive">*</span></Label>
+                  <Controller
+                    name="diagnosis.differential_diagnosis"
+                    control={control}
+                    render={({ field }: any) => <RichTextEditor placeholder="Differential diagnosis..." value={field.value || ''} onChange={field.onChange} minHeight="100px" />}
+                  />
+                  {errors.diagnosis?.differential_diagnosis && (
+                    <p className="text-sm text-destructive">{errors.diagnosis.differential_diagnosis.message}</p>
+                  )}
+                </div>
+                <CustomFieldsSection sectionId="diagnosis" sectionTitle="Diagnosis" />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 7: Investigations */}
+          {currentStep === 7 && (
+            <div className="space-y-6">
+              {/* Confirmation of Diagnosis Sub-section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-bold text-foreground">
+                    7.1 Investigations for Confirmation of Diagnosis <span className="text-destructive">*</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Written Findings & Reports <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="investigations_info.investigations_confirmation"
+                      control={control}
+                      render={({ field }: any) => (
+                        <RichTextEditor placeholder="Lab values, imaging summaries, biopsy results..." value={field.value || ''} onChange={field.onChange} minHeight="100px" />
+                      )}
+                    />
+                    {errors.investigations_info?.investigations_confirmation && (
+                      <p className="text-sm text-destructive">{errors.investigations_info.investigations_confirmation.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-3 pt-2">
+                    <Label className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1">
+                      <span>Confirmation Reports / Scans Upload</span>
+                      <span className="text-destructive">* (At least 1 required)</span>
+                    </Label>
+                    {caseId ? (
+                      <>
+                        <AttachmentUploader
+                          caseId={caseId}
+                          investigationGroup="confirmation"
+                          onAttachmentUploaded={handleAttachmentUploaded}
+                          label="Upload Confirmation Scans & PDF Reports"
+                        />
+                        <AttachmentGallery
+                          attachments={attachments.filter((a) => a.investigation_group === 'confirmation')}
+                          canDelete={true}
+                          onAttachmentDeleted={handleAttachmentDeleted}
+                        />
+                      </>
+                    ) : (
+                      <p className="text-xs text-amber-800 bg-amber-50 p-2 rounded border border-amber-200">
+                        Please click <strong>Save Draft</strong> below first to create the case ID and enable attachment uploads.
+                      </p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
-              <CustomFieldsSection sectionId="diagnosis" sectionTitle="Diagnosis & Management" />
+
+              {/* Extent of Disease (Staging) Sub-section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-bold text-foreground">
+                    7.2 Investigations for Determining Extent of Disease (Staging) <span className="text-destructive">*</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Written Findings & Staging Reports <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="investigations_info.investigations_staging"
+                      control={control}
+                      render={({ field }: any) => (
+                        <RichTextEditor placeholder="Staging CT/MRI, PET scans, metastasis workup..." value={field.value || ''} onChange={field.onChange} minHeight="100px" />
+                      )}
+                    />
+                    {errors.investigations_info?.investigations_staging && (
+                      <p className="text-sm text-destructive">{errors.investigations_info.investigations_staging.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-3 pt-2">
+                    <Label className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1">
+                      <span>Staging Reports / Scans Upload</span>
+                      <span className="text-destructive">* (At least 1 required)</span>
+                    </Label>
+                    {caseId ? (
+                      <>
+                        <AttachmentUploader
+                          caseId={caseId}
+                          investigationGroup="staging"
+                          onAttachmentUploaded={handleAttachmentUploaded}
+                          label="Upload Staging Scans & Reports"
+                        />
+                        <AttachmentGallery
+                          attachments={attachments.filter((a) => a.investigation_group === 'staging')}
+                          canDelete={true}
+                          onAttachmentDeleted={handleAttachmentDeleted}
+                        />
+                      </>
+                    ) : (
+                      <p className="text-xs text-amber-800 bg-amber-50 p-2 rounded border border-amber-200">
+                        Please click <strong>Save Draft</strong> below first to create the case ID and enable attachment uploads.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <CustomFieldsSection sectionId="investigations" sectionTitle="Investigations" />
             </div>
           )}
 
@@ -1364,34 +1154,19 @@ export default function NewCasePage() {
                 </Button>
               )}
               {lastSavedAt && (
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   Last saved at {lastSavedAt.toLocaleTimeString()}
                 </span>
               )}
             </div>
             <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => saveDraft()}
-                disabled={isSavingDraft || isSubmitting || isNavigatingNext}
-              >
-                {isSavingDraft ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4 mr-2" />
-                )}
+              <Button type="button" variant="outline" onClick={() => saveDraft()} disabled={isSavingDraft || isSubmitting || isNavigatingNext}>
+                {isSavingDraft ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                 Save Draft
               </Button>
-              {currentStep < 6 ? (
-                <Button
-                  type="button"
-                  onClick={handleNextStep}
-                  disabled={isNavigatingNext || isSavingDraft || isSubmitting}
-                >
-                  {isNavigatingNext ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : null}
+              {currentStep < 7 ? (
+                <Button type="button" onClick={handleNextStep} disabled={isNavigatingNext || isSavingDraft || isSubmitting}>
+                  {isNavigatingNext ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                   Next
                   <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>

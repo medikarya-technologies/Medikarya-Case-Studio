@@ -17,12 +17,12 @@ export interface CaseCompletenessResult {
 
 export const SECTION_LABELS: Record<string, string> = {
   patient_details: 'Patient Details',
-  chief_complaint: 'Chief Complaint & HPI',
-  medical_history: 'Medical & Personal History',
-  examination: 'Examination Findings',
-  investigations: 'Investigations & Reports',
-  diagnosis: 'Diagnosis & Management',
-  learning_points: 'Learning Points',
+  history: 'History',
+  general_physical_examination: 'General Physical Examination',
+  systemic_examination: 'Systemic Examination',
+  local_examination: 'Local Examination',
+  diagnosis: 'Diagnosis',
+  investigations: 'Investigations',
   general: 'General Feedback',
 };
 
@@ -52,7 +52,13 @@ export function getCaseCompleteness(caseData: Partial<Case> | null | undefined):
     const isFilled =
       value !== undefined &&
       value !== null &&
-      (typeof value === 'number' ? true : typeof value === 'string' ? value.trim().length >= (options?.minLength || 1) : Array.isArray(value) ? value.length > 0 : Boolean(value));
+      (typeof value === 'number'
+        ? true
+        : typeof value === 'string'
+        ? value.trim().length >= (options?.minLength || 1)
+        : Array.isArray(value)
+        ? value.length > 0
+        : Boolean(value));
 
     if (isFilled) {
       filledFields += 1;
@@ -68,59 +74,56 @@ export function getCaseCompleteness(caseData: Partial<Case> | null | undefined):
 
   // 1. Patient Details
   const pd: any = caseData.patient_details || {};
-  checkField('patient_details', 'Patient Details', 'Patient ID', pd.patient_id);
-  checkField('patient_details', 'Patient Details', 'Age', pd.age);
-  checkField('patient_details', 'Patient Details', 'Gender', pd.gender);
-  checkField('patient_details', 'Patient Details', 'Location / Facility', pd.location);
-  checkField('patient_details', 'Patient Details', 'Presenting Date', pd.presenting_date);
+  checkField('patient_details', 'Patient Details', 'Patient Name', pd.patient_name, { isRequired: true });
+  checkField('patient_details', 'Patient Details', 'Age', pd.age, { isRequired: true });
+  checkField('patient_details', 'Patient Details', 'Sex', pd.sex || pd.gender, { isRequired: true });
+  checkField('patient_details', 'Patient Details', 'Occupation', pd.occupation);
+  checkField('patient_details', 'Patient Details', 'Address', pd.address || pd.location);
+  checkField('patient_details', 'Patient Details', 'Date of Admission', pd.date_of_admission || pd.presenting_date);
 
-  // 2. Chief Complaint & HPI
+  // 2. History
+  const h: any = caseData.history || {};
   const cc: any = caseData.chief_complaint_history || {};
-  checkField('chief_complaint', 'Chief Complaint & HPI', 'Chief Complaint', cc.chief_complaint, { isRequired: true, minLength: 3 });
-  checkField('chief_complaint', 'Chief Complaint & HPI', 'Duration', cc.hpi_duration);
-  checkField('chief_complaint', 'Chief Complaint & HPI', 'Onset', cc.hpi_onset);
-  checkField('chief_complaint', 'Chief Complaint & HPI', 'Additional HPI Notes', cc.hpi_additional, { isRequired: true, minLength: 10 });
-  checkField('chief_complaint', 'Chief Complaint & HPI', 'Associated Symptoms', cc.associated_symptoms);
+  checkField('history', 'History', 'Presenting Complaints', h.presenting_complaints || cc.chief_complaint, { isRequired: true });
+  checkField('history', 'History', 'History of Present Illness', h.history_of_present_illness || cc.hpi_additional, { isRequired: true });
+  checkField('history', 'History', 'Past History', h.past_history || caseData.medical_history?.past_medical_history);
+  checkField('history', 'History', 'Personal History', h.personal_history);
+  checkField('history', 'History', 'Treatment History', h.treatment_history);
+  checkField('history', 'History', 'Family History', h.family_history || caseData.medical_history?.family_history);
 
-  // 3. Medical & Personal History
-  const mh: any = caseData.medical_history || {};
-  const hasPMH = (mh.past_medical_history && mh.past_medical_history.length > 0) || Boolean(mh.custom_medical_history);
-  checkField('medical_history', 'Medical History', 'Past Medical History', hasPMH);
-  checkField('medical_history', 'Medical History', 'Family History', mh.family_history);
-  checkField('medical_history', 'Medical History', 'Social History', mh.social_history_smoking || mh.social_history_alcohol || mh.social_history_occupation);
-  checkField('medical_history', 'Medical History', 'Current Medications', caseData.current_medications);
+  // 3. General Physical Examination
+  const gpe: any = caseData.general_physical_examination || {};
+  checkField('general_physical_examination', 'General Physical Examination', 'Consciousness / Orientation', gpe.consciousness_orientation || caseData.examination_findings?.general_appearance);
+  checkField('general_physical_examination', 'General Physical Examination', 'Pulse', gpe.pulse || caseData.examination_findings?.vital_signs?.hr);
+  checkField('general_physical_examination', 'General Physical Examination', 'Blood Pressure', gpe.bp || caseData.examination_findings?.vital_signs?.bp_systolic);
+  checkField('general_physical_examination', 'General Physical Examination', 'Respiratory Rate', gpe.respiratory_rate || caseData.examination_findings?.vital_signs?.rr);
 
-  // 4. Examination Findings
-  const exam: any = caseData.examination_findings || {};
-  checkField('examination', 'Examination Findings', 'General Appearance', exam.general_appearance, { isRequired: true, minLength: 5 });
-  
-  const vitals: any = exam.vital_signs || {};
-  const hasVitals = vitals.bp_systolic != null || vitals.hr != null || vitals.temp != null || vitals.spo2 != null;
-  checkField('examination', 'Examination Findings', 'Vital Signs', hasVitals);
+  // 4. Systemic Examination
+  const sys: any = caseData.systemic_examination || caseData.examination_findings?.systemic || {};
+  const hasSystemic = Object.values(sys).some((v) => Boolean(v && String(v).trim()));
+  checkField('systemic_examination', 'Systemic Examination', 'Systemic Examination Findings', hasSystemic);
 
-  const systemic: any = exam.systemic || {};
-  const hasSystemic = Object.values(systemic).some((v) => Boolean(v && String(v).trim()));
-  checkField('examination', 'Examination Findings', 'Systemic Examination', hasSystemic);
+  // 5. Local Examination
+  const local: any = caseData.local_examination || caseData.examination_findings?.local || {};
+  const hasLocal = Object.values(local).some((v) => Boolean(v && String(v).trim()));
+  checkField('local_examination', 'Local Examination', 'Local Examination Findings', hasLocal);
 
-  // 5. Investigations
-  const invs = caseData.investigations || [];
-  const atts = caseData.attachments || [];
-  const hasInvestigations = invs.length > 0 || atts.length > 0;
-  checkField('investigations', 'Investigations & Reports', 'Investigations / Lab Tests', hasInvestigations);
+  // 6. Diagnosis
+  const dx: any = caseData.diagnosis || caseData.diagnosis_management || {};
+  checkField('diagnosis', 'Diagnosis', 'Provisional Diagnosis', dx.provisional_diagnosis || dx.final_diagnosis, { isRequired: true });
+  checkField('diagnosis', 'Diagnosis', 'Differential Diagnosis', dx.differential_diagnosis || dx.differential_diagnoses);
 
-  // 6. Diagnosis & Management
-  const dx: any = caseData.diagnosis_management || {};
-  checkField('diagnosis', 'Diagnosis & Management', 'Final Diagnosis', dx.final_diagnosis, { isRequired: true, minLength: 3 });
-  checkField('diagnosis', 'Diagnosis & Management', 'Treatment Plan', dx.treatment_plan, { isRequired: true, minLength: 10 });
-  checkField('diagnosis', 'Diagnosis & Management', 'Medications Prescribed', dx.medications_prescribed);
-  checkField('diagnosis', 'Diagnosis & Management', 'Outcome', dx.outcome, { isRequired: true, minLength: 5 });
-
-  // 7. Learning Points
-  const lp = caseData.learning_points || [];
-  checkField('learning_points', 'Learning Points', 'Learning Points', lp.length > 0);
+  // 7. Investigations
+  const invsInfo: any = caseData.investigations_info || {};
+  const invsList = caseData.investigations || [];
+  const attsList = caseData.attachments || [];
+  const hasInvs =
+    Boolean(invsInfo.investigations_confirmation || invsInfo.investigations_staging) ||
+    invsList.length > 0 ||
+    attsList.length > 0;
+  checkField('investigations', 'Investigations', 'Investigations & Attachments', hasInvs);
 
   const score = totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 100;
-
   const incompleteSectionIds = new Set(incompleteItems.map((item) => item.sectionId));
 
   return {

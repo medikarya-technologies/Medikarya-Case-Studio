@@ -41,16 +41,36 @@ export type MedicalSpecialty =
 
 // --- Patient Details ---
 export interface PatientDetails {
+  case_no?: string;
   patient_name?: string;
-  patient_id?: string;
   age?: number;
-  gender?: 'male' | 'female' | 'other';
+  sex?: 'male' | 'female' | 'other';
+  religion?: string;
   occupation?: string;
+  address?: string;
+  date_of_admission?: string;
+  // Backward compatibility fields
+  patient_id?: string;
+  gender?: 'male' | 'female' | 'other';
   location?: string;
   presenting_date?: string;
 }
 
-// --- Chief Complaint & History ---
+// --- 2. History ---
+export interface CaseHistory {
+  presenting_complaints?: string;
+  history_of_present_illness?: string;
+  past_history?: string;
+  personal_history?: string;
+  treatment_history?: string;
+  family_history?: string;
+  menstrual_history?: string;
+  obstetric_history?: string;
+  socio_economic_history?: string;
+  any_other?: string;
+}
+
+// Legacy Chief Complaint & History for old cases
 export interface ChiefComplaintHistory {
   chief_complaint: string;
   hpi_duration?: string;
@@ -61,7 +81,7 @@ export interface ChiefComplaintHistory {
   associated_symptoms?: string;
 }
 
-// --- Medical & Personal History ---
+// --- Medical & Personal History (Legacy support) ---
 export interface MedicalPersonalHistory {
   past_medical_history: string[];
   custom_medical_history?: string;
@@ -91,7 +111,29 @@ export interface ReviewOfSystems {
   other?: string;
 }
 
-// --- Examination Findings ---
+// --- 3. General Physical Examination ---
+export interface LymphNodes {
+  cervical?: string;
+  axillary?: string;
+  inguinal?: string;
+}
+
+export interface GeneralPhysicalExam {
+  consciousness_orientation?: string;
+  pallor?: string;
+  cyanosis?: string;
+  icterus?: string;
+  peripheral_oedema?: string;
+  clubbing?: string;
+  jvp?: string;
+  lymph_nodes?: LymphNodes;
+  pulse?: string;
+  bp?: string;
+  respiratory_rate?: string;
+  temperature?: string;
+  other_significant_findings?: string;
+}
+
 export interface VitalSigns {
   bp_systolic?: number;
   bp_diastolic?: number;
@@ -104,17 +146,15 @@ export interface VitalSigns {
   bmi?: number;
 }
 
-export interface LocalExamination {
-  location_extent?: string;
-  surface_margins?: string;
-  consistency?: string;
-  tenderness?: string;
-  mobility_fixity?: string;
-  regional_lymph_nodes?: string;
-  other_local_findings?: string;
-}
-
+// --- 4. Systemic Examination ---
 export interface SystemicExamination {
+  respiratory_system?: string;
+  cardiovascular_system?: string;
+  nervous_system?: string;
+  genito_urinary_system?: string;
+  gastrointestinal_system?: string;
+
+  // Legacy fields
   cardiovascular?: string;
   respiratory?: string;
   gastrointestinal?: string;
@@ -124,6 +164,24 @@ export interface SystemicExamination {
   thyroid?: string;
 }
 
+// --- 5. Local Examination ---
+export interface LocalExamination {
+  region?: string;
+  inspection?: string;
+  palpation?: string;
+  percussion?: string;
+  auscultation?: string;
+
+  // Legacy fields
+  location_extent?: string;
+  surface_margins?: string;
+  consistency?: string;
+  tenderness?: string;
+  mobility_fixity?: string;
+  regional_lymph_nodes?: string;
+  other_local_findings?: string;
+}
+
 export interface ExaminationFindings {
   general_appearance?: string;
   vital_signs: VitalSigns;
@@ -131,7 +189,22 @@ export interface ExaminationFindings {
   systemic: SystemicExamination;
 }
 
-// --- Investigations ---
+// --- 6. Diagnosis ---
+export interface DiagnosisInfo {
+  provisional_diagnosis?: string;
+  differential_diagnosis?: string;
+
+  // Legacy fields
+  differential_diagnoses?: string[];
+  final_diagnosis?: string;
+}
+
+// --- 7. Investigations ---
+export interface InvestigationsInfo {
+  investigations_confirmation?: string;
+  investigations_staging?: string;
+}
+
 export interface Investigation {
   id?: string;
   type: 'lab' | 'imaging' | 'biopsy' | 'other';
@@ -143,7 +216,7 @@ export interface Investigation {
   image_url?: string;
 }
 
-// --- Diagnosis & Management ---
+// --- Diagnosis & Management (Legacy) ---
 export interface PrescribedMedication {
   id?: string;
   drug: string;
@@ -168,6 +241,7 @@ export interface CaseAttachment {
   id: string;
   case_id: string;
   investigation_id?: string | null;
+  investigation_group?: 'confirmation' | 'staging' | null;
   file_name: string;
   file_type: 'image' | 'pdf';
   file_size: number;
@@ -204,8 +278,16 @@ export interface Case {
   author?: User;
   reviews?: CaseReview[];
 
-  // Nested data (stored as JSONB or joined table)
+  // 7 New Consolidated Sections
   patient_details?: PatientDetails;
+  history?: CaseHistory;
+  general_physical_examination?: GeneralPhysicalExam;
+  systemic_examination?: SystemicExamination;
+  local_examination?: LocalExamination;
+  diagnosis?: DiagnosisInfo;
+  investigations_info?: InvestigationsInfo;
+
+  // Legacy data fields (retained so old cases won't break)
   chief_complaint_history?: ChiefComplaintHistory;
   medical_history?: MedicalPersonalHistory;
   current_medications?: CurrentMedication[];
@@ -214,6 +296,7 @@ export interface Case {
   investigations?: Investigation[];
   diagnosis_management?: DiagnosisManagement;
   learning_points?: string[];
+
   attachments?: CaseAttachment[];
   custom_fields?: CustomField[];
 }

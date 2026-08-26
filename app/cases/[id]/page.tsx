@@ -1,7 +1,6 @@
 'use client';
 
 import { use, useState, useEffect, memo } from 'react';
-import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
@@ -9,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/case/StatusBadge';
 import { BackButton } from '@/components/ui/BackButton';
 import { Case, CustomField } from '@/lib/types';
-import { Edit, AlertTriangle, CheckCircle2, XCircle, ArrowRight, Check } from 'lucide-react';
+import { Edit, AlertTriangle, CheckCircle2, XCircle, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { fetchCaseById, fetchCurrentUser, approveCaseAction, requestChangesAction } from '@/app/actions/case-actions';
@@ -74,6 +73,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
   const [isApproveOpen, setIsApproveOpen] = useState(false);
   const [isRequestChangesOpen, setIsRequestChangesOpen] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [isLegacyExpanded, setIsLegacyExpanded] = useState(false);
 
   useEffect(() => {
     const fetchCase = async () => {
@@ -99,29 +99,11 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
         <Skeleton className="h-10 w-40" />
         <Card>
           <CardHeader>
-            <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-3/4" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-6 w-24 rounded-full" />
-                  <Skeleton className="h-6 w-24 rounded-full" />
-                </div>
-              </div>
-              <Skeleton className="h-6 w-20 rounded-full" />
-            </div>
+            <Skeleton className="h-8 w-3/4" />
           </CardHeader>
-          <CardContent className="space-y-6">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <Skeleton className="h-6 w-32" />
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                </CardContent>
-              </Card>
-            ))}
+          <CardContent className="space-y-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
           </CardContent>
         </Card>
       </div>
@@ -182,7 +164,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
 
   if (!caseData) return <div>Case not found</div>;
 
-  const canEdit = (caseData.status === 'draft' || caseData.status === 'changes_requested');
+  const canEdit = caseData.status === 'draft' || caseData.status === 'changes_requested';
   const isReviewerOrAdmin = currentUser?.role === 'reviewer' || currentUser?.role === 'admin';
   const completeness = getCaseCompleteness(caseData);
 
@@ -190,41 +172,48 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
     currentUser?.role === 'admin'
       ? '/dashboard/admin/cases'
       : currentUser?.role === 'reviewer'
-        ? '/dashboard/reviewer'
-        : '/dashboard/author/cases';
+      ? '/dashboard/reviewer'
+      : '/dashboard/author/cases';
+
+  // Dynamic Local Examination Heading
+  const localRegion = caseData.local_examination?.region?.trim() || caseData.examination_findings?.local?.location_extent?.trim() || '';
+  const localTitle = localRegion ? `Local Examination (${localRegion})` : 'Local Examination';
+
+  // Check if legacy data exists on old cases
+  const hasLegacyData =
+    Boolean(caseData.diagnosis_management?.treatment_plan) ||
+    Boolean(caseData.diagnosis_management?.outcome) ||
+    Boolean(caseData.learning_points && caseData.learning_points.length > 0) ||
+    Boolean(caseData.current_medications && caseData.current_medications.length > 0) ||
+    Boolean(caseData.review_of_systems && Object.values(caseData.review_of_systems).some(Boolean));
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <BackButton href={backHref} />
 
-      {/* Reviewer Action Bar (Prominent at top when reviewing) */}
+      {/* Reviewer Action Bar */}
       {isReviewerOrAdmin && caseData.status === 'submitted' && (
         <Card className="border-2 border-primary/30 bg-primary/5 shadow-md">
           <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
             <div className="space-y-1">
               <h3 className="font-bold text-foreground text-base flex items-center gap-2">
                 <span>Review Action Required</span>
-                <Badge variant="secondary" className="bg-secondary/15 text-secondary border-secondary/30 dark:bg-secondary/30 dark:text-secondary-foreground font-medium">
-                  {completeness.score}% Complete
-                </Badge>
+                <Badge variant="secondary">{completeness.score}% Complete</Badge>
               </h3>
               <p className="text-xs text-muted-foreground">
-                Review clinical content and either Approve or Request Changes with section feedback.
+                Review clinical content and either Approve or Request Changes.
               </p>
             </div>
             <div className="flex gap-2 shrink-0">
               <Button
                 variant="outline"
-                className="text-amber-800 border-amber-500 bg-amber-50 hover:bg-amber-600 hover:text-white hover:border-amber-600 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-600 dark:hover:text-white transition-colors"
+                className="text-amber-800 border-amber-500 bg-amber-50 hover:bg-amber-600 hover:text-white"
                 onClick={() => setIsRequestChangesOpen(true)}
               >
                 <XCircle className="w-4 h-4 mr-2" />
                 Request Changes
               </Button>
-              <Button
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={() => setIsApproveOpen(true)}
-              >
+              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setIsApproveOpen(true)}>
                 <CheckCircle2 className="w-4 h-4 mr-2" />
                 Approve Case
               </Button>
@@ -235,12 +224,12 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
 
       {/* Incomplete Fields Summary Banner */}
       {completeness.incompleteItems.length > 0 && (
-        <Card className="border-amber-400/80 bg-amber-100/70 dark:bg-amber-950/70 border p-4 space-y-3 shadow-xs">
+        <Card className="border-amber-400/80 bg-amber-100/70 dark:bg-amber-950/70 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-950 dark:text-amber-100">
-              <AlertTriangle className="w-5 h-5 text-amber-800 dark:text-amber-300 shrink-0" />
+              <AlertTriangle className="w-5 h-5 text-amber-800 shrink-0" />
               <span className="font-semibold text-sm">
-                Incomplete or Thin Fields ({completeness.incompleteItems.length}) — Case is {completeness.score}% complete
+                Incomplete Fields ({completeness.incompleteItems.length}) — Case is {completeness.score}% complete
               </span>
             </div>
           </div>
@@ -252,11 +241,11 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 variant="outline"
                 size="sm"
                 onClick={() => scrollToSection(item.sectionId)}
-                className="h-7 text-xs bg-amber-50 hover:bg-amber-200/80 hover:text-amber-950 dark:bg-amber-900/60 dark:hover:bg-amber-800/80 dark:hover:text-amber-100 border-amber-400 dark:border-amber-600 gap-1.5 text-amber-950 dark:text-amber-100 font-medium transition-colors"
+                className="h-7 text-xs gap-1 text-amber-950 font-medium"
               >
                 <span>{item.sectionTitle}:</span>
                 <span className="font-semibold">{item.fieldName}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-amber-800 dark:text-amber-300 opacity-80" />
+                <ArrowRight className="w-3.5 h-3.5 opacity-80" />
               </Button>
             ))}
           </div>
@@ -301,421 +290,315 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
             </div>
           </div>
         </CardHeader>
+
         <CardContent className="space-y-6">
-          {/* Patient Details */}
-          {caseData.patient_details && (
-            <Card id="section-patient_details" className="transition-all duration-300">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Patient Details</CardTitle>
-                  {completeness.isIncompleteSection('patient_details') && (
-                    <Badge variant="outline" className="text-xs text-amber-950 bg-amber-100 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-600 font-medium">
-                      <AlertTriangle className="w-3 h-3 mr-1" />
-                      Incomplete
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4">
-                {caseData.patient_details.patient_name && <div><p className="text-sm text-muted-foreground">Patient Name</p><p className="font-semibold">{caseData.patient_details.patient_name}</p></div>}
-                {caseData.patient_details.patient_id && <div><p className="text-sm text-muted-foreground">Patient ID</p><p>{caseData.patient_details.patient_id}</p></div>}
-                {caseData.patient_details.age && <div><p className="text-sm text-muted-foreground">Age</p><p>{caseData.patient_details.age}</p></div>}
-                {caseData.patient_details.gender && <div><p className="text-sm text-muted-foreground">Gender</p><p>{caseData.patient_details.gender}</p></div>}
-                {caseData.patient_details.occupation && <div><p className="text-sm text-muted-foreground">Occupation</p><p>{caseData.patient_details.occupation}</p></div>}
-                {caseData.patient_details.location && <div><p className="text-sm text-muted-foreground">Location</p><p>{caseData.patient_details.location}</p></div>}
-                {caseData.patient_details.presenting_date && <div><p className="text-sm text-muted-foreground">Presenting Date</p><p>{new Date(caseData.patient_details.presenting_date).toLocaleDateString()}</p></div>}
-                <div className="col-span-2">
-                  <SectionCustomFields customFields={caseData.custom_fields} sectionId="patient_details" />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Chief Complaint & HPI */}
-          {caseData.chief_complaint_history && (
-            <Card id="section-chief_complaint" className="transition-all duration-300">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Chief Complaint & History of Present Illness</CardTitle>
-                  {completeness.isIncompleteSection('chief_complaint') && (
-                    <Badge variant="outline" className="text-xs text-amber-950 bg-amber-100 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-600 font-medium">
-                      <AlertTriangle className="w-3 h-3 mr-1" />
-                      Incomplete
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div><p className="text-sm text-muted-foreground">Chief Complaint</p><RichTextRenderer content={caseData.chief_complaint_history.chief_complaint} /></div>
-                {caseData.chief_complaint_history.hpi_duration && <div><p className="text-sm text-muted-foreground">Duration</p><p>{caseData.chief_complaint_history.hpi_duration}</p></div>}
-                {caseData.chief_complaint_history.hpi_onset && <div><p className="text-sm text-muted-foreground">Onset</p><p>{caseData.chief_complaint_history.hpi_onset}</p></div>}
-                {caseData.chief_complaint_history.hpi_aggravating && <div><p className="text-sm text-muted-foreground">Aggravating Factors</p><p>{caseData.chief_complaint_history.hpi_aggravating}</p></div>}
-                {caseData.chief_complaint_history.hpi_relieving && <div><p className="text-sm text-muted-foreground">Relieving Factors</p><p>{caseData.chief_complaint_history.hpi_relieving}</p></div>}
-                {caseData.chief_complaint_history.hpi_additional && <div><p className="text-sm text-muted-foreground">Additional History</p><RichTextRenderer content={caseData.chief_complaint_history.hpi_additional} /></div>}
-                {caseData.chief_complaint_history.associated_symptoms && <div><p className="text-sm text-muted-foreground">Associated Symptoms</p><RichTextRenderer content={caseData.chief_complaint_history.associated_symptoms} /></div>}
-                <SectionCustomFields customFields={caseData.custom_fields} sectionId="chief_complaint" />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Medical History */}
-          <Card id="section-medical_history" className="transition-all duration-300">
+          {/* Section 1: Patient Details */}
+          <Card id="section-patient_details">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Medical & Personal History</CardTitle>
-                {completeness.isIncompleteSection('medical_history') && (
-                  <Badge variant="outline" className="text-xs text-amber-950 bg-amber-100 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-600 font-medium">
+                <CardTitle>1. Patient Details</CardTitle>
+                {completeness.isIncompleteSection('patient_details') && (
+                  <Badge variant="outline" className="text-xs text-amber-950 bg-amber-100 border-amber-400">
                     <AlertTriangle className="w-3 h-3 mr-1" />
                     Incomplete
                   </Badge>
                 )}
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {caseData.medical_history?.past_medical_history && caseData.medical_history.past_medical_history.length > 0 && (
-                <div><p className="text-sm text-muted-foreground">Past Medical History</p><div className="flex flex-wrap gap-2 mt-1">{caseData.medical_history.past_medical_history.map((item, i) => <Badge key={i} variant="outline">{item}</Badge>)}</div>{caseData.medical_history.custom_medical_history && <RichTextRenderer content={caseData.medical_history.custom_medical_history} className="mt-2" />}</div>
-              )}
-              {caseData.medical_history?.family_history && <div><p className="text-sm text-muted-foreground">Family History</p><RichTextRenderer content={caseData.medical_history.family_history} /></div>}
-              {(caseData.medical_history?.social_history_smoking || caseData.medical_history?.social_history_alcohol || caseData.medical_history?.social_history_occupation) && (
-                <div><p className="text-sm text-muted-foreground">Social History</p><div className="space-y-1">{caseData.medical_history.social_history_smoking && <p>Smoking: {caseData.medical_history.social_history_smoking}</p>}{caseData.medical_history.social_history_alcohol && <p>Alcohol: {caseData.medical_history.social_history_alcohol}</p>}{caseData.medical_history.social_history_occupation && <p>Occupation Risk: {caseData.medical_history.social_history_occupation}</p>}</div></div>
-              )}
-              {caseData.medical_history?.allergies && caseData.medical_history.allergies.length > 0 && (
-                <div><p className="text-sm text-muted-foreground">Allergies</p><div className="flex flex-wrap gap-2 mt-1">{caseData.medical_history.allergies.map((item, i) => <Badge key={i} variant="outline">{item}</Badge>)}</div></div>
-              )}
-              <SectionCustomFields customFields={caseData.custom_fields} sectionId="medical_history" />
+            <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div><p className="text-xs text-muted-foreground">Case No.</p><p className="font-medium text-sm">{caseData.patient_details?.case_no || 'N/A'}</p></div>
+              <div><p className="text-xs text-muted-foreground">Patient Name <span className="text-destructive">*</span></p><p className="font-semibold text-sm">{caseData.patient_details?.patient_name || 'N/A'}</p></div>
+              <div><p className="text-xs text-muted-foreground">Age <span className="text-destructive">*</span></p><p className="font-medium text-sm">{caseData.patient_details?.age != null ? `${caseData.patient_details.age} yrs` : 'N/A'}</p></div>
+              <div><p className="text-xs text-muted-foreground">Sex <span className="text-destructive">*</span></p><p className="font-medium text-sm capitalize">{caseData.patient_details?.sex || caseData.patient_details?.gender || 'N/A'}</p></div>
+              <div><p className="text-xs text-muted-foreground">Religion</p><p className="font-medium text-sm">{caseData.patient_details?.religion || 'N/A'}</p></div>
+              <div><p className="text-xs text-muted-foreground">Occupation</p><p className="font-medium text-sm">{caseData.patient_details?.occupation || 'N/A'}</p></div>
+              <div><p className="text-xs text-muted-foreground">Address</p><p className="font-medium text-sm">{caseData.patient_details?.address || caseData.patient_details?.location || 'N/A'}</p></div>
+              <div><p className="text-xs text-muted-foreground">Date of Admission</p><p className="font-medium text-sm">{caseData.patient_details?.date_of_admission || (caseData.patient_details?.presenting_date ? new Date(caseData.patient_details.presenting_date).toLocaleDateString() : 'N/A')}</p></div>
+              <div className="col-span-2 sm:col-span-4">
+                <SectionCustomFields customFields={caseData.custom_fields} sectionId="patient_details" />
+              </div>
             </CardContent>
           </Card>
 
-          {/* Current Medications */}
-          {caseData.current_medications && caseData.current_medications.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Current Medications</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {caseData.current_medications.map((med, i) => (
-                    <div key={i} className="border rounded-lg p-3">
-                      <p className="font-semibold">{med.name}</p>
-                      <p className="text-sm text-gray-500">{med.dose} • {med.frequency}</p>
-                    </div>
-                  ))}
+          {/* Section 2: History */}
+          <Card id="section-history">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>2. History</CardTitle>
+                {completeness.isIncompleteSection('history') && (
+                  <Badge variant="outline" className="text-xs text-amber-950 bg-amber-100 border-amber-400">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    Incomplete
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase">Presenting Complaints <span className="text-destructive">*</span></p>
+                <RichTextRenderer content={caseData.history?.presenting_complaints || caseData.chief_complaint_history?.chief_complaint || 'N/A'} className="mt-1" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase">History of Present Illness <span className="text-destructive">*</span></p>
+                <RichTextRenderer content={caseData.history?.history_of_present_illness || caseData.chief_complaint_history?.hpi_additional || 'N/A'} className="mt-1" />
+              </div>
+              {caseData.history?.past_history && (
+                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Past History</p><RichTextRenderer content={caseData.history.past_history} className="mt-1" /></div>
+              )}
+              {caseData.history?.personal_history && (
+                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Personal History</p><RichTextRenderer content={caseData.history.personal_history} className="mt-1" /></div>
+              )}
+              {caseData.history?.treatment_history && (
+                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Treatment History</p><RichTextRenderer content={caseData.history.treatment_history} className="mt-1" /></div>
+              )}
+              {caseData.history?.family_history && (
+                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Family History</p><RichTextRenderer content={caseData.history.family_history} className="mt-1" /></div>
+              )}
+              {caseData.history?.menstrual_history && (
+                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Menstrual History</p><RichTextRenderer content={caseData.history.menstrual_history} className="mt-1" /></div>
+              )}
+              {caseData.history?.obstetric_history && (
+                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Obstetric History</p><RichTextRenderer content={caseData.history.obstetric_history} className="mt-1" /></div>
+              )}
+              {caseData.history?.socio_economic_history && (
+                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Socio-economic History</p><RichTextRenderer content={caseData.history.socio_economic_history} className="mt-1" /></div>
+              )}
+              {caseData.history?.any_other && (
+                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Any Other Notes</p><RichTextRenderer content={caseData.history.any_other} className="mt-1" /></div>
+              )}
+              <SectionCustomFields customFields={caseData.custom_fields} sectionId="history" />
+            </CardContent>
+          </Card>
+
+          {/* Section 3: General Physical Examination */}
+          <Card id="section-general_physical_examination">
+            <CardHeader><CardTitle>3. General Physical Examination</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {caseData.general_physical_examination?.consciousness_orientation && (
+                  <div><p className="text-xs text-muted-foreground">Consciousness / Orientation</p><p className="font-medium text-sm">{caseData.general_physical_examination.consciousness_orientation}</p></div>
+                )}
+                {caseData.general_physical_examination?.pulse && (
+                  <div><p className="text-xs text-muted-foreground">Pulse</p><p className="font-medium text-sm">{caseData.general_physical_examination.pulse}</p></div>
+                )}
+                {caseData.general_physical_examination?.bp && (
+                  <div><p className="text-xs text-muted-foreground">Blood Pressure</p><p className="font-medium text-sm">{caseData.general_physical_examination.bp}</p></div>
+                )}
+                {caseData.general_physical_examination?.respiratory_rate && (
+                  <div><p className="text-xs text-muted-foreground">Respiratory Rate</p><p className="font-medium text-sm">{caseData.general_physical_examination.respiratory_rate}</p></div>
+                )}
+                {caseData.general_physical_examination?.temperature && (
+                  <div><p className="text-xs text-muted-foreground">Temperature</p><p className="font-medium text-sm">{caseData.general_physical_examination.temperature}</p></div>
+                )}
+                {caseData.general_physical_examination?.jvp && (
+                  <div><p className="text-xs text-muted-foreground">JVP</p><p className="font-medium text-sm">{caseData.general_physical_examination.jvp}</p></div>
+                )}
+                {caseData.general_physical_examination?.pallor && (
+                  <div><p className="text-xs text-muted-foreground">Pallor</p><p className="font-medium text-sm">{caseData.general_physical_examination.pallor}</p></div>
+                )}
+                {caseData.general_physical_examination?.cyanosis && (
+                  <div><p className="text-xs text-muted-foreground">Cyanosis</p><p className="font-medium text-sm">{caseData.general_physical_examination.cyanosis}</p></div>
+                )}
+                {caseData.general_physical_examination?.icterus && (
+                  <div><p className="text-xs text-muted-foreground">Icterus</p><p className="font-medium text-sm">{caseData.general_physical_examination.icterus}</p></div>
+                )}
+                {caseData.general_physical_examination?.peripheral_oedema && (
+                  <div><p className="text-xs text-muted-foreground">Peripheral Oedema</p><p className="font-medium text-sm">{caseData.general_physical_examination.peripheral_oedema}</p></div>
+                )}
+                {caseData.general_physical_examination?.clubbing && (
+                  <div><p className="text-xs text-muted-foreground">Clubbing</p><p className="font-medium text-sm">{caseData.general_physical_examination.clubbing}</p></div>
+                )}
+              </div>
+
+              {/* Lymph Nodes Sub-fields */}
+              {caseData.general_physical_examination?.lymph_nodes && (
+                <div className="p-3 border rounded-md bg-muted/20 space-y-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Lymph Nodes</p>
+                  <div className="grid grid-cols-3 gap-2 text-sm">
+                    <div><span className="text-xs text-muted-foreground">Cervical: </span><span className="font-medium">{caseData.general_physical_examination.lymph_nodes.cervical || 'N/A'}</span></div>
+                    <div><span className="text-xs text-muted-foreground">Axillary: </span><span className="font-medium">{caseData.general_physical_examination.lymph_nodes.axillary || 'N/A'}</span></div>
+                    <div><span className="text-xs text-muted-foreground">Inguinal: </span><span className="font-medium">{caseData.general_physical_examination.lymph_nodes.inguinal || 'N/A'}</span></div>
+                  </div>
+                </div>
+              )}
+
+              {caseData.general_physical_examination?.other_significant_findings && (
+                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Other Significant Findings</p><RichTextRenderer content={caseData.general_physical_examination.other_significant_findings} className="mt-1" /></div>
+              )}
+              <SectionCustomFields customFields={caseData.custom_fields} sectionId="general_physical_examination" />
+            </CardContent>
+          </Card>
+
+          {/* Section 4: Systemic Examination */}
+          {caseData.systemic_examination && Object.values(caseData.systemic_examination).some(Boolean) && (
+            <Card id="section-systemic_examination">
+              <CardHeader><CardTitle>4. Systemic Examination</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                {caseData.systemic_examination.respiratory_system && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Respiratory System</p><RichTextRenderer content={caseData.systemic_examination.respiratory_system} className="mt-1" /></div>}
+                {caseData.systemic_examination.cardiovascular_system && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Cardiovascular System</p><RichTextRenderer content={caseData.systemic_examination.cardiovascular_system} className="mt-1" /></div>}
+                {caseData.systemic_examination.nervous_system && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Nervous System</p><RichTextRenderer content={caseData.systemic_examination.nervous_system} className="mt-1" /></div>}
+                {caseData.systemic_examination.genito_urinary_system && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Genito-Urinary System</p><RichTextRenderer content={caseData.systemic_examination.genito_urinary_system} className="mt-1" /></div>}
+                {caseData.systemic_examination.gastrointestinal_system && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Gastrointestinal System</p><RichTextRenderer content={caseData.systemic_examination.gastrointestinal_system} className="mt-1" /></div>}
+                <SectionCustomFields customFields={caseData.custom_fields} sectionId="systemic_examination" />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Section 5: Local Examination */}
+          {caseData.local_examination && Object.values(caseData.local_examination).some(Boolean) && (
+            <Card id="section-local_examination">
+              <CardHeader><CardTitle>5. {localTitle}</CardTitle></CardHeader>
+              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {caseData.local_examination.inspection && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Inspection</p><RichTextRenderer content={caseData.local_examination.inspection} className="mt-1" /></div>}
+                {caseData.local_examination.palpation && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Palpation</p><RichTextRenderer content={caseData.local_examination.palpation} className="mt-1" /></div>}
+                {caseData.local_examination.percussion && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Percussion</p><RichTextRenderer content={caseData.local_examination.percussion} className="mt-1" /></div>}
+                {caseData.local_examination.auscultation && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Auscultation</p><RichTextRenderer content={caseData.local_examination.auscultation} className="mt-1" /></div>}
+                <div className="col-span-1 sm:col-span-2">
+                  <SectionCustomFields customFields={caseData.custom_fields} sectionId="local_examination" />
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Review of Systems */}
-          {caseData.review_of_systems && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Review of Systems</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4">
-                {caseData.review_of_systems.constitutional && <div><p className="text-sm text-gray-500">Constitutional</p><RichTextRenderer content={caseData.review_of_systems.constitutional} /></div>}
-                {caseData.review_of_systems.cardiovascular && <div><p className="text-sm text-gray-500">Cardiovascular</p><RichTextRenderer content={caseData.review_of_systems.cardiovascular} /></div>}
-                {caseData.review_of_systems.respiratory && <div><p className="text-sm text-gray-500">Respiratory</p><RichTextRenderer content={caseData.review_of_systems.respiratory} /></div>}
-                {caseData.review_of_systems.gastrointestinal && <div><p className="text-sm text-gray-500">GI</p><RichTextRenderer content={caseData.review_of_systems.gastrointestinal} /></div>}
-                {caseData.review_of_systems.neurological && <div><p className="text-sm text-gray-500">Neurological</p><RichTextRenderer content={caseData.review_of_systems.neurological} /></div>}
-                {caseData.review_of_systems.musculoskeletal && <div><p className="text-sm text-gray-500">MSK</p><RichTextRenderer content={caseData.review_of_systems.musculoskeletal} /></div>}
-                {caseData.review_of_systems.dermatological && <div><p className="text-sm text-gray-500">Dermatological</p><RichTextRenderer content={caseData.review_of_systems.dermatological} /></div>}
-                {caseData.review_of_systems.psychiatric && <div><p className="text-sm text-gray-500">Psychiatric</p><RichTextRenderer content={caseData.review_of_systems.psychiatric} /></div>}
-                {caseData.review_of_systems.other && <div><p className="text-sm text-gray-500">Other</p><RichTextRenderer content={caseData.review_of_systems.other} /></div>}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Examination Findings */}
-          {caseData.examination_findings && (
-            <Card id="section-examination" className="transition-all duration-300">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Examination Findings</CardTitle>
-                  {completeness.isIncompleteSection('examination') && (
-                    <Badge variant="outline" className="text-xs text-amber-950 bg-amber-100 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-600 font-medium">
-                      <AlertTriangle className="w-3 h-3 mr-1" />
-                      Incomplete
-                    </Badge>
-                  )}
+          {/* Section 6: Diagnosis */}
+          <Card id="section-diagnosis">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>6. Diagnosis</CardTitle>
+                {completeness.isIncompleteSection('diagnosis') && (
+                  <Badge variant="outline" className="text-xs text-amber-950 bg-amber-100 border-amber-400">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    Incomplete
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase">Provisional Diagnosis <span className="text-destructive">*</span></p>
+                <RichTextRenderer content={caseData.diagnosis?.provisional_diagnosis || caseData.diagnosis_management?.provisional_diagnosis || caseData.diagnosis_management?.final_diagnosis || 'N/A'} className="mt-1" />
+              </div>
+              {caseData.diagnosis?.differential_diagnosis && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Differential Diagnosis</p>
+                  <RichTextRenderer content={caseData.diagnosis.differential_diagnosis} className="mt-1" />
                 </div>
+              )}
+              <SectionCustomFields customFields={caseData.custom_fields} sectionId="diagnosis" />
+            </CardContent>
+          </Card>
+
+          {/* Section 7: Investigations */}
+          <Card id="section-investigations">
+            <CardHeader><CardTitle>7. Investigations</CardTitle></CardHeader>
+            <CardContent className="space-y-6">
+              {/* 7.1 Confirmation of Diagnosis */}
+              <div className="p-4 border rounded-lg space-y-3 bg-muted/10">
+                <h4 className="font-bold text-sm text-foreground">7.1 Investigations for Confirmation of Diagnosis</h4>
+                <RichTextRenderer content={caseData.investigations_info?.investigations_confirmation || 'No written findings specified.'} />
+                <div className="pt-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Confirmation Scans & Reports</p>
+                  <AttachmentGallery
+                    attachments={caseData.attachments?.filter((a) => a.investigation_group === 'confirmation') || []}
+                    canDelete={canEdit && (currentUser?.id === caseData.author_id || currentUser?.role === 'admin')}
+                  />
+                </div>
+              </div>
+
+              {/* 7.2 Staging / Extent of Disease */}
+              <div className="p-4 border rounded-lg space-y-3 bg-muted/10">
+                <h4 className="font-bold text-sm text-foreground">7.2 Investigations for Determining Extent of Disease (Staging)</h4>
+                <RichTextRenderer content={caseData.investigations_info?.investigations_staging || 'No written findings specified.'} />
+                <div className="pt-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Staging Scans & Reports</p>
+                  <AttachmentGallery
+                    attachments={caseData.attachments?.filter((a) => a.investigation_group === 'staging') || []}
+                    canDelete={canEdit && (currentUser?.id === caseData.author_id || currentUser?.role === 'admin')}
+                  />
+                </div>
+              </div>
+
+              {/* General Attachments */}
+              {caseData.attachments && caseData.attachments.filter((a) => !a.investigation_group).length > 0 && (
+                <div className="pt-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">General Attachments</p>
+                  <AttachmentGallery
+                    attachments={caseData.attachments.filter((a) => !a.investigation_group)}
+                    canDelete={canEdit && (currentUser?.id === caseData.author_id || currentUser?.role === 'admin')}
+                  />
+                </div>
+              )}
+              <SectionCustomFields customFields={caseData.custom_fields} sectionId="investigations" />
+            </CardContent>
+          </Card>
+
+          {/* Collapsible Legacy Case Data Section */}
+          {hasLegacyData && (
+            <Card className="border-amber-200 bg-amber-50/30 dark:bg-amber-950/10">
+              <CardHeader
+                className="cursor-pointer flex flex-row items-center justify-between"
+                onClick={() => setIsLegacyExpanded(!isLegacyExpanded)}
+              >
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base text-amber-900 dark:text-amber-200">
+                    Legacy Case Data
+                  </CardTitle>
+                  <Badge variant="outline" className="text-xs border-amber-400 text-amber-900">
+                    Pre-consolidation Fields
+                  </Badge>
+                </div>
+                <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  {isLegacyExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* 1. General Physical Examination */}
-                <div className="space-y-3 p-4 rounded-lg bg-muted/20 border border-border/50">
-                  <h4 className="font-bold text-sm uppercase tracking-wider text-primary border-b pb-1">
-                    1. General Physical Examination
-                  </h4>
-                  {caseData.examination_findings.general_appearance && (
+
+              {isLegacyExpanded && (
+                <CardContent className="space-y-4 pt-2 border-t text-sm">
+                  {caseData.diagnosis_management?.treatment_plan && (
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase">General Appearance</p>
-                      <RichTextRenderer content={caseData.examination_findings.general_appearance} className="mt-1" />
+                      <p className="text-xs font-semibold text-muted-foreground uppercase">Treatment / Management Plan</p>
+                      <RichTextRenderer content={caseData.diagnosis_management.treatment_plan} className="mt-1" />
                     </div>
                   )}
-                  {caseData.examination_findings.vital_signs && (
-                    <div className="pt-2">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase mb-1.5">Vital Signs</p>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-card p-3 rounded-md border">
-                        {caseData.examination_findings.vital_signs.bp_systolic && caseData.examination_findings.vital_signs.bp_diastolic && (
-                          <div><p className="text-xs text-muted-foreground">BP</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.bp_systolic}/{caseData.examination_findings.vital_signs.bp_diastolic} mmHg</p></div>
-                        )}
-                        {caseData.examination_findings.vital_signs.hr && (
-                          <div><p className="text-xs text-muted-foreground">HR</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.hr} bpm</p></div>
-                        )}
-                        {caseData.examination_findings.vital_signs.rr && (
-                          <div><p className="text-xs text-muted-foreground">RR</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.rr} /min</p></div>
-                        )}
-                        {caseData.examination_findings.vital_signs.temp && (
-                          <div><p className="text-xs text-muted-foreground">Temp</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.temp} °C</p></div>
-                        )}
-                        {caseData.examination_findings.vital_signs.spo2 && (
-                          <div><p className="text-xs text-muted-foreground">SpO2</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.spo2} %</p></div>
-                        )}
-                        {caseData.examination_findings.vital_signs.weight && (
-                          <div><p className="text-xs text-muted-foreground">Weight</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.weight} kg</p></div>
-                        )}
-                        {caseData.examination_findings.vital_signs.height && (
-                          <div><p className="text-xs text-muted-foreground">Height</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.height} cm</p></div>
-                        )}
-                        {caseData.examination_findings.vital_signs.bmi && (
-                          <div><p className="text-xs text-muted-foreground">BMI</p><p className="font-medium text-sm">{caseData.examination_findings.vital_signs.bmi}</p></div>
-                        )}
+                  {caseData.diagnosis_management?.outcome && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase">Outcome</p>
+                      <RichTextRenderer content={caseData.diagnosis_management.outcome} className="mt-1" />
+                    </div>
+                  )}
+                  {caseData.learning_points && caseData.learning_points.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase">Learning Points</p>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        {caseData.learning_points.map((pt, i) => (
+                          <li key={i}>{pt}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {caseData.current_medications && caseData.current_medications.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase">Current Medications</p>
+                      <div className="space-y-1 mt-1">
+                        {caseData.current_medications.map((m, i) => (
+                          <p key={i} className="text-xs">• {m.name} — {m.dose} ({m.frequency})</p>
+                        ))}
                       </div>
                     </div>
                   )}
-                </div>
-
-                {/* 2. Local Examination */}
-                {caseData.examination_findings.local &&
-                  Object.values(caseData.examination_findings.local).some((val) => !!val) && (
-                  <div className="space-y-3 p-4 rounded-lg bg-muted/20 border border-border/50">
-                    <h4 className="font-bold text-sm uppercase tracking-wider text-primary border-b pb-1">
-                      2. Local Examination
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                      {caseData.examination_findings.local.location_extent && (
-                        <div><p className="text-xs font-semibold text-muted-foreground">Location & Extent</p><p className="text-sm font-medium">{caseData.examination_findings.local.location_extent}</p></div>
-                      )}
-                      {caseData.examination_findings.local.surface_margins && (
-                        <div><p className="text-xs font-semibold text-muted-foreground">Surface & Margins</p><p className="text-sm font-medium">{caseData.examination_findings.local.surface_margins}</p></div>
-                      )}
-                      {caseData.examination_findings.local.consistency && (
-                        <div><p className="text-xs font-semibold text-muted-foreground">Consistency</p><p className="text-sm font-medium">{caseData.examination_findings.local.consistency}</p></div>
-                      )}
-                      {caseData.examination_findings.local.tenderness && (
-                        <div><p className="text-xs font-semibold text-muted-foreground">Tenderness</p><p className="text-sm font-medium">{caseData.examination_findings.local.tenderness}</p></div>
-                      )}
-                      {caseData.examination_findings.local.mobility_fixity && (
-                        <div><p className="text-xs font-semibold text-muted-foreground">Mobility / Fixity</p><p className="text-sm font-medium">{caseData.examination_findings.local.mobility_fixity}</p></div>
-                      )}
-                      {caseData.examination_findings.local.regional_lymph_nodes && (
-                        <div><p className="text-xs font-semibold text-muted-foreground">Regional Lymph Nodes</p><p className="text-sm font-medium">{caseData.examination_findings.local.regional_lymph_nodes}</p></div>
-                      )}
-                    </div>
-                    {caseData.examination_findings.local.other_local_findings && (
-                      <div className="pt-2">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase">Other Local Findings</p>
-                        <RichTextRenderer content={caseData.examination_findings.local.other_local_findings} className="mt-1" />
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* 3. Systemic Examination */}
-                {caseData.examination_findings.systemic && (
-                  <div className="space-y-3 p-4 rounded-lg bg-muted/20 border border-border/50">
-                    <h4 className="font-bold text-sm uppercase tracking-wider text-primary border-b pb-1">
-                      3. Systemic Examination
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                      {caseData.examination_findings.systemic.cardiovascular && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Cardiovascular</p><RichTextRenderer content={caseData.examination_findings.systemic.cardiovascular} className="mt-0.5" /></div>}
-                      {caseData.examination_findings.systemic.respiratory && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Respiratory</p><RichTextRenderer content={caseData.examination_findings.systemic.respiratory} className="mt-0.5" /></div>}
-                      {caseData.examination_findings.systemic.gastrointestinal && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Gastrointestinal</p><RichTextRenderer content={caseData.examination_findings.systemic.gastrointestinal} className="mt-0.5" /></div>}
-                      {caseData.examination_findings.systemic.neurological && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Neurological</p><RichTextRenderer content={caseData.examination_findings.systemic.neurological} className="mt-0.5" /></div>}
-                      {caseData.examination_findings.systemic.musculoskeletal && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Musculoskeletal</p><RichTextRenderer content={caseData.examination_findings.systemic.musculoskeletal} className="mt-0.5" /></div>}
-                      {caseData.examination_findings.systemic.dermatological && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Dermatological</p><RichTextRenderer content={caseData.examination_findings.systemic.dermatological} className="mt-0.5" /></div>}
-                      {caseData.examination_findings.systemic.thyroid && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Thyroid & Endocrine</p><RichTextRenderer content={caseData.examination_findings.systemic.thyroid} className="mt-0.5" /></div>}
-                    </div>
-                  </div>
-                )}
-                <SectionCustomFields customFields={caseData.custom_fields} sectionId="examination" />
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
           )}
-
-          {/* Investigations */}
-          {((caseData.investigations && caseData.investigations.length > 0) || (caseData.attachments && caseData.attachments.length > 0)) && (
-            <Card id="section-investigations" className="transition-all duration-300">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Investigations & Reports</CardTitle>
-                  {completeness.isIncompleteSection('investigations') && (
-                    <Badge variant="outline" className="text-xs text-amber-950 bg-amber-100 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-600 font-medium">
-                      <AlertTriangle className="w-3 h-3 mr-1" />
-                      Incomplete
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {caseData.investigations && caseData.investigations.length > 0 && (
-                  <div className="space-y-4">
-                    {caseData.investigations.map((inv, i) => {
-                      const invAttachments = caseData.attachments?.filter(
-                        (a) => a.investigation_id === inv.id
-                      ) || [];
-                      return (
-                        <Card key={i} className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-semibold">{inv.test_name}</p>
-                              <Badge variant="outline">{inv.type}</Badge>
-                            </div>
-                            {inv.date && <p className="text-sm text-gray-500">{new Date(inv.date).toLocaleDateString()}</p>}
-                          </div>
-                          <div className="grid grid-cols-2 gap-4 mt-4">
-                            {inv.result && <div><p className="text-sm text-gray-500">Result</p><p>{inv.result}</p></div>}
-                            {inv.normal_range && <div><p className="text-sm text-gray-500">Normal Range</p><p>{inv.normal_range}</p></div>}
-                          </div>
-                          {inv.interpretation && <div className="mt-4"><p className="text-sm text-gray-500">Interpretation</p><RichTextRenderer content={inv.interpretation} /></div>}
-                          {inv.image_url && (
-                            <div className="mt-4 border rounded-md overflow-hidden bg-gray-50 p-2 max-w-md mx-auto">
-                              <p className="text-xs text-gray-500 mb-1">Attached Scan / Image</p>
-                              <Image
-                                src={inv.image_url}
-                                alt={`${inv.test_name} scan`}
-                                width={600}
-                                height={400}
-                                unoptimized
-                                className="max-h-60 w-auto object-contain mx-auto rounded"
-                              />
-                            </div>
-                          )}
-                          {invAttachments.length > 0 && (
-                            <div className="mt-4 pt-3 border-t">
-                              <p className="text-xs font-semibold text-gray-500 mb-2">Linked Scans & Files</p>
-                              <AttachmentGallery attachments={invAttachments} canDelete={false} />
-                            </div>
-                          )}
-                        </Card>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* All Case Attachments Gallery */}
-                {caseData.attachments && caseData.attachments.length > 0 && (
-                  <div className="pt-4 border-t">
-                    <h4 className="font-semibold text-sm mb-3">All Case Attachments & Reports</h4>
-                    <AttachmentGallery
-                      attachments={caseData.attachments}
-                      canDelete={canEdit && (currentUser?.id === caseData.author_id || currentUser?.role === 'admin')}
-                      onAttachmentDeleted={(deletedId) => {
-                        setCaseData((prev) =>
-                          prev
-                            ? {
-                                ...prev,
-                                attachments: prev.attachments?.filter((a) => a.id !== deletedId),
-                              }
-                            : prev
-                        );
-                      }}
-                    />
-                  </div>
-                )}
-                <SectionCustomFields customFields={caseData.custom_fields} sectionId="investigations" />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Diagnosis & Management */}
-          {caseData.diagnosis_management && (
-            <Card id="section-diagnosis" className="transition-all duration-300">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Diagnosis & Management</CardTitle>
-                  {completeness.isIncompleteSection('diagnosis') && (
-                    <Badge variant="outline" className="text-xs text-amber-950 bg-amber-100 border-amber-400 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-600 font-medium">
-                      <AlertTriangle className="w-3 h-3 mr-1" />
-                      Incomplete
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {caseData.diagnosis_management.provisional_diagnosis && <div><p className="text-sm text-muted-foreground">Provisional Diagnosis</p><RichTextRenderer content={caseData.diagnosis_management.provisional_diagnosis} /></div>}
-                {caseData.diagnosis_management.differential_diagnoses && caseData.diagnosis_management.differential_diagnoses.length > 0 && <div><p className="text-sm text-muted-foreground">Differential Diagnoses</p><ul className="list-disc list-inside mt-1">{caseData.diagnosis_management.differential_diagnoses.map((ddx, i) => <li key={i}>{ddx}</li>)}</ul></div>}
-                {caseData.diagnosis_management.final_diagnosis && <div><p className="text-sm text-muted-foreground">Final Diagnosis</p><RichTextRenderer content={caseData.diagnosis_management.final_diagnosis} /></div>}
-                {caseData.diagnosis_management.treatment_plan && <div><p className="text-sm text-muted-foreground">Treatment Plan</p><RichTextRenderer content={caseData.diagnosis_management.treatment_plan} /></div>}
-                {caseData.diagnosis_management.medications_prescribed && caseData.diagnosis_management.medications_prescribed.length > 0 && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Medications Prescribed</p>
-                    <div className="space-y-2 mt-2">
-                      {caseData.diagnosis_management.medications_prescribed.map((med, i) => (
-                        <div key={i} className="border rounded-lg p-3">
-                          <p className="font-semibold">{med.drug}</p>
-                          <p className="text-sm text-muted-foreground">{med.dose} • {med.frequency} • {med.duration}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {caseData.diagnosis_management.follow_up_plan && <div><p className="text-sm text-muted-foreground">Follow-up Plan</p><RichTextRenderer content={caseData.diagnosis_management.follow_up_plan} /></div>}
-                {caseData.diagnosis_management.prognosis && <div><p className="text-sm text-muted-foreground">Prognosis</p><RichTextRenderer content={caseData.diagnosis_management.prognosis} /></div>}
-                {caseData.diagnosis_management.outcome && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Outcome</p>
-                    <RichTextRenderer content={caseData.diagnosis_management.outcome} />
-                  </div>
-                )}
-                {caseData.diagnosis_management.reference_pdfs && caseData.diagnosis_management.reference_pdfs.length > 0 && (
-                  <div className="pt-4 border-t">
-                    <p className="text-sm text-muted-foreground font-semibold mb-2">Attached References</p>
-                    <div className="space-y-2">
-                      {caseData.diagnosis_management.reference_pdfs.map((pdf, i) => (
-                        <div key={i} className="flex items-center gap-2 text-sm text-primary hover:underline font-medium">
-                          <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                          </svg>
-                          <a href={pdf.url} target="_blank" rel="noopener noreferrer">
-                            {pdf.filename || 'Scanned Report'}
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <SectionCustomFields customFields={caseData.custom_fields} sectionId="diagnosis" />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Learning Points */}
-          {caseData.learning_points && caseData.learning_points.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Learning Points</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="list-disc list-inside space-y-2">
-                  {caseData.learning_points.map((point, i) => (
-                    <li key={i} className="text-sm text-foreground">
-                      <RichTextRenderer content={point} className="inline-block align-top" />
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-
         </CardContent>
       </Card>
 
-      {/* Review History Timeline for both Reviewers and Authors */}
+      {/* Review History Timeline */}
       <ReviewHistoryTimeline reviews={caseData.reviews} onJumpToSection={scrollToSection} />
 
       {caseData.status !== 'draft' && <CaseComments caseId={id} />}
 
-      {/* In-App Action Modals */}
+      {/* Review Modals */}
       <ApproveConfirmModal
         isOpen={isApproveOpen}
         onClose={() => setIsApproveOpen(false)}

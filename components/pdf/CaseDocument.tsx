@@ -28,19 +28,16 @@ function PDFCustomFields({
   );
 }
 
-// ==========================================
-// DESIGN SYSTEM & TOKENS (pdfTheme)
-// ==========================================
 const pdfTheme = {
   colors: {
-    primary: '#064e3b',       // Forest Green (Hospital report brand color)
-    textPrimary: '#1e293b',   // Dark Slate (Readable body text, not pure black)
-    textSecondary: '#475569', // Slate Gray for labels and sub-details
+    primary: '#064e3b',       // Forest Green
+    textPrimary: '#1e293b',   // Dark Slate
+    textSecondary: '#475569', // Slate Gray
     border: '#cbd5e1',        // Slate Border
-    borderLight: '#e2e8f0',   // Light gray for inner grid lines
-    bgNeutral: '#f8fafc',     // Slate-50 for demographics box & alternating table rows
-    highlightGreen: '#15803d',// Primary green-700 for approval status
-    bgHighlightGreen: '#f0fdf4', // Light green bg for approval banner
+    borderLight: '#e2e8f0',   // Light gray
+    bgNeutral: '#f8fafc',     // Slate-50
+    highlightGreen: '#15803d',// Primary green-700
+    bgHighlightGreen: '#f0fdf4',
   },
   fonts: {
     title: 'Times-Bold',
@@ -54,7 +51,7 @@ const pdfTheme = {
     pagePaddingHorizontal: 40,
     sectionGap: 16,
     elementGap: 6,
-  }
+  },
 };
 
 const styles = StyleSheet.create({
@@ -67,7 +64,6 @@ const styles = StyleSheet.create({
     color: pdfTheme.colors.textPrimary,
     lineHeight: 1.45,
   },
-  // Running Header (Fixed, hides on page 1)
   runningHeader: {
     position: 'absolute',
     top: 25,
@@ -90,7 +86,6 @@ const styles = StyleSheet.create({
     fontFamily: pdfTheme.fonts.bodyBold,
     color: pdfTheme.colors.primary,
   },
-  // Running Footer (Fixed on all pages)
   runningFooter: {
     position: 'absolute',
     bottom: 30,
@@ -113,7 +108,6 @@ const styles = StyleSheet.create({
     fontFamily: pdfTheme.fonts.bodyBold,
     color: pdfTheme.colors.textSecondary,
   },
-  // Cover / Header Banner (Page 1)
   banner: {
     borderBottomWidth: 2,
     borderBottomColor: pdfTheme.colors.primary,
@@ -150,7 +144,6 @@ const styles = StyleSheet.create({
     color: pdfTheme.colors.textSecondary,
     fontFamily: pdfTheme.fonts.body,
   },
-  // Patient Demographics Box (Page 1)
   demographicsBox: {
     borderWidth: 1,
     borderColor: pdfTheme.colors.border,
@@ -180,17 +173,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   gridLabel: {
-    width: '35%',
+    width: '40%',
     fontFamily: pdfTheme.fonts.bodyBold,
     fontSize: 8.5,
     color: pdfTheme.colors.textSecondary,
   },
   gridValue: {
-    width: '65%',
+    width: '60%',
     fontSize: 8.5,
     color: pdfTheme.colors.textPrimary,
   },
-  // Section Headings
   sectionContainer: {
     marginBottom: pdfTheme.spacing.sectionGap,
   },
@@ -215,76 +207,13 @@ const styles = StyleSheet.create({
     fontFamily: pdfTheme.fonts.bodyBold,
     color: pdfTheme.colors.textSecondary,
   },
-  // Tables
-  table: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: pdfTheme.colors.border,
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginVertical: 6,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
-    borderBottomWidth: 1,
-    borderBottomColor: pdfTheme.colors.border,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: pdfTheme.colors.borderLight,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-  },
-  tableRowAlternating: {
-    backgroundColor: pdfTheme.colors.bgNeutral,
-  },
-  tableCellHeader: {
-    fontSize: 8.5,
-    fontFamily: pdfTheme.fonts.bodyBold,
-    color: pdfTheme.colors.textSecondary,
-  },
-  tableCell: {
-    fontSize: 8.5,
-  },
-  // Vital Signs Grid
-  vitalSignsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    borderWidth: 1,
-    borderColor: pdfTheme.colors.border,
-    borderRadius: 4,
-    marginVertical: 6,
-  },
-  vitalItem: {
-    width: '25%',
-    padding: 6,
-    borderRightWidth: 1,
-    borderRightColor: pdfTheme.colors.borderLight,
-    borderBottomWidth: 1,
-    borderBottomColor: pdfTheme.colors.borderLight,
-    backgroundColor: '#ffffff',
-  },
-  vitalLabel: {
-    fontSize: 7.5,
-    fontFamily: pdfTheme.fonts.bodyBold,
-    color: pdfTheme.colors.textSecondary,
-    marginBottom: 2,
-  },
-  vitalVal: {
-    fontSize: 9,
-    color: pdfTheme.colors.textPrimary,
-  },
-  // Investigation Images
   imageRowContainer: {
     padding: 8,
     backgroundColor: pdfTheme.colors.bgNeutral,
     borderBottomWidth: 1,
     borderBottomColor: pdfTheme.colors.border,
     alignItems: 'center',
+    marginVertical: 4,
   },
   imageLabel: {
     fontSize: 7.5,
@@ -299,38 +228,6 @@ const styles = StyleSheet.create({
     objectFit: 'contain',
     borderRadius: 4,
   },
-  // References
-  referencesCard: {
-    borderWidth: 1,
-    borderColor: pdfTheme.colors.border,
-    borderRadius: 4,
-    padding: 8,
-    backgroundColor: pdfTheme.colors.bgNeutral,
-  },
-  referencesNotice: {
-    fontSize: 8,
-    color: pdfTheme.colors.textSecondary,
-    marginBottom: 6,
-    lineHeight: 1.4,
-  },
-  referenceItem: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    paddingVertical: 2,
-  },
-  referenceBullet: {
-    marginRight: 6,
-    color: pdfTheme.colors.primary,
-  },
-  referenceText: {
-    fontSize: 8.5,
-    flex: 1,
-  },
-  referenceLink: {
-    color: '#2563eb',
-    textDecoration: 'underline',
-  },
-  // Signoff Box (Approved Banner)
   approvalBox: {
     marginTop: 20,
     padding: 10,
@@ -354,10 +251,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// ==========================================
-// MODULAR COMPONENT RENDERERS
-// ==========================================
-
 function RunningHeader({ caseData }: { caseData: Case }) {
   return (
     <View
@@ -369,7 +262,7 @@ function RunningHeader({ caseData }: { caseData: Case }) {
           <>
             <Text style={styles.runningHeaderBranding}>MediKarya Case Report</Text>
             <Text style={styles.runningHeaderText}>
-              {caseData.title.length > 40 ? `${caseData.title.slice(0, 40)}...` : caseData.title} | ID: {caseData.patient_details?.patient_id || 'N/A'}
+              {caseData.title.length > 40 ? `${caseData.title.slice(0, 40)}...` : caseData.title} | Case No: {caseData.patient_details?.case_no || caseData.patient_details?.patient_id || 'N/A'}
             </Text>
           </>
         );
@@ -417,76 +310,40 @@ function DemographicsBox({ caseData }: { caseData: Case }) {
 
   return (
     <View style={styles.demographicsBox}>
-      <Text style={styles.demographicsTitle}>Patient Demographics</Text>
+      <Text style={styles.demographicsTitle}>1. Patient Details</Text>
       <View style={styles.grid}>
-        {pd.patient_name && (
-          <View style={[styles.gridCol, { width: '100%', marginBottom: 2 }]}>
-            <Text style={styles.gridLabel}>Patient Name: </Text>
-            <Text style={[styles.gridValue, { fontFamily: pdfTheme.fonts.bodyBold }]}>{pd.patient_name}</Text>
-          </View>
-        )}
         <View style={styles.gridCol}>
-          <Text style={styles.gridLabel}>Patient ID:</Text>
-          <Text style={styles.gridValue}>{pd.patient_id || 'N/A'}</Text>
+          <Text style={styles.gridLabel}>Case No:</Text>
+          <Text style={styles.gridValue}>{pd.case_no || pd.patient_id || 'N/A'}</Text>
         </View>
         <View style={styles.gridCol}>
-          <Text style={styles.gridLabel}>Presenting Date:</Text>
-          <Text style={styles.gridValue}>{pd.presenting_date ? new Date(pd.presenting_date).toLocaleDateString() : 'N/A'}</Text>
+          <Text style={styles.gridLabel}>Patient Name:</Text>
+          <Text style={[styles.gridValue, { fontFamily: pdfTheme.fonts.bodyBold }]}>{pd.patient_name || 'N/A'}</Text>
         </View>
         <View style={styles.gridCol}>
-          <Text style={styles.gridLabel}>Age / Gender:</Text>
+          <Text style={styles.gridLabel}>Age / Sex:</Text>
           <Text style={styles.gridValue}>
-            {pd.age != null ? `${pd.age} yrs` : 'N/A'} / {pd.gender || 'N/A'}
+            {pd.age != null ? `${pd.age} yrs` : 'N/A'} / {(pd.sex || pd.gender || 'N/A').toUpperCase()}
           </Text>
+        </View>
+        <View style={styles.gridCol}>
+          <Text style={styles.gridLabel}>Religion:</Text>
+          <Text style={styles.gridValue}>{pd.religion || 'N/A'}</Text>
         </View>
         <View style={styles.gridCol}>
           <Text style={styles.gridLabel}>Occupation:</Text>
           <Text style={styles.gridValue}>{pd.occupation || 'N/A'}</Text>
         </View>
         <View style={styles.gridCol}>
-          <Text style={styles.gridLabel}>Location:</Text>
-          <Text style={styles.gridValue}>{pd.location || 'N/A'}</Text>
+          <Text style={styles.gridLabel}>Date of Admission:</Text>
+          <Text style={styles.gridValue}>{pd.date_of_admission || (pd.presenting_date ? new Date(pd.presenting_date).toLocaleDateString() : 'N/A')}</Text>
+        </View>
+        <View style={[styles.gridCol, { width: '100%' }]}>
+          <Text style={[styles.gridLabel, { width: '20%' }]}>Address:</Text>
+          <Text style={[styles.gridValue, { width: '80%' }]}>{pd.address || pd.location || 'N/A'}</Text>
         </View>
       </View>
       <PDFCustomFields customFields={caseData.custom_fields} sectionId="patient_details" />
-    </View>
-  );
-}
-
-function LocalExamBox({ local }: { local?: any }) {
-  if (!local) return null;
-  const items = [
-    { label: 'Location & Extent', val: local.location_extent },
-    { label: 'Surface & Margins', val: local.surface_margins },
-    { label: 'Consistency', val: local.consistency },
-    { label: 'Tenderness', val: local.tenderness },
-    { label: 'Mobility / Fixity', val: local.mobility_fixity },
-    { label: 'Regional Lymph Nodes', val: local.regional_lymph_nodes },
-  ].filter(i => !!i.val);
-
-  if (items.length === 0 && !local.other_local_findings) return null;
-
-  return (
-    <View style={{ marginTop: 6 }} wrap={false}>
-      <Text style={[styles.boldLabel, { fontSize: 9.5, marginTop: 4, marginBottom: 2 }]}>
-        2. Local Examination:
-      </Text>
-      {items.length > 0 && (
-        <View style={styles.grid}>
-          {items.map((item, idx) => (
-            <View key={idx} style={[styles.gridCol, { width: '50%' }]}>
-              <Text style={styles.gridLabel}>{item.label}: </Text>
-              <Text style={styles.gridValue}>{item.val}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-      {local.other_local_findings && (
-        <View style={[styles.paragraph, { marginTop: 3 }]}>
-          <Text style={styles.boldLabel}>Other Local Findings: </Text>
-          <PDFRichText content={local.other_local_findings} primaryColor={pdfTheme.colors.primary} />
-        </View>
-      )}
     </View>
   );
 }
@@ -498,217 +355,6 @@ function ClinicalSection({ title, children }: { title: string; children: React.R
       <Text style={styles.sectionTitle} minPresenceAhead={45}>{title}</Text>
       <View style={styles.sectionContent}>
         {children}
-      </View>
-    </View>
-  );
-}
-
-function VitalSignsBox({ exam }: { exam: any }) {
-  const vitals = exam?.vital_signs;
-  if (!vitals) return null;
-
-  // Render vitals in a nice, compact grid
-  const items = [
-    { label: 'BP (Systolic/Diastolic)', val: vitals.bp_systolic && vitals.bp_diastolic ? `${vitals.bp_systolic}/${vitals.bp_diastolic} mmHg` : null },
-    { label: 'Heart Rate (HR)', val: vitals.hr ? `${vitals.hr} bpm` : null },
-    { label: 'Respiratory Rate (RR)', val: vitals.rr ? `${vitals.rr} /min` : null },
-    { label: 'Temperature (Temp)', val: vitals.temp ? `${vitals.temp} °F` : null },
-    { label: 'Oxygen Saturation (SpO2)', val: vitals.spo2 ? `${vitals.spo2} %` : null },
-    { label: 'Weight', val: vitals.weight ? `${vitals.weight} kg` : null },
-    { label: 'Height', val: vitals.height ? `${vitals.height} cm` : null },
-    { label: 'Body Mass Index (BMI)', val: vitals.bmi ? `${vitals.bmi} kg/m²` : null },
-  ].filter(i => i.val !== null);
-
-  if (items.length === 0) return null;
-
-  return (
-    <View wrap={false}>
-      <Text style={[styles.boldLabel, { fontSize: 9.5, marginTop: 6, marginBottom: 2 }]}>Vital Signs:</Text>
-      <View style={styles.vitalSignsGrid}>
-        {items.map((item, idx) => (
-          <View key={idx} style={[styles.vitalItem, idx >= 4 ? { borderBottomWidth: 0 } : {}, (idx + 1) % 4 === 0 ? { borderRightWidth: 0 } : {}]}>
-            <Text style={styles.vitalLabel}>{item.label}</Text>
-            <Text style={styles.vitalVal}>{item.val}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function MedicationsTable({ caseData }: { caseData: Case }) {
-  const medications = caseData.current_medications;
-  if (!medications || medications.length === 0) return null;
-
-  return (
-    <View style={styles.table} wrap={false}>
-      <View style={styles.tableHeader}>
-        <Text style={[styles.tableCellHeader, { width: '45%' }]}>Current Medication Name</Text>
-        <Text style={[styles.tableCellHeader, { width: '25%' }]}>Dose</Text>
-        <Text style={[styles.tableCellHeader, { width: '30%' }]}>Frequency</Text>
-      </View>
-      {medications.map((med, idx) => (
-        <View key={idx} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlternating : {}, idx === medications.length - 1 ? { borderBottomWidth: 0 } : {}]} wrap={false}>
-          <Text style={[styles.tableCell, { width: '45%' }]}>{med.name}</Text>
-          <Text style={[styles.tableCell, { width: '25%' }]}>{med.dose}</Text>
-          <Text style={[styles.tableCell, { width: '30%' }]}>{med.frequency}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function PrescribedMedicationsTable({ caseData }: { caseData: Case }) {
-  const meds = caseData.diagnosis_management?.medications_prescribed;
-  if (!meds || meds.length === 0) return null;
-
-  return (
-    <View wrap={false}>
-      <Text style={[styles.boldLabel, { fontSize: 9.5, marginTop: 8, marginBottom: 2 }]}>Medications Prescribed:</Text>
-      <View style={styles.table}>
-        <View style={styles.tableHeader}>
-          <Text style={[styles.tableCellHeader, { width: '35%' }]}>Drug Name</Text>
-          <Text style={[styles.tableCellHeader, { width: '20%' }]}>Dose</Text>
-          <Text style={[styles.tableCellHeader, { width: '25%' }]}>Frequency</Text>
-          <Text style={[styles.tableCellHeader, { width: '20%' }]}>Duration</Text>
-        </View>
-        {meds.map((med, idx) => (
-          <View key={idx} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlternating : {}, idx === meds.length - 1 ? { borderBottomWidth: 0 } : {}]} wrap={false}>
-            <Text style={[styles.tableCell, { width: '35%', fontFamily: pdfTheme.fonts.bodyBold }]}>{med.drug}</Text>
-            <Text style={[styles.tableCell, { width: '20%' }]}>{med.dose}</Text>
-            <Text style={[styles.tableCell, { width: '25%' }]}>{med.frequency}</Text>
-            <Text style={[styles.tableCell, { width: '20%' }]}>{med.duration}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function InvestigationsTable({
-  caseData,
-  resolvedImages,
-}: {
-  caseData: Case;
-  resolvedImages?: ResolvedImageMap;
-}) {
-  const investigations = caseData.investigations;
-  const imageAttachments = caseData.attachments?.filter((a) => a.file_type === 'image') || [];
-
-  if ((!investigations || investigations.length === 0) && imageAttachments.length === 0) return null;
-
-  const renderSingleImage = (url: string, label: string) => {
-    if (!url || !url.trim()) return null;
-
-    const trimmedUrl = url.trim();
-    const resolved = resolvedImages?.[trimmedUrl];
-
-    if (resolved && !resolved.success) {
-      return (
-        <View style={styles.imageRowContainer} wrap={false}>
-          <Text style={styles.imageLabel}>{label}:</Text>
-          <Text style={{ fontSize: 8, color: '#94a3b8', fontStyle: 'italic', marginTop: 2 }}>
-            [Image unavailable ({resolved.error || 'Fetch failed'}): {trimmedUrl.length > 50 ? `${trimmedUrl.slice(0, 50)}...` : trimmedUrl}]
-          </Text>
-        </View>
-      );
-    }
-
-    const imageSrc = resolved?.dataUri || trimmedUrl;
-
-    return (
-      <View style={styles.imageRowContainer} wrap={false}>
-        <Text style={styles.imageLabel}>{label}:</Text>
-        <Image src={imageSrc} style={styles.investigationImage} />
-      </View>
-    );
-  };
-
-  return (
-    <View style={{ width: '100%' }}>
-      {investigations && investigations.length > 0 && (
-        <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <Text style={[styles.tableCellHeader, { width: '25%' }]}>Test (Type)</Text>
-            <Text style={[styles.tableCellHeader, { width: '12%' }]}>Date</Text>
-            <Text style={[styles.tableCellHeader, { width: '20%' }]}>Result</Text>
-            <Text style={[styles.tableCellHeader, { width: '18%' }]}>Normal Range</Text>
-            <Text style={[styles.tableCellHeader, { width: '25%' }]}>Interpretation</Text>
-          </View>
-          {investigations.map((inv, idx) => {
-            const invImages = imageAttachments.filter((a) => a.investigation_id === inv.id);
-            const hasAnyImage = Boolean(inv.image_url) || invImages.length > 0;
-            return (
-              <View key={idx} wrap={false} style={{ borderBottomWidth: idx === investigations.length - 1 ? 0 : 1, borderBottomColor: pdfTheme.colors.borderLight }}>
-                <View style={[styles.tableRow, idx % 2 === 1 && !hasAnyImage ? styles.tableRowAlternating : {}, { borderBottomWidth: 0 }]}>
-                  <Text style={[styles.tableCell, { width: '25%', fontFamily: pdfTheme.fonts.bodyBold }]}>
-                    {inv.test_name} ({inv.type.toUpperCase()})
-                  </Text>
-                  <Text style={[styles.tableCell, { width: '12%', fontSize: 8 }]}>
-                    {inv.date ? new Date(inv.date).toLocaleDateString() : 'N/A'}
-                  </Text>
-                  <Text style={[styles.tableCell, { width: '20%' }]}>{inv.result || 'N/A'}</Text>
-                  <Text style={[styles.tableCell, { width: '18%' }]}>{inv.normal_range || 'N/A'}</Text>
-                  <Text style={[styles.tableCell, { width: '25%' }]}>{inv.interpretation || 'N/A'}</Text>
-                </View>
-                {inv.image_url && renderSingleImage(inv.image_url, `Attached scan for ${inv.test_name}`)}
-                {invImages.map((att, imgIdx) =>
-                  renderSingleImage(att.public_url, `Attached scan (${att.file_name})`)
-                )}
-              </View>
-            );
-          })}
-        </View>
-      )}
-
-      {/* Unlinked general image attachments */}
-      {imageAttachments
-        .filter((a) => !a.investigation_id || !investigations?.some((i) => i.id === a.investigation_id))
-        .map((att, idx) => (
-          <View key={idx} style={{ marginTop: 6 }}>
-            {renderSingleImage(att.public_url, `Attached Investigation Image — ${att.file_name}`)}
-          </View>
-        ))}
-    </View>
-  );
-}
-
-function ReferencesSection({ caseData }: { caseData: Case }) {
-  const refs = caseData.diagnosis_management?.reference_pdfs || [];
-  const pdfAttachments = caseData.attachments?.filter((a) => a.file_type === 'pdf') || [];
-
-  if (refs.length === 0 && pdfAttachments.length === 0) return null;
-
-  return (
-    <View style={styles.sectionContainer} wrap={false}>
-      <Text style={styles.sectionTitle} minPresenceAhead={40}>Attached References & PDF Reports</Text>
-      <View style={styles.referencesCard}>
-        <Text style={styles.referencesNotice}>
-          The following reference documents and PDF lab reports were uploaded with this case.
-          Clickable direct links to the reference documents are provided below:
-        </Text>
-        {refs.map((ref, idx) => (
-          <View key={`ref-${idx}`} style={styles.referenceItem}>
-            <Text style={styles.referenceBullet}>•</Text>
-            <Text style={styles.referenceText}>
-              <Text style={styles.boldLabel}>{ref.filename || 'Scanned Reference Document'}: </Text>
-              <Link src={ref.url} style={styles.referenceLink}>
-                {ref.url}
-              </Link>
-            </Text>
-          </View>
-        ))}
-        {pdfAttachments.map((att, idx) => (
-          <View key={`att-${idx}`} style={styles.referenceItem}>
-            <Text style={styles.referenceBullet}>•</Text>
-            <Text style={styles.referenceText}>
-              <Text style={styles.boldLabel}>{att.file_name} ({Math.round(att.file_size / 1024)} KB): </Text>
-              <Link src={att.public_url} style={styles.referenceLink}>
-                {att.public_url}
-              </Link>
-            </Text>
-          </View>
-        ))}
       </View>
     </View>
   );
@@ -726,10 +372,6 @@ function ApprovalSignoff({ caseData }: { caseData: Case }) {
   );
 }
 
-// ==========================================
-// MAIN CASE DOCUMENT COMPONENT
-// ==========================================
-
 export function CaseDocument({
   caseData,
   author,
@@ -739,274 +381,330 @@ export function CaseDocument({
   author?: User;
   resolvedImages?: ResolvedImageMap;
 }) {
-  const pd = caseData.patient_details;
-  const cc = caseData.chief_complaint_history;
-  const mh = caseData.medical_history;
-  const exam = caseData.examination_findings;
-  const dx = caseData.diagnosis_management;
+  const h = caseData.history;
+  const gpe = caseData.general_physical_examination;
+  const sys = caseData.systemic_examination;
+  const loc = caseData.local_examination;
+  const dx = caseData.diagnosis;
+  const invsInfo = caseData.investigations_info;
+
+  const localRegion = loc?.region?.trim() || caseData.examination_findings?.local?.location_extent?.trim() || '';
+  const localTitle = localRegion ? `5. Local Examination (${localRegion})` : '5. Local Examination';
+
+  const confirmationAttachments = caseData.attachments?.filter((a) => a.investigation_group === 'confirmation') || [];
+  const stagingAttachments = caseData.attachments?.filter((a) => a.investigation_group === 'staging') || [];
+
+  const renderSingleImage = (url: string, label: string) => {
+    if (!url || !url.trim()) return null;
+    const trimmedUrl = url.trim();
+    const resolved = resolvedImages?.[trimmedUrl];
+
+    if (resolved && !resolved.success) {
+      return (
+        <View style={styles.imageRowContainer} wrap={false}>
+          <Text style={styles.imageLabel}>{label}:</Text>
+          <Text style={{ fontSize: 8, color: '#94a3b8', fontStyle: 'italic', marginTop: 2 }}>
+            [Image unavailable ({resolved.error || 'Fetch failed'}): {trimmedUrl.length > 40 ? `${trimmedUrl.slice(0, 40)}...` : trimmedUrl}]
+          </Text>
+        </View>
+      );
+    }
+
+    const imageSrc = resolved?.dataUri || trimmedUrl;
+
+    return (
+      <View style={styles.imageRowContainer} wrap={false}>
+        <Text style={styles.imageLabel}>{label}:</Text>
+        <Image src={imageSrc} style={styles.investigationImage} />
+      </View>
+    );
+  };
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Running Header & Footer */}
         <RunningHeader caseData={caseData} />
         <RunningFooter />
 
-        {/* Title and Demographics */}
         <PatientBanner caseData={caseData} author={author} />
         <DemographicsBox caseData={caseData} />
 
-        {/* 1. Chief Complaint & History */}
-        {cc && (
-          <ClinicalSection title="Chief Complaint & HPI">
+        {/* 2. History */}
+        {(h || caseData.chief_complaint_history) && (
+          <ClinicalSection title="2. History">
             <View style={styles.paragraph}>
-              <Text style={styles.boldLabel}>Chief Complaint: </Text>
-              <PDFRichText content={cc.chief_complaint} primaryColor={pdfTheme.colors.primary} />
+              <Text style={styles.boldLabel}>Presenting Complaints: </Text>
+              <PDFRichText content={h?.presenting_complaints || caseData.chief_complaint_history?.chief_complaint || 'N/A'} primaryColor={pdfTheme.colors.primary} />
             </View>
-            <View style={styles.grid}>
-              {cc.hpi_onset && (
-                <View style={[styles.gridCol, { width: '50%' }]}>
-                  <Text style={styles.gridLabel}>Onset: </Text>
-                  <Text style={styles.gridValue}>{cc.hpi_onset}</Text>
-                </View>
-              )}
-              {cc.hpi_duration && (
-                <View style={[styles.gridCol, { width: '50%' }]}>
-                  <Text style={styles.gridLabel}>Duration: </Text>
-                  <Text style={styles.gridValue}>{cc.hpi_duration}</Text>
-                </View>
-              )}
-              {cc.hpi_aggravating && (
-                <View style={[styles.gridCol, { width: '50%' }]}>
-                  <Text style={styles.gridLabel}>Aggravating: </Text>
-                  <Text style={styles.gridValue}>{cc.hpi_aggravating}</Text>
-                </View>
-              )}
-              {cc.hpi_relieving && (
-                <View style={[styles.gridCol, { width: '50%' }]}>
-                  <Text style={styles.gridLabel}>Relieving: </Text>
-                  <Text style={styles.gridValue}>{cc.hpi_relieving}</Text>
-                </View>
-              )}
+            <View style={styles.paragraph}>
+              <Text style={styles.boldLabel}>History of Present Illness: </Text>
+              <PDFRichText content={h?.history_of_present_illness || caseData.chief_complaint_history?.hpi_additional || 'N/A'} primaryColor={pdfTheme.colors.primary} />
             </View>
-            {cc.associated_symptoms && (
+            {h?.past_history && (
               <View style={styles.paragraph}>
-                <Text style={styles.boldLabel}>Associated Symptoms: </Text>
-                <PDFRichText content={cc.associated_symptoms} primaryColor={pdfTheme.colors.primary} />
+                <Text style={styles.boldLabel}>Past History: </Text>
+                <PDFRichText content={h.past_history} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
-            {cc.hpi_additional && (
+            {h?.personal_history && (
               <View style={styles.paragraph}>
-                <Text style={styles.boldLabel}>Additional HPI Notes: </Text>
-                <PDFRichText content={cc.hpi_additional} primaryColor={pdfTheme.colors.primary} />
+                <Text style={styles.boldLabel}>Personal History: </Text>
+                <PDFRichText content={h.personal_history} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
-            <PDFCustomFields customFields={caseData.custom_fields} sectionId="chief_complaint" />
-          </ClinicalSection>
-        )}
-
-        {/* 2. Past Medical / Personal History */}
-        {(mh || (caseData.current_medications && caseData.current_medications.length > 0)) && (
-          <ClinicalSection title="Medical & Personal History">
-            {mh?.past_medical_history && mh.past_medical_history.length > 0 && (
+            {h?.treatment_history && (
               <View style={styles.paragraph}>
-                <Text style={styles.boldLabel}>Past Medical History (PMH): </Text>
-                <Text>{mh.past_medical_history.join(', ')}</Text>
+                <Text style={styles.boldLabel}>Treatment History: </Text>
+                <PDFRichText content={h.treatment_history} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
-            {mh?.custom_medical_history && (
-              <View style={styles.paragraph}>
-                <Text style={styles.boldLabel}>Clinical History Details: </Text>
-                <PDFRichText content={mh.custom_medical_history} primaryColor={pdfTheme.colors.primary} />
-              </View>
-            )}
-            {mh?.family_history && (
+            {h?.family_history && (
               <View style={styles.paragraph}>
                 <Text style={styles.boldLabel}>Family History: </Text>
-                <PDFRichText content={mh.family_history} primaryColor={pdfTheme.colors.primary} />
+                <PDFRichText content={h.family_history} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
-            {mh?.allergies && mh.allergies.length > 0 && (
+            {h?.menstrual_history && (
               <View style={styles.paragraph}>
-                <Text style={styles.boldLabel}>Allergies: </Text>
-                <Text>{mh.allergies.join(', ')}</Text>
+                <Text style={styles.boldLabel}>Menstrual History: </Text>
+                <PDFRichText content={h.menstrual_history} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
-            {/* Social History */}
-            {(mh?.social_history_smoking || mh?.social_history_alcohol || mh?.social_history_occupation) && (
+            {h?.obstetric_history && (
               <View style={styles.paragraph}>
-                <Text style={styles.boldLabel}>Social History: </Text>
-                <Text>
-                  {[
-                    mh.social_history_smoking ? `Smoking: ${mh.social_history_smoking}` : null,
-                    mh.social_history_alcohol ? `Alcohol: ${mh.social_history_alcohol}` : null,
-                    mh.social_history_occupation ? `Occupation Context: ${mh.social_history_occupation}` : null,
-                  ].filter(Boolean).join('  |  ')}
-                </Text>
+                <Text style={styles.boldLabel}>Obstetric History: </Text>
+                <PDFRichText content={h.obstetric_history} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
-            {/* Current Medications Table */}
-            {caseData.current_medications && caseData.current_medications.length > 0 && (
-              <View>
-                <Text style={[styles.boldLabel, { marginTop: 4, marginBottom: 2 }]}>Current Medications:</Text>
-                <MedicationsTable caseData={caseData} />
+            {h?.socio_economic_history && (
+              <View style={styles.paragraph}>
+                <Text style={styles.boldLabel}>Socio-economic History: </Text>
+                <PDFRichText content={h.socio_economic_history} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
-            <PDFCustomFields customFields={caseData.custom_fields} sectionId="medical_history" />
+            {h?.any_other && (
+              <View style={styles.paragraph}>
+                <Text style={styles.boldLabel}>Any Other: </Text>
+                <PDFRichText content={h.any_other} primaryColor={pdfTheme.colors.primary} />
+              </View>
+            )}
+            <PDFCustomFields customFields={caseData.custom_fields} sectionId="history" />
           </ClinicalSection>
         )}
 
-        {/* 3. Examination Findings */}
-        {exam && (
-          <ClinicalSection title="Examination Findings">
-            {/* Sub-section 1: General Physical Examination */}
-            <View wrap={false}>
-              <Text style={[styles.boldLabel, { fontSize: 9.5, color: pdfTheme.colors.primary, marginBottom: 2 }]}>
-                1. General Physical Examination:
-              </Text>
-              {exam.general_appearance && (
-                <View style={styles.paragraph}>
-                  <Text style={styles.boldLabel}>General Appearance: </Text>
-                  <PDFRichText content={exam.general_appearance} primaryColor={pdfTheme.colors.primary} />
-                </View>
+        {/* 3. General Physical Examination */}
+        {(gpe || caseData.examination_findings) && (
+          <ClinicalSection title="3. General Physical Examination">
+            <View style={styles.grid}>
+              {gpe?.consciousness_orientation && (
+                <View style={styles.gridCol}><Text style={styles.gridLabel}>Consciousness / Orientation: </Text><Text style={styles.gridValue}>{gpe.consciousness_orientation}</Text></View>
               )}
-              {/* Vitals Grid Table */}
-              <VitalSignsBox exam={exam} />
+              {gpe?.pulse && (
+                <View style={styles.gridCol}><Text style={styles.gridLabel}>Pulse: </Text><Text style={styles.gridValue}>{gpe.pulse}</Text></View>
+              )}
+              {gpe?.bp && (
+                <View style={styles.gridCol}><Text style={styles.gridLabel}>Blood Pressure (BP): </Text><Text style={styles.gridValue}>{gpe.bp}</Text></View>
+              )}
+              {gpe?.respiratory_rate && (
+                <View style={styles.gridCol}><Text style={styles.gridLabel}>Respiratory Rate: </Text><Text style={styles.gridValue}>{gpe.respiratory_rate}</Text></View>
+              )}
+              {gpe?.temperature && (
+                <View style={styles.gridCol}><Text style={styles.gridLabel}>Temperature: </Text><Text style={styles.gridValue}>{gpe.temperature}</Text></View>
+              )}
+              {gpe?.jvp && (
+                <View style={styles.gridCol}><Text style={styles.gridLabel}>JVP: </Text><Text style={styles.gridValue}>{gpe.jvp}</Text></View>
+              )}
+              {gpe?.pallor && (
+                <View style={styles.gridCol}><Text style={styles.gridLabel}>Pallor: </Text><Text style={styles.gridValue}>{gpe.pallor}</Text></View>
+              )}
+              {gpe?.cyanosis && (
+                <View style={styles.gridCol}><Text style={styles.gridLabel}>Cyanosis: </Text><Text style={styles.gridValue}>{gpe.cyanosis}</Text></View>
+              )}
+              {gpe?.icterus && (
+                <View style={styles.gridCol}><Text style={styles.gridLabel}>Icterus: </Text><Text style={styles.gridValue}>{gpe.icterus}</Text></View>
+              )}
+              {gpe?.peripheral_oedema && (
+                <View style={styles.gridCol}><Text style={styles.gridLabel}>Peripheral Oedema: </Text><Text style={styles.gridValue}>{gpe.peripheral_oedema}</Text></View>
+              )}
+              {gpe?.clubbing && (
+                <View style={styles.gridCol}><Text style={styles.gridLabel}>Clubbing: </Text><Text style={styles.gridValue}>{gpe.clubbing}</Text></View>
+              )}
             </View>
 
-            {/* Sub-section 2: Local Examination */}
-            <LocalExamBox local={exam.local} />
-
-            {/* Sub-section 3: Systemic Examination */}
-            {exam.systemic && Object.values(exam.systemic).some(Boolean) && (
-              <View style={{ marginTop: 6 }} wrap={false}>
-                <Text style={[styles.boldLabel, { fontSize: 9.5, color: pdfTheme.colors.primary, marginBottom: 2 }]}>
-                  3. Systemic Examination:
+            {gpe?.lymph_nodes && (
+              <View style={[styles.paragraph, { marginTop: 4 }]}>
+                <Text style={styles.boldLabel}>Lymph Nodes: </Text>
+                <Text>
+                  {[
+                    gpe.lymph_nodes.cervical ? `Cervical: ${gpe.lymph_nodes.cervical}` : null,
+                    gpe.lymph_nodes.axillary ? `Axillary: ${gpe.lymph_nodes.axillary}` : null,
+                    gpe.lymph_nodes.inguinal ? `Inguinal: ${gpe.lymph_nodes.inguinal}` : null,
+                  ].filter(Boolean).join('  |  ') || 'Normal'}
                 </Text>
-                <View style={styles.grid}>
-                  {exam.systemic.cardiovascular && (
-                    <View style={[styles.gridCol, { width: '50%' }]}>
-                      <Text style={styles.gridLabel}>Cardiovascular: </Text>
-                      <PDFRichText content={exam.systemic.cardiovascular} primaryColor={pdfTheme.colors.primary} />
-                    </View>
-                  )}
-                  {exam.systemic.respiratory && (
-                    <View style={[styles.gridCol, { width: '50%' }]}>
-                      <Text style={styles.gridLabel}>Respiratory: </Text>
-                      <PDFRichText content={exam.systemic.respiratory} primaryColor={pdfTheme.colors.primary} />
-                    </View>
-                  )}
-                  {exam.systemic.gastrointestinal && (
-                    <View style={[styles.gridCol, { width: '50%' }]}>
-                      <Text style={styles.gridLabel}>Gastrointestinal: </Text>
-                      <PDFRichText content={exam.systemic.gastrointestinal} primaryColor={pdfTheme.colors.primary} />
-                    </View>
-                  )}
-                  {exam.systemic.neurological && (
-                    <View style={[styles.gridCol, { width: '50%' }]}>
-                      <Text style={styles.gridLabel}>Neurological: </Text>
-                      <PDFRichText content={exam.systemic.neurological} primaryColor={pdfTheme.colors.primary} />
-                    </View>
-                  )}
-                  {exam.systemic.musculoskeletal && (
-                    <View style={[styles.gridCol, { width: '50%' }]}>
-                      <Text style={styles.gridLabel}>Musculoskeletal: </Text>
-                      <PDFRichText content={exam.systemic.musculoskeletal} primaryColor={pdfTheme.colors.primary} />
-                    </View>
-                  )}
-                  {exam.systemic.dermatological && (
-                    <View style={[styles.gridCol, { width: '50%' }]}>
-                      <Text style={styles.gridLabel}>Dermatological: </Text>
-                      <PDFRichText content={exam.systemic.dermatological} primaryColor={pdfTheme.colors.primary} />
-                    </View>
-                  )}
-                  {exam.systemic.thyroid && (
-                    <View style={[styles.gridCol, { width: '50%' }]}>
-                      <Text style={styles.gridLabel}>Thyroid & Endocrine: </Text>
-                      <PDFRichText content={exam.systemic.thyroid} primaryColor={pdfTheme.colors.primary} />
-                    </View>
-                  )}
-                </View>
               </View>
             )}
-            <PDFCustomFields customFields={caseData.custom_fields} sectionId="examination" />
+
+            {gpe?.other_significant_findings && (
+              <View style={styles.paragraph}>
+                <Text style={styles.boldLabel}>Other Significant Findings: </Text>
+                <PDFRichText content={gpe.other_significant_findings} primaryColor={pdfTheme.colors.primary} />
+              </View>
+            )}
+            <PDFCustomFields customFields={caseData.custom_fields} sectionId="general_physical_examination" />
           </ClinicalSection>
         )}
 
-        {/* 4. Investigations (Table with inline X-rays/scans) */}
-        {((caseData.investigations && caseData.investigations.length > 0) || (caseData.attachments && caseData.attachments.some(a => a.file_type === 'image'))) && (
-          <ClinicalSection title="Investigations">
-            <InvestigationsTable caseData={caseData} resolvedImages={resolvedImages} />
-            <PDFCustomFields customFields={caseData.custom_fields} sectionId="investigations" />
+        {/* 4. Systemic Examination */}
+        {(sys || caseData.examination_findings?.systemic) && (
+          <ClinicalSection title="4. Systemic Examination">
+            {sys?.respiratory_system && (
+              <View style={styles.paragraph}>
+                <Text style={styles.boldLabel}>Respiratory System: </Text>
+                <PDFRichText content={sys.respiratory_system} primaryColor={pdfTheme.colors.primary} />
+              </View>
+            )}
+            {sys?.cardiovascular_system && (
+              <View style={styles.paragraph}>
+                <Text style={styles.boldLabel}>Cardiovascular System: </Text>
+                <PDFRichText content={sys.cardiovascular_system} primaryColor={pdfTheme.colors.primary} />
+              </View>
+            )}
+            {sys?.nervous_system && (
+              <View style={styles.paragraph}>
+                <Text style={styles.boldLabel}>Nervous System: </Text>
+                <PDFRichText content={sys.nervous_system} primaryColor={pdfTheme.colors.primary} />
+              </View>
+            )}
+            {sys?.genito_urinary_system && (
+              <View style={styles.paragraph}>
+                <Text style={styles.boldLabel}>Genito-Urinary System: </Text>
+                <PDFRichText content={sys.genito_urinary_system} primaryColor={pdfTheme.colors.primary} />
+              </View>
+            )}
+            {sys?.gastrointestinal_system && (
+              <View style={styles.paragraph}>
+                <Text style={styles.boldLabel}>Gastrointestinal System: </Text>
+                <PDFRichText content={sys.gastrointestinal_system} primaryColor={pdfTheme.colors.primary} />
+              </View>
+            )}
+            <PDFCustomFields customFields={caseData.custom_fields} sectionId="systemic_examination" />
           </ClinicalSection>
         )}
 
-        {/* 5. Diagnosis & Management Plan */}
-        {dx && (
-          <ClinicalSection title="Diagnosis & Management Plan">
-            {dx.provisional_diagnosis && (
+        {/* 5. Local Examination */}
+        {loc && (
+          <ClinicalSection title={localTitle}>
+            {loc.inspection && (
               <View style={styles.paragraph}>
-                <Text style={styles.boldLabel}>Provisional Diagnosis: </Text>
-                <PDFRichText content={dx.provisional_diagnosis} primaryColor={pdfTheme.colors.primary} />
+                <Text style={styles.boldLabel}>Inspection: </Text>
+                <PDFRichText content={loc.inspection} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
-            {dx.differential_diagnoses && dx.differential_diagnoses.length > 0 && (
+            {loc.palpation && (
               <View style={styles.paragraph}>
-                <Text style={styles.boldLabel}>Differential Diagnoses: </Text>
-                <Text>{dx.differential_diagnoses.join(', ')}</Text>
+                <Text style={styles.boldLabel}>Palpation: </Text>
+                <PDFRichText content={loc.palpation} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
-            {dx.final_diagnosis && (
+            {loc.percussion && (
               <View style={styles.paragraph}>
-                <Text style={styles.boldLabel}>Final Diagnosis: </Text>
-                <PDFRichText content={dx.final_diagnosis} primaryColor={pdfTheme.colors.primary} />
+                <Text style={styles.boldLabel}>Percussion: </Text>
+                <PDFRichText content={loc.percussion} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
-            {dx.treatment_plan && (
+            {loc.auscultation && (
               <View style={styles.paragraph}>
-                <Text style={styles.boldLabel}>Treatment & Management Plan: </Text>
-                <PDFRichText content={dx.treatment_plan} primaryColor={pdfTheme.colors.primary} />
+                <Text style={styles.boldLabel}>Auscultation: </Text>
+                <PDFRichText content={loc.auscultation} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
-            {/* Prescribed Medications Table */}
-            <PrescribedMedicationsTable caseData={caseData} />
-            {dx.follow_up_plan && (
+            <PDFCustomFields customFields={caseData.custom_fields} sectionId="local_examination" />
+          </ClinicalSection>
+        )}
+
+        {/* 6. Diagnosis */}
+        {(dx || caseData.diagnosis_management) && (
+          <ClinicalSection title="6. Diagnosis">
+            <View style={styles.paragraph}>
+              <Text style={styles.boldLabel}>Provisional Diagnosis: </Text>
+              <PDFRichText content={dx?.provisional_diagnosis || caseData.diagnosis_management?.provisional_diagnosis || caseData.diagnosis_management?.final_diagnosis || 'N/A'} primaryColor={pdfTheme.colors.primary} />
+            </View>
+            {(dx?.differential_diagnosis || caseData.diagnosis_management?.differential_diagnoses) && (
               <View style={styles.paragraph}>
-                <Text style={styles.boldLabel}>Follow-up Plan: </Text>
-                <PDFRichText content={dx.follow_up_plan} primaryColor={pdfTheme.colors.primary} />
-              </View>
-            )}
-            {dx.prognosis && (
-              <View style={styles.paragraph}>
-                <Text style={styles.boldLabel}>Prognosis: </Text>
-                <PDFRichText content={dx.prognosis} primaryColor={pdfTheme.colors.primary} />
-              </View>
-            )}
-            {dx.outcome && (
-              <View style={styles.paragraph}>
-                <Text style={styles.boldLabel}>Outcome: </Text>
-                <PDFRichText content={dx.outcome} primaryColor={pdfTheme.colors.primary} />
+                <Text style={styles.boldLabel}>Differential Diagnosis: </Text>
+                <PDFRichText content={dx?.differential_diagnosis || caseData.diagnosis_management?.differential_diagnoses?.join(', ') || 'N/A'} primaryColor={pdfTheme.colors.primary} />
               </View>
             )}
             <PDFCustomFields customFields={caseData.custom_fields} sectionId="diagnosis" />
           </ClinicalSection>
         )}
 
-        {/* 6. References Appendix */}
-        <ReferencesSection caseData={caseData} />
-
-        {/* 7. Learning Points */}
-        {caseData.learning_points && caseData.learning_points.length > 0 && (
-          <ClinicalSection title="Learning Points">
-            {caseData.learning_points.map((pt, idx) => (
-              <View key={idx} style={{ marginBottom: 4 }}>
-                <PDFRichText content={pt} primaryColor={pdfTheme.colors.primary} />
+        {/* 7. Investigations */}
+        <ClinicalSection title="7. Investigations">
+          {/* 7.1 Confirmation */}
+          <View style={{ marginBottom: 10 }}>
+            <Text style={[styles.boldLabel, { color: pdfTheme.colors.primary, fontSize: 10, marginBottom: 2 }]}>
+              7.1 Investigations for Confirmation of Diagnosis:
+            </Text>
+            <PDFRichText content={invsInfo?.investigations_confirmation || 'No written findings specified.'} primaryColor={pdfTheme.colors.primary} />
+            {confirmationAttachments.map((att, idx) => (
+              <View key={`conf-${idx}`}>
+                {att.file_type === 'image' ? (
+                  renderSingleImage(att.public_url, `Confirmation Report Scan — ${att.file_name}`)
+                ) : (
+                  <Text style={{ fontSize: 8, color: '#2563eb', marginTop: 2 }}>
+                    PDF Attachment: <Link src={att.public_url}>{att.file_name}</Link>
+                  </Text>
+                )}
               </View>
             ))}
+          </View>
+
+          {/* 7.2 Staging */}
+          <View style={{ marginBottom: 10 }}>
+            <Text style={[styles.boldLabel, { color: pdfTheme.colors.primary, fontSize: 10, marginBottom: 2 }]}>
+              7.2 Investigations for Determining Extent of Disease (Staging):
+            </Text>
+            <PDFRichText content={invsInfo?.investigations_staging || 'No written findings specified.'} primaryColor={pdfTheme.colors.primary} />
+            {stagingAttachments.map((att, idx) => (
+              <View key={`stag-${idx}`}>
+                {att.file_type === 'image' ? (
+                  renderSingleImage(att.public_url, `Staging Report Scan — ${att.file_name}`)
+                ) : (
+                  <Text style={{ fontSize: 8, color: '#2563eb', marginTop: 2 }}>
+                    PDF Attachment: <Link src={att.public_url}>{att.file_name}</Link>
+                  </Text>
+                )}
+              </View>
+            ))}
+          </View>
+          <PDFCustomFields customFields={caseData.custom_fields} sectionId="investigations" />
+        </ClinicalSection>
+
+        {/* Legacy Fields Section if present on old cases */}
+        {(caseData.diagnosis_management?.treatment_plan || caseData.diagnosis_management?.outcome || (caseData.learning_points && caseData.learning_points.length > 0)) && (
+          <ClinicalSection title="Legacy Case Data">
+            {caseData.diagnosis_management?.treatment_plan && (
+              <View style={styles.paragraph}>
+                <Text style={styles.boldLabel}>Treatment & Management Plan: </Text>
+                <PDFRichText content={caseData.diagnosis_management.treatment_plan} primaryColor={pdfTheme.colors.primary} />
+              </View>
+            )}
+            {caseData.diagnosis_management?.outcome && (
+              <View style={styles.paragraph}>
+                <Text style={styles.boldLabel}>Outcome: </Text>
+                <PDFRichText content={caseData.diagnosis_management.outcome} primaryColor={pdfTheme.colors.primary} />
+              </View>
+            )}
+            {caseData.learning_points && caseData.learning_points.length > 0 && (
+              <View style={styles.paragraph}>
+                <Text style={styles.boldLabel}>Learning Points: </Text>
+                <Text>{caseData.learning_points.join('; ')}</Text>
+              </View>
+            )}
           </ClinicalSection>
         )}
 
-        {/* 8. Approval Banner */}
         <ApprovalSignoff caseData={caseData} />
       </Page>
     </Document>

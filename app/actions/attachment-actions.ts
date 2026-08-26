@@ -55,6 +55,7 @@ export async function uploadAttachmentAction(formData: FormData): Promise<CaseAt
 
   const caseId = formData.get('caseId') as string;
   const investigationId = (formData.get('investigationId') as string) || null;
+  const investigationGroup = (formData.get('investigationGroup') as string) || null;
   const file = formData.get('file') as File | null;
 
   if (!caseId) {
@@ -129,6 +130,7 @@ export async function uploadAttachmentAction(formData: FormData): Promise<CaseAt
   const attachment = await createCaseAttachment({
     case_id: caseId,
     investigation_id: investigationId,
+    investigation_group: (investigationGroup as 'confirmation' | 'staging') || null,
     file_name: file.name,
     file_type: fileType,
     file_size: file.size,
