@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBeforeUnloadWarning, useNavigationGuard } from '@/hooks/use-unsaved-changes';
+import { useLocalDraft } from '@/hooks/use-local-draft';
 import { Save, Send, Check, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -125,10 +126,13 @@ export default function NewCasePage() {
     resolver: zodResolver(caseSchema),
     defaultValues: DEFAULT_FORM_DATA,
   });
-  const { control, handleSubmit, watch, getValues, setError, formState: { errors, isDirty } } = methods;
+  const { control, handleSubmit, watch, getValues, reset, setError, formState: { errors, isDirty } } = methods;
 
   const localRegion = watch('local_examination.region');
-  const patientSex = watch('patient_details.sex') || watch('patient_details.gender');
+  const patientSex = watch('patient_details.sex') || watch('patient_details.gender' as any);
+
+  // Persist form to localStorage so refreshes don't wipe unsaved work
+  const { clearDraft } = useLocalDraft('case-draft-new', watch, reset);
 
   useEffect(() => {
     setHasUnsavedChanges(isDirty);
@@ -160,6 +164,7 @@ export default function NewCasePage() {
         setCaseId(result.caseId);
         setLastSavedAt(new Date());
         setHasUnsavedChanges(false);
+        clearDraft(); // Remove localStorage copy after successful server save
 
         if (status === 'submitted') {
           await submitCaseAction(result.caseId);
@@ -181,7 +186,7 @@ export default function NewCasePage() {
         }
       }
     },
-    [caseId, getValues]
+    [caseId, getValues, clearDraft]
   );
 
   const handleNextStep = useCallback(async () => {
@@ -367,7 +372,7 @@ export default function NewCasePage() {
                     step.number < currentStep
                       ? 'bg-primary border-primary text-primary-foreground group-hover:bg-primary/90'
                       : step.number === currentStep
-                      ? 'border-primary text-primary'
+                      ? 'bg-primary/10 border-primary text-primary'
                       : 'border-muted-foreground text-muted-foreground group-hover:border-primary/50'
                   }`}
                 >
@@ -389,6 +394,8 @@ export default function NewCasePage() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Animated step content wrapper — re-mounts on step change for smooth transition */}
+          <div key={currentStep} className="step-enter space-y-4">
           {/* Step 1: Patient Details & Case Metadata */}
           {currentStep === 1 && (
             <div className="space-y-4">
@@ -414,7 +421,7 @@ export default function NewCasePage() {
                           <select
                             id="specialty"
                             {...field}
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                            className="select-field"
                           >
                             <option value="cardiology">Cardiology</option>
                             <option value="pulmonology">Pulmonology</option>
@@ -440,7 +447,7 @@ export default function NewCasePage() {
                         render={({ field }: any) => (
                           <select
                             {...field}
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                            className="select-field"
                           >
                             <option value="beginner">Beginner</option>
                             <option value="intermediate">Intermediate</option>
@@ -523,7 +530,7 @@ export default function NewCasePage() {
                         <select
                           {...field}
                           value={field.value || ''}
-                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                          className="select-field"
                         >
                           <option value="">Select sex</option>
                           <option value="male">Male</option>
@@ -1142,7 +1149,8 @@ export default function NewCasePage() {
 
               <CustomFieldsSection sectionId="investigations" sectionTitle="Investigations" />
             </div>
-          )}
+          )} {/* end step 7 */}
+          </div> {/* end step-enter animated wrapper */}
 
           {/* Footer Buttons */}
           <div className="flex items-center justify-between pt-4 border-t">
