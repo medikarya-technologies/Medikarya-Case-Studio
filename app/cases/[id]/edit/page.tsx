@@ -160,6 +160,27 @@ export default function EditCasePage() {
           setCaseData(data);
           setAttachments(data.attachments || []);
 
+          // If a local draft exists for this case, don't overwrite it with server
+          // data — the useLocalDraft hook already restored it silently above.
+          const localDraftRaw = localStorage.getItem(`case-draft-${caseId}`);
+          let localDraftHasContent = false;
+          if (localDraftRaw) {
+            try {
+              const saved = JSON.parse(localDraftRaw);
+              if (typeof saved?.title === 'string' && saved.title.trim().length > 0) {
+                localDraftHasContent = true;
+              }
+            } catch {
+              // corrupt — ignore, fall through to server reset
+            }
+          }
+
+          if (localDraftHasContent) {
+            // Local draft wins — don't call reset() so the restored draft stays
+            return;
+          }
+
+          // No local draft: populate form from server data as normal
           reset({
             title: data.title || '',
             original_author_name: data.original_author_name || '',
@@ -310,14 +331,15 @@ export default function EditCasePage() {
     try {
       await saveDraftCase(data, caseId);
       setLastSavedAt(new Date());
-      clearDraft(); // Remove localStorage copy after successful server save
 
       if (status === 'submitted') {
         await submitCaseAction(caseId);
+        clearDraft(); // Only clear localStorage when fully submitted
         toast.success('Case submitted successfully');
         router.push('/dashboard/author');
       } else {
         toast.success('Draft saved successfully');
+        // Keep localStorage draft — it acts as a backup even after server save
       }
     } catch (e) {
       console.error('Error saving case:', e);

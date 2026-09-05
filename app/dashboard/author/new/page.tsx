@@ -164,12 +164,13 @@ export default function NewCasePage() {
         setCaseId(result.caseId);
         setLastSavedAt(new Date());
         setHasUnsavedChanges(false);
-        clearDraft(); // Remove localStorage copy after successful server save
 
         if (status === 'submitted') {
           await submitCaseAction(result.caseId);
+          clearDraft(); // Only clear localStorage when fully submitted
           toast.success('Case submitted successfully');
         } else {
+          // Keep localStorage draft alive — acts as a backup between steps
           toast.success('Draft saved successfully');
         }
         return result.caseId;
