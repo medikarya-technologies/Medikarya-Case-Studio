@@ -244,22 +244,55 @@ export function validateCaseForSubmit(
   // ==========================================
   // Step 7: Investigations
   // ==========================================
-  if (!hasMinText(data.investigations_info?.investigations_confirmation)) {
-    errors.push({ field: 'investigations_info.investigations_confirmation', message: 'Confirmation of Diagnosis findings text is required', step: 7 });
+  const inv = data.investigations_info;
+  const confPerformed = inv?.confirmation_performed || 'yes';
+
+  if (confPerformed === 'yes') {
+    if (!hasMinText(inv?.investigations_confirmation)) {
+      errors.push({
+        field: 'investigations_info.investigations_confirmation',
+        message: 'Confirmation of Diagnosis written findings are required',
+        step: 7,
+      });
+    }
+
+    const hasConfirmationAttachment = attachments.some((a) => a.investigation_group === 'confirmation');
+    if (!hasConfirmationAttachment) {
+      errors.push({
+        field: 'investigations_info.investigations_confirmation_attachment',
+        message: 'At least one report/scan attachment for Confirmation of Diagnosis is required',
+        step: 7,
+      });
+    }
+  } else if (confPerformed === 'no') {
+    const expl = inv?.confirmation_explanation || inv?.investigations_confirmation;
+    if (!hasMinText(expl)) {
+      errors.push({
+        field: 'investigations_info.confirmation_explanation',
+        message: 'Please provide an explanation why confirmation investigations were not performed',
+        step: 7,
+      });
+    }
   }
 
-  const hasConfirmationAttachment = attachments.some((a) => a.investigation_group === 'confirmation');
-  if (!hasConfirmationAttachment) {
-    errors.push({ field: 'investigations_info.investigations_confirmation_attachment', message: 'At least one attachment for Confirmation of Diagnosis is required', step: 7 });
-  }
+  const stagingApp = inv?.staging_applicable || 'yes';
+  if (stagingApp === 'yes') {
+    if (!hasMinText(inv?.investigations_staging)) {
+      errors.push({
+        field: 'investigations_info.investigations_staging',
+        message: 'Extent of Disease / Staging findings text is required',
+        step: 7,
+      });
+    }
 
-  if (!hasMinText(data.investigations_info?.investigations_staging)) {
-    errors.push({ field: 'investigations_info.investigations_staging', message: 'Extent of Disease / Staging findings text is required', step: 7 });
-  }
-
-  const hasStagingAttachment = attachments.some((a) => a.investigation_group === 'staging');
-  if (!hasStagingAttachment) {
-    errors.push({ field: 'investigations_info.investigations_staging_attachment', message: 'At least one attachment for Extent of Disease / Staging is required', step: 7 });
+    const hasStagingAttachment = attachments.some((a) => a.investigation_group === 'staging');
+    if (!hasStagingAttachment) {
+      errors.push({
+        field: 'investigations_info.investigations_staging_attachment',
+        message: 'At least one report/scan attachment for Extent of Disease / Staging is required',
+        step: 7,
+      });
+    }
   }
 
   return errors;

@@ -3,74 +3,95 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { UseFormWatch, UseFormReset, FieldValues, DefaultValues } from 'react-hook-form';
 
-const DEBOUNCE_MS = 800;
-// Only save to localStorage if at least one meaningful field is filled
-// (prevents blank form state from overwriting a real draft)
-const MEANINGFUL_FIELDS = ['title', 'patient_details'];
+const DEBOUNCE_MS = 600;
 
-function hasMeaningfulContent(values: Record<string, unknown>): boolean {
-  const title = values?.title;
-  if (typeof title === 'string' && title.trim().length > 0) return true;
-  const pd = values?.patient_details as Record<string, unknown> | undefined;
-  if (pd?.patient_name && typeof pd.patient_name === 'string' && pd.patient_name.trim().length > 0) return true;
+function hasMeaningfulContent(obj: unknown): boolean {
+  if (!obj) return false;
+  if (typeof obj === 'string') {
+    const stripped = obj.replace(/<[^>]*>/g, '').trim();
+    return stripped.length > 0;
+  }
+  if (typeof obj === 'number') {
+    return !isNaN(obj);
+  }
+  if (Array.isArray(obj)) {
+    return obj.some((item) => hasMeaningfulContent(item));
+  }
+  if (typeof obj === 'object') {
+    return Object.entries(obj).some(([key, val]) => {
+      // Ignore static default enum values
+      if (key === 'specialty' || key === 'difficulty') return false;
+      return hasMeaningfulContent(val);
+    });
+  }
   return false;
 }
 
 /**
- * Persists react-hook-form data to localStorage so that accidental refreshes
- * or server-side redirects don't wipe unsaved work.
- *
- * - Saves form values to `localStorage[storageKey]` with an 800ms debounce,
- *   BUT ONLY if meaningful content exists (prevents blank form from overwriting a real draft).
- * - On mount, if a saved draft exists it silently pre-loads it — no blocking confirm dialog.
- * - Returns `clearDraft()` which should be called only when the case is fully submitted
- *   (NOT on intermediate saves — data should persist between steps).
+ * Persists react-hook-form data to localStorage so that accidental refreshes,
+ * tab switches, or server-side redirects don't wipe unsaved work.
  */
 export function useLocalDraft<T extends FieldValues>(
   storageKey: string,
   watch: UseFormWatch<T>,
-  reset: UseFormReset<T>
+  reset: UseFormReset<T>,
+  options?: {
+    currentStep?: number;
+    onRestoreStep?: (step: number) => void;
+  }
 ) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasRestored = useRef(false);
+  const currentStep = options?.currentStep;
+  const onRestoreStep = options?.onRestoreStep;
 
-  // On mount: silently restore any saved draft (no blocking confirm dialog).
-  // We use a ref guard so this only runs once per mount, even in StrictMode.
+  // On mount: silently restore any saved draft and step number
   useEffect(() => {
     if (hasRestored.current) return;
     hasRestored.current = true;
 
     try {
       const raw = localStorage.getItem(storageKey);
-      if (!raw) return;
-
-      const saved = JSON.parse(raw) as T;
-
-      // Only restore if the draft actually has content worth keeping
-      if (!hasMeaningfulContent(saved as Record<string, unknown>)) {
-        localStorage.removeItem(storageKey);
-        return;
+      if (raw) {
+        const saved = JSON.parse(raw) as T;
+        if (hasMeaningfulContent(saved)) {
+          reset(saved as DefaultValues<T>);
+        } else {
+          localStorage.removeItem(storageKey);
+        }
       }
 
-      // Silently pre-populate the form — no disruptive dialog
-      reset(saved as DefaultValues<T>);
+      const savedStepRaw = localStorage.getItem(`${storageKey}_step`);
+      if (savedStepRaw && onRestoreStep) {
+        const stepNum = parseInt(savedStepRaw, 10);
+        if (stepNum >= 1 && stepNum <= 7) {
+          onRestoreStep(stepNum);
+        }
+      }
     } catch {
       localStorage.removeItem(storageKey);
     }
-  // storageKey is stable (constant string per page mount)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
-  // Subscribe to all form changes and debounce-write to localStorage.
-  // Only write if the form has meaningful content — prevents blank state
-  // from overwriting a real draft when the component re-mounts.
+  // Persist current step whenever it changes
+  useEffect(() => {
+    if (currentStep && currentStep >= 1) {
+      try {
+        localStorage.setItem(`${storageKey}_step`, String(currentStep));
+      } catch {
+        // ignore
+      }
+    }
+  }, [storageKey, currentStep]);
+
+  // Subscribe to all form changes and debounce-write to localStorage
   useEffect(() => {
     const subscription = watch((values) => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
         try {
-          // Guard: don't overwrite a good draft with an empty form
-          if (!hasMeaningfulContent(values as Record<string, unknown>)) return;
+          if (!hasMeaningfulContent(values)) return;
           localStorage.setItem(storageKey, JSON.stringify(values));
         } catch {
           // Storage quota exceeded — fail silently.
@@ -86,12 +107,11 @@ export function useLocalDraft<T extends FieldValues>(
 
   /**
    * Call this ONLY after the case is fully submitted (status = submitted).
-   * Do NOT call on intermediate "Save Draft" clicks — the draft should
-   * persist in localStorage between steps and sessions.
    */
   const clearDraft = useCallback(() => {
     try {
       localStorage.removeItem(storageKey);
+      localStorage.removeItem(`${storageKey}_step`);
     } catch {
       // ignore
     }

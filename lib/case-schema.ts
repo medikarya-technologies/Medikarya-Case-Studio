@@ -103,10 +103,17 @@ export const caseSchema = z
     }),
 
     // Section 7: Investigations
-    investigations_info: z.object({
-      investigations_confirmation: z.string().min(1, 'Written findings for Confirmation of Diagnosis is required'),
-      investigations_staging: z.string().min(1, 'Written findings for Extent of Disease (Staging) is required'),
-    }),
+    investigations_info: z
+      .object({
+        confirmation_performed: z.enum(['yes', 'no', 'not_required']).optional(),
+        investigations_confirmation: z.string().optional(),
+        confirmation_explanation: z.string().optional(),
+
+        staging_applicable: z.enum(['yes', 'no']).optional(),
+        investigations_staging: z.string().optional(),
+        staging_explanation: z.string().optional(),
+      })
+      .optional(),
 
     // Per-case custom fields
     custom_fields: z
@@ -146,6 +153,41 @@ export const caseSchema = z
           code: z.ZodIssueCode.custom,
           message: 'Obstetric History is required for female/other patients',
           path: ['history', 'obstetric_history'],
+        });
+      }
+    }
+
+    // Validate Step 7 Investigation conditionals
+    const inv = data.investigations_info;
+    const confPerformed = inv?.confirmation_performed || 'yes';
+    if (confPerformed === 'yes') {
+      const confText = inv?.investigations_confirmation?.replace(/<[^>]*>/g, '').trim();
+      if (!confText) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Written findings for Confirmation of Diagnosis is required',
+          path: ['investigations_info', 'investigations_confirmation'],
+        });
+      }
+    } else if (confPerformed === 'no') {
+      const expl = (inv?.confirmation_explanation || inv?.investigations_confirmation)?.replace(/<[^>]*>/g, '').trim();
+      if (!expl) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Please provide an explanation why confirmation investigations were not performed',
+          path: ['investigations_info', 'confirmation_explanation'],
+        });
+      }
+    }
+
+    const stagingApp = inv?.staging_applicable || 'yes';
+    if (stagingApp === 'yes') {
+      const stagingText = inv?.investigations_staging?.replace(/<[^>]*>/g, '').trim();
+      if (!stagingText) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Written findings for Extent of Disease (Staging) is required',
+          path: ['investigations_info', 'investigations_staging'],
         });
       }
     }

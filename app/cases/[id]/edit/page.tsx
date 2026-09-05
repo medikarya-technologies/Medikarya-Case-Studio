@@ -103,8 +103,12 @@ const DEFAULT_FORM_DATA: CaseFormData = {
     differential_diagnosis: '',
   },
   investigations_info: {
+    confirmation_performed: 'yes',
     investigations_confirmation: '',
+    confirmation_explanation: '',
+    staging_applicable: 'yes',
     investigations_staging: '',
+    staging_explanation: '',
   },
   custom_fields: [],
 };
@@ -140,9 +144,14 @@ export default function EditCasePage() {
 
   const localRegion = watch('local_examination.region');
   const patientSex = watch('patient_details.sex') || watch('patient_details.gender' as any);
+  const confirmationPerformed = watch('investigations_info.confirmation_performed') || 'yes';
+  const stagingApplicable = watch('investigations_info.staging_applicable') || 'yes';
 
-  // Persist form to localStorage per-case so refreshes don't wipe unsaved work
-  const { clearDraft } = useLocalDraft(`case-draft-${caseId}`, watch, reset);
+  // Persist form to localStorage per-case so refreshes / tab switches don't wipe state or step
+  const { clearDraft } = useLocalDraft(`case-draft-${caseId}`, watch, reset, {
+    currentStep,
+    onRestoreStep: setCurrentStep,
+  });
 
   useBeforeUnloadWarning(isDirty);
   const { confirmNavigation } = useNavigationGuard(isDirty);
@@ -302,8 +311,12 @@ export default function EditCasePage() {
                   : ''),
             },
             investigations_info: {
+              confirmation_performed: data.investigations_info?.confirmation_performed || 'yes',
               investigations_confirmation: data.investigations_info?.investigations_confirmation || '',
+              confirmation_explanation: data.investigations_info?.confirmation_explanation || '',
+              staging_applicable: data.investigations_info?.staging_applicable || 'yes',
               investigations_staging: data.investigations_info?.investigations_staging || '',
+              staging_explanation: data.investigations_info?.staging_explanation || '',
             },
             custom_fields: data.custom_fields || [],
           });
@@ -1202,41 +1215,112 @@ export default function EditCasePage() {
               {/* Confirmation of Diagnosis Sub-section */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base font-bold text-foreground">
-                    7.1 Investigations for Confirmation of Diagnosis <span className="text-destructive">*</span>
+                  <CardTitle className="text-base font-bold text-foreground flex items-center justify-between">
+                    <span>7.1 Investigations for Confirmation of Diagnosis</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Written Findings & Reports <span className="text-destructive">*</span></Label>
+                    <Label className="font-semibold text-sm">
+                      Investigation performed? <span className="text-destructive">*</span>
+                    </Label>
                     <Controller
-                      name="investigations_info.investigations_confirmation"
+                      name="investigations_info.confirmation_performed"
                       control={control}
+                      defaultValue="yes"
                       render={({ field }: any) => (
-                        <RichTextEditor placeholder="Lab values, imaging summaries, biopsy results..." value={field.value || ''} onChange={field.onChange} minHeight="100px" />
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {[
+                            { value: 'yes', label: 'Yes — Performed' },
+                            { value: 'no', label: 'No — Not Performed' },
+                            { value: 'not_required', label: 'Not Required' },
+                          ].map((opt) => {
+                            const isSelected = (field.value || 'yes') === opt.value;
+                            return (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => field.onChange(opt.value)}
+                                className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                                  isSelected
+                                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                    : 'bg-background hover:bg-muted border-input text-muted-foreground'
+                                }`}
+                              >
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
                       )}
                     />
-                    {errors.investigations_info?.investigations_confirmation && (
-                      <p className="text-sm text-destructive">{errors.investigations_info.investigations_confirmation.message}</p>
-                    )}
                   </div>
-                  <div className="space-y-3 pt-2">
-                    <Label className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1">
-                      <span>Confirmation Reports / Scans Upload</span>
-                      <span className="text-destructive">* (At least 1 required)</span>
-                    </Label>
-                    <AttachmentUploader
-                      caseId={caseId}
-                      investigationGroup="confirmation"
-                      onAttachmentUploaded={handleAttachmentUploaded}
-                      label="Upload Confirmation Scans & PDF Reports"
-                    />
-                    <AttachmentGallery
-                      attachments={attachments.filter((a) => a.investigation_group === 'confirmation')}
-                      canDelete={true}
-                      onAttachmentDeleted={handleAttachmentDeleted}
-                    />
-                  </div>
+
+                  {confirmationPerformed === 'yes' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Written Findings & Reports <span className="text-destructive">*</span></Label>
+                        <Controller
+                          name="investigations_info.investigations_confirmation"
+                          control={control}
+                          render={({ field }: any) => (
+                            <RichTextEditor placeholder="Lab values, imaging summaries, biopsy results..." value={field.value || ''} onChange={field.onChange} minHeight="100px" />
+                          )}
+                        />
+                        {errors.investigations_info?.investigations_confirmation && (
+                          <p className="text-sm text-destructive">{errors.investigations_info.investigations_confirmation.message}</p>
+                        )}
+                      </div>
+                      <div className="space-y-3 pt-2">
+                        <Label className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1">
+                          <span>Confirmation Reports / Scans Upload</span>
+                          <span className="text-destructive">* (At least 1 required)</span>
+                        </Label>
+                        <AttachmentUploader
+                          caseId={caseId}
+                          investigationGroup="confirmation"
+                          onAttachmentUploaded={handleAttachmentUploaded}
+                          label="Upload Confirmation Scans & PDF Reports"
+                        />
+                        <AttachmentGallery
+                          attachments={attachments.filter((a) => a.investigation_group === 'confirmation')}
+                          canDelete={true}
+                          onAttachmentDeleted={handleAttachmentDeleted}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {confirmationPerformed === 'no' && (
+                    <div className="space-y-2">
+                      <Label>Explanation why confirmation was not performed <span className="text-destructive">*</span></Label>
+                      <Controller
+                        name="investigations_info.confirmation_explanation"
+                        control={control}
+                        render={({ field }: any) => (
+                          <RichTextEditor placeholder="Provide clinical rationale or reasons why confirmation investigations were not performed..." value={field.value || ''} onChange={field.onChange} minHeight="90px" />
+                        )}
+                      />
+                      {errors.investigations_info?.confirmation_explanation && (
+                        <p className="text-sm text-destructive">{errors.investigations_info.confirmation_explanation.message}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">Document upload is not required when confirmation investigations were not performed.</p>
+                    </div>
+                  )}
+
+                  {confirmationPerformed === 'not_required' && (
+                    <div className="space-y-2">
+                      <Label>Rationale why confirmation is not required (Optional)</Label>
+                      <Controller
+                        name="investigations_info.confirmation_explanation"
+                        control={control}
+                        render={({ field }: any) => (
+                          <RichTextEditor placeholder="e.g., Clinical diagnosis established from classic signs, self-limiting condition, etc." value={field.value || ''} onChange={field.onChange} minHeight="80px" />
+                        )}
+                      />
+                      <p className="text-xs text-muted-foreground">Document upload is not required for this case.</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -1244,40 +1328,93 @@ export default function EditCasePage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base font-bold text-foreground">
-                    7.2 Investigations for Determining Extent of Disease (Staging) <span className="text-destructive">*</span>
+                    7.2 Investigations for Determining Extent of Disease (Staging)
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Written Findings & Staging Reports <span className="text-destructive">*</span></Label>
+                    <Label className="font-semibold text-sm">
+                      Staging applicable? <span className="text-destructive">*</span>
+                    </Label>
                     <Controller
-                      name="investigations_info.investigations_staging"
+                      name="investigations_info.staging_applicable"
                       control={control}
+                      defaultValue="yes"
                       render={({ field }: any) => (
-                        <RichTextEditor placeholder="Staging CT/MRI, PET scans, metastasis workup..." value={field.value || ''} onChange={field.onChange} minHeight="100px" />
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {[
+                            { value: 'yes', label: 'Yes — Applicable' },
+                            { value: 'no', label: 'No — Not Applicable' },
+                          ].map((opt) => {
+                            const isSelected = (field.value || 'yes') === opt.value;
+                            return (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => field.onChange(opt.value)}
+                                className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                                  isSelected
+                                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                    : 'bg-background hover:bg-muted border-input text-muted-foreground'
+                                }`}
+                              >
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
                       )}
                     />
-                    {errors.investigations_info?.investigations_staging && (
-                      <p className="text-sm text-destructive">{errors.investigations_info.investigations_staging.message}</p>
-                    )}
                   </div>
-                  <div className="space-y-3 pt-2">
-                    <Label className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1">
-                      <span>Staging Reports / Scans Upload</span>
-                      <span className="text-destructive">* (At least 1 required)</span>
-                    </Label>
-                    <AttachmentUploader
-                      caseId={caseId}
-                      investigationGroup="staging"
-                      onAttachmentUploaded={handleAttachmentUploaded}
-                      label="Upload Staging Scans & Reports"
-                    />
-                    <AttachmentGallery
-                      attachments={attachments.filter((a) => a.investigation_group === 'staging')}
-                      canDelete={true}
-                      onAttachmentDeleted={handleAttachmentDeleted}
-                    />
-                  </div>
+
+                  {stagingApplicable === 'yes' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Written Findings & Staging Reports <span className="text-destructive">*</span></Label>
+                        <Controller
+                          name="investigations_info.investigations_staging"
+                          control={control}
+                          render={({ field }: any) => (
+                            <RichTextEditor placeholder="Staging CT/MRI, PET scans, metastasis workup..." value={field.value || ''} onChange={field.onChange} minHeight="100px" />
+                          )}
+                        />
+                        {errors.investigations_info?.investigations_staging && (
+                          <p className="text-sm text-destructive">{errors.investigations_info.investigations_staging.message}</p>
+                        )}
+                      </div>
+                      <div className="space-y-3 pt-2">
+                        <Label className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1">
+                          <span>Staging Reports / Scans Upload</span>
+                          <span className="text-destructive">* (At least 1 required)</span>
+                        </Label>
+                        <AttachmentUploader
+                          caseId={caseId}
+                          investigationGroup="staging"
+                          onAttachmentUploaded={handleAttachmentUploaded}
+                          label="Upload Staging Scans & Reports"
+                        />
+                        <AttachmentGallery
+                          attachments={attachments.filter((a) => a.investigation_group === 'staging')}
+                          canDelete={true}
+                          onAttachmentDeleted={handleAttachmentDeleted}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {stagingApplicable === 'no' && (
+                    <div className="space-y-2">
+                      <Label>Staging Notes / Context (Optional)</Label>
+                      <Controller
+                        name="investigations_info.staging_explanation"
+                        control={control}
+                        render={({ field }: any) => (
+                          <RichTextEditor placeholder="e.g. Non-malignant condition, localized pathology, staging not clinically indicated." value={field.value || ''} onChange={field.onChange} minHeight="80px" />
+                        )}
+                      />
+                      <p className="text-xs text-muted-foreground">Staging upload is not required for non-staged conditions.</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

@@ -494,8 +494,42 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
             <CardContent className="space-y-6">
               {/* 7.1 Confirmation of Diagnosis */}
               <div className="p-4 border rounded-lg space-y-3 bg-muted/10">
-                <h4 className="font-bold text-sm text-foreground">7.1 Investigations for Confirmation of Diagnosis</h4>
-                <RichTextRenderer content={caseData.investigations_info?.investigations_confirmation || 'No written findings specified.'} />
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <h4 className="font-bold text-sm text-foreground">7.1 Investigations for Confirmation of Diagnosis</h4>
+                  {caseData.investigations_info?.confirmation_performed === 'no' ? (
+                    <Badge variant="outline" className="text-amber-800 border-amber-300 bg-amber-50">Not Performed</Badge>
+                  ) : caseData.investigations_info?.confirmation_performed === 'not_required' ? (
+                    <Badge variant="secondary">Not Required</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-primary border-primary/40 bg-primary/5">Performed</Badge>
+                  )}
+                </div>
+
+                {caseData.investigations_info?.confirmation_performed === 'no' ? (
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Reason not performed</p>
+                    <RichTextRenderer
+                      content={
+                        caseData.investigations_info?.confirmation_explanation ||
+                        caseData.investigations_info?.investigations_confirmation ||
+                        'No reason provided.'
+                      }
+                    />
+                  </div>
+                ) : caseData.investigations_info?.confirmation_performed === 'not_required' ? (
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Rationale</p>
+                    <RichTextRenderer
+                      content={
+                        caseData.investigations_info?.confirmation_explanation ||
+                        'Clinical confirmation was not required for this case.'
+                      }
+                    />
+                  </div>
+                ) : (
+                  <RichTextRenderer content={caseData.investigations_info?.investigations_confirmation || 'No written findings specified.'} />
+                )}
+
                 <div className="pt-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Confirmation Scans & Reports</p>
                   <AttachmentGallery
@@ -507,8 +541,26 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
 
               {/* 7.2 Staging / Extent of Disease */}
               <div className="p-4 border rounded-lg space-y-3 bg-muted/10">
-                <h4 className="font-bold text-sm text-foreground">7.2 Investigations for Determining Extent of Disease (Staging)</h4>
-                <RichTextRenderer content={caseData.investigations_info?.investigations_staging || 'No written findings specified.'} />
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <h4 className="font-bold text-sm text-foreground">7.2 Investigations for Determining Extent of Disease (Staging)</h4>
+                  {caseData.investigations_info?.staging_applicable === 'no' ? (
+                    <Badge variant="secondary">Not Applicable</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-primary border-primary/40 bg-primary/5">Applicable</Badge>
+                  )}
+                </div>
+
+                {caseData.investigations_info?.staging_applicable === 'no' ? (
+                  <div className="space-y-1">
+                    {caseData.investigations_info?.staging_explanation && (
+                      <RichTextRenderer content={caseData.investigations_info.staging_explanation} />
+                    )}
+                    <p className="text-xs text-muted-foreground">Staging was marked as not applicable for this condition.</p>
+                  </div>
+                ) : (
+                  <RichTextRenderer content={caseData.investigations_info?.investigations_staging || 'No written findings specified.'} />
+                )}
+
                 <div className="pt-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Staging Scans & Reports</p>
                   <AttachmentGallery

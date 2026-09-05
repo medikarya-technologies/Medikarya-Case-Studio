@@ -201,8 +201,13 @@ export interface DiagnosisInfo {
 
 // --- 7. Investigations ---
 export interface InvestigationsInfo {
+  confirmation_performed?: 'yes' | 'no' | 'not_required';
   investigations_confirmation?: string;
+  confirmation_explanation?: string;
+
+  staging_applicable?: 'yes' | 'no';
   investigations_staging?: string;
+  staging_explanation?: string;
 }
 
 export interface Investigation {

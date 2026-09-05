@@ -118,7 +118,14 @@ export function getCaseCompleteness(caseData: Partial<Case> | null | undefined):
   const invsList = caseData.investigations || [];
   const attsList = caseData.attachments || [];
   const hasInvs =
-    Boolean(invsInfo.investigations_confirmation || invsInfo.investigations_staging) ||
+    Boolean(
+      invsInfo.investigations_confirmation ||
+      invsInfo.confirmation_explanation ||
+      invsInfo.investigations_staging ||
+      invsInfo.staging_explanation
+    ) ||
+    invsInfo.confirmation_performed === 'not_required' ||
+    invsInfo.staging_applicable === 'no' ||
     invsList.length > 0 ||
     attsList.length > 0;
   checkField('investigations', 'Investigations', 'Investigations & Attachments', hasInvs);

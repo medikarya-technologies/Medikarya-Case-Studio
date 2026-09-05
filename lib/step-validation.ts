@@ -114,9 +114,10 @@ export async function validateStepAndNotify(
 
     if (step === 7) {
       if (getFieldState('investigations_info.investigations_confirmation').error || submitErrorsForStep.some((e) => e.field === 'investigations_info.investigations_confirmation')) missingLabels.push('Confirmation Findings Text');
-      if (submitErrorsForStep.some((e) => e.field === 'investigations_info.investigations_confirmation_attachment')) missingLabels.push('At least 1 Confirmation Attachment');
+      if (getFieldState('investigations_info.confirmation_explanation').error || submitErrorsForStep.some((e) => e.field === 'investigations_info.confirmation_explanation')) missingLabels.push('Confirmation Explanation');
+      if (submitErrorsForStep.some((e) => e.field === 'investigations_info.investigations_confirmation_attachment')) missingLabels.push('At least 1 Confirmation Report/Scan');
       if (getFieldState('investigations_info.investigations_staging').error || submitErrorsForStep.some((e) => e.field === 'investigations_info.investigations_staging')) missingLabels.push('Staging Findings Text');
-      if (submitErrorsForStep.some((e) => e.field === 'investigations_info.investigations_staging_attachment')) missingLabels.push('At least 1 Staging Attachment');
+      if (submitErrorsForStep.some((e) => e.field === 'investigations_info.investigations_staging_attachment')) missingLabels.push('At least 1 Staging Report/Scan');
     }
 
     const uniqueLabels = Array.from(new Set(missingLabels));
