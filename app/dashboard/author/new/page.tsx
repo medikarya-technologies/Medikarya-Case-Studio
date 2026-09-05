@@ -345,6 +345,55 @@ export default function NewCasePage() {
               <div><Label className="text-muted-foreground">Differential Diagnosis</Label><p>{data.diagnosis.differential_diagnosis}</p></div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader><CardTitle>7. Investigations</CardTitle></CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              <div className="p-3 border rounded-md space-y-2">
+                <p className="font-semibold text-foreground">7.1 Confirmation of Diagnosis</p>
+                {data.investigations_info?.confirmation_performed === 'no' ? (
+                  <p className="text-muted-foreground">Not Performed: {data.investigations_info?.confirmation_explanation || 'No reason provided.'}</p>
+                ) : data.investigations_info?.confirmation_performed === 'not_required' ? (
+                  <p className="text-muted-foreground">Not Required: {data.investigations_info?.confirmation_explanation || 'Clinical diagnosis established.'}</p>
+                ) : (
+                  <div>
+                    {data.investigations_info?.investigations_confirmation ? (
+                      <div dangerouslySetInnerHTML={{ __html: data.investigations_info.investigations_confirmation }} />
+                    ) : (
+                      <p className="text-muted-foreground italic">Written findings not entered (see attached reports/scans).</p>
+                    )}
+                  </div>
+                )}
+                {attachments.filter((a) => a.investigation_group === 'confirmation').length > 0 && (
+                  <div className="pt-2">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Attached Reports / Scans ({attachments.filter((a) => a.investigation_group === 'confirmation').length})</p>
+                    <AttachmentGallery attachments={attachments.filter((a) => a.investigation_group === 'confirmation')} canDelete={false} />
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 border rounded-md space-y-2">
+                <p className="font-semibold text-foreground">7.2 Determining Extent of Disease (Staging)</p>
+                {data.investigations_info?.staging_applicable === 'no' ? (
+                  <p className="text-muted-foreground">Not Applicable {data.investigations_info?.staging_explanation ? `(${data.investigations_info.staging_explanation})` : ''}</p>
+                ) : (
+                  <div>
+                    {data.investigations_info?.investigations_staging ? (
+                      <div dangerouslySetInnerHTML={{ __html: data.investigations_info.investigations_staging }} />
+                    ) : (
+                      <p className="text-muted-foreground italic">Written findings not entered (see attached reports/scans).</p>
+                    )}
+                  </div>
+                )}
+                {attachments.filter((a) => a.investigation_group === 'staging').length > 0 && (
+                  <div className="pt-2">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Attached Staging Reports / Scans ({attachments.filter((a) => a.investigation_group === 'staging').length})</p>
+                    <AttachmentGallery attachments={attachments.filter((a) => a.investigation_group === 'staging')} canDelete={false} />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="flex gap-2">
@@ -1144,7 +1193,7 @@ export default function NewCasePage() {
                   {confirmationPerformed === 'yes' && (
                     <>
                       <div className="space-y-2">
-                        <Label>Written Findings & Reports <span className="text-destructive">*</span></Label>
+                        <Label>Written Findings & Reports <span className="text-xs text-muted-foreground font-normal">(Required if no report/scan is uploaded)</span></Label>
                         <Controller
                           name="investigations_info.investigations_confirmation"
                           control={control}
@@ -1157,10 +1206,13 @@ export default function NewCasePage() {
                         )}
                       </div>
                       <div className="space-y-3 pt-2">
-                        <Label className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1">
-                          <span>Confirmation Reports / Scans Upload</span>
-                          <span className="text-destructive">* (At least 1 required)</span>
-                        </Label>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                            <span>Confirmation Reports / Scans Upload</span>
+                            <span className="text-xs text-muted-foreground font-normal normal-case">(Optional if written findings are provided)</span>
+                          </Label>
+                          <p className="text-xs text-muted-foreground">Original reports, laboratory printouts, or imaging scans can be uploaded here if available.</p>
+                        </div>
                         {caseId ? (
                           <>
                             <AttachmentUploader
@@ -1263,7 +1315,7 @@ export default function NewCasePage() {
                   {stagingApplicable === 'yes' && (
                     <>
                       <div className="space-y-2">
-                        <Label>Written Findings & Staging Reports <span className="text-destructive">*</span></Label>
+                        <Label>Written Findings & Staging Reports <span className="text-xs text-muted-foreground font-normal">(Required if no report/scan is uploaded)</span></Label>
                         <Controller
                           name="investigations_info.investigations_staging"
                           control={control}
@@ -1276,10 +1328,13 @@ export default function NewCasePage() {
                         )}
                       </div>
                       <div className="space-y-3 pt-2">
-                        <Label className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1">
-                          <span>Staging Reports / Scans Upload</span>
-                          <span className="text-destructive">* (At least 1 required)</span>
-                        </Label>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                            <span>Staging Reports / Scans Upload</span>
+                            <span className="text-xs text-muted-foreground font-normal normal-case">(Optional if written findings are provided)</span>
+                          </Label>
+                          <p className="text-xs text-muted-foreground">Original staging scans (CT/MRI/PET) or pathology reports can be uploaded here if available.</p>
+                        </div>
                         {caseId ? (
                           <>
                             <AttachmentUploader

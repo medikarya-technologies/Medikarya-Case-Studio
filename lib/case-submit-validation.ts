@@ -246,19 +246,12 @@ export function validateCaseForSubmit(
   const confPerformed = inv?.confirmation_performed || 'yes';
 
   if (confPerformed === 'yes') {
-    if (!hasMinText(inv?.investigations_confirmation)) {
+    const hasConfText = hasMinText(inv?.investigations_confirmation);
+    const hasConfirmationAttachment = attachments.some((a) => a.investigation_group === 'confirmation');
+    if (!hasConfText && !hasConfirmationAttachment) {
       errors.push({
         field: 'investigations_info.investigations_confirmation',
-        message: 'Confirmation of Diagnosis written findings are required',
-        step: 7,
-      });
-    }
-
-    const hasConfirmationAttachment = attachments.some((a) => a.investigation_group === 'confirmation');
-    if (!hasConfirmationAttachment) {
-      errors.push({
-        field: 'investigations_info.investigations_confirmation_attachment',
-        message: 'At least one report/scan attachment for Confirmation of Diagnosis is required',
+        message: 'Please provide either written findings or upload at least one report/scan for Confirmation of Diagnosis',
         step: 7,
       });
     }
@@ -275,19 +268,12 @@ export function validateCaseForSubmit(
 
   const stagingApp = inv?.staging_applicable || 'yes';
   if (stagingApp === 'yes') {
-    if (!hasMinText(inv?.investigations_staging)) {
+    const hasStagingText = hasMinText(inv?.investigations_staging);
+    const hasStagingAttachment = attachments.some((a) => a.investigation_group === 'staging');
+    if (!hasStagingText && !hasStagingAttachment) {
       errors.push({
         field: 'investigations_info.investigations_staging',
-        message: 'Extent of Disease / Staging findings text is required',
-        step: 7,
-      });
-    }
-
-    const hasStagingAttachment = attachments.some((a) => a.investigation_group === 'staging');
-    if (!hasStagingAttachment) {
-      errors.push({
-        field: 'investigations_info.investigations_staging_attachment',
-        message: 'At least one report/scan attachment for Extent of Disease / Staging is required',
+        message: 'Please provide either written findings or upload at least one report/scan for Extent of Disease (Staging)',
         step: 7,
       });
     }

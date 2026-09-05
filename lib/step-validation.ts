@@ -113,11 +113,10 @@ export async function validateStepAndNotify(
     }
 
     if (step === 7) {
-      if (getFieldState('investigations_info.investigations_confirmation').error || submitErrorsForStep.some((e) => e.field === 'investigations_info.investigations_confirmation')) missingLabels.push('Confirmation Findings Text');
+      if (getFieldState('investigations_info.investigations_confirmation').error || submitErrorsForStep.some((e) => e.field === 'investigations_info.investigations_confirmation')) missingLabels.push('7.1 Confirmation Findings (Written or Upload)');
       if (getFieldState('investigations_info.confirmation_explanation').error || submitErrorsForStep.some((e) => e.field === 'investigations_info.confirmation_explanation')) missingLabels.push('Confirmation Explanation');
-      if (submitErrorsForStep.some((e) => e.field === 'investigations_info.investigations_confirmation_attachment')) missingLabels.push('At least 1 Confirmation Report/Scan');
-      if (getFieldState('investigations_info.investigations_staging').error || submitErrorsForStep.some((e) => e.field === 'investigations_info.investigations_staging')) missingLabels.push('Staging Findings Text');
-      if (submitErrorsForStep.some((e) => e.field === 'investigations_info.investigations_staging_attachment')) missingLabels.push('At least 1 Staging Report/Scan');
+      if (getFieldState('investigations_info.investigations_staging').error || submitErrorsForStep.some((e) => e.field === 'investigations_info.investigations_staging')) missingLabels.push('7.2 Extent of Disease / Staging (Written or Upload)');
+      if (getFieldState('investigations_info.staging_explanation').error || submitErrorsForStep.some((e) => e.field === 'investigations_info.staging_explanation')) missingLabels.push('Staging Explanation');
     }
 
     const uniqueLabels = Array.from(new Set(missingLabels));

@@ -646,18 +646,44 @@ export function CaseDocument({
             <Text style={[styles.boldLabel, { color: pdfTheme.colors.primary, fontSize: 10, marginBottom: 2 }]}>
               7.1 Investigations for Confirmation of Diagnosis:
             </Text>
-            <PDFRichText content={invsInfo?.investigations_confirmation || 'No written findings specified.'} primaryColor={pdfTheme.colors.primary} />
-            {confirmationAttachments.map((att, idx) => (
-              <View key={`conf-${idx}`}>
-                {att.file_type === 'image' ? (
-                  renderSingleImage(att.public_url, `Confirmation Report Scan — ${att.file_name}`)
+            {invsInfo?.confirmation_performed === 'no' ? (
+              <View style={styles.paragraph}>
+                <Text style={{ fontSize: 9, color: pdfTheme.colors.textSecondary, fontStyle: 'italic' }}>
+                  Not Performed — Reason: {invsInfo.confirmation_not_performed_reason || 'No explanation provided.'}
+                </Text>
+              </View>
+            ) : invsInfo?.confirmation_performed === 'not_required' ? (
+              <View style={styles.paragraph}>
+                <Text style={{ fontSize: 9, color: pdfTheme.colors.textSecondary, fontStyle: 'italic' }}>
+                  Not Required for this clinical presentation.
+                </Text>
+              </View>
+            ) : (
+              <>
+                {invsInfo?.investigations_confirmation ? (
+                  <PDFRichText content={invsInfo.investigations_confirmation} primaryColor={pdfTheme.colors.primary} />
+                ) : confirmationAttachments.length > 0 ? (
+                  <Text style={{ fontSize: 8.5, color: pdfTheme.colors.textSecondary, fontStyle: 'italic', marginBottom: 4 }}>
+                    Written findings not provided; report/scan attached below.
+                  </Text>
                 ) : (
-                  <Text style={{ fontSize: 8, color: '#2563eb', marginTop: 2 }}>
-                    PDF Attachment: <Link src={att.public_url}>{att.file_name}</Link>
+                  <Text style={{ fontSize: 8.5, color: pdfTheme.colors.textSecondary, fontStyle: 'italic', marginBottom: 4 }}>
+                    No written findings specified.
                   </Text>
                 )}
-              </View>
-            ))}
+                {confirmationAttachments.map((att, idx) => (
+                  <View key={`conf-${idx}`}>
+                    {att.file_type === 'image' ? (
+                      renderSingleImage(att.public_url, `Confirmation Report Scan — ${att.file_name}`)
+                    ) : (
+                      <Text style={{ fontSize: 8, color: '#2563eb', marginTop: 2 }}>
+                        PDF Attachment: <Link src={att.public_url}>{att.file_name}</Link>
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </>
+            )}
           </View>
 
           {/* 7.2 Staging */}
@@ -665,18 +691,38 @@ export function CaseDocument({
             <Text style={[styles.boldLabel, { color: pdfTheme.colors.primary, fontSize: 10, marginBottom: 2 }]}>
               7.2 Investigations for Determining Extent of Disease (Staging):
             </Text>
-            <PDFRichText content={invsInfo?.investigations_staging || 'No written findings specified.'} primaryColor={pdfTheme.colors.primary} />
-            {stagingAttachments.map((att, idx) => (
-              <View key={`stag-${idx}`}>
-                {att.file_type === 'image' ? (
-                  renderSingleImage(att.public_url, `Staging Report Scan — ${att.file_name}`)
+            {invsInfo?.staging_applicable === 'no' ? (
+              <View style={styles.paragraph}>
+                <Text style={{ fontSize: 9, color: pdfTheme.colors.textSecondary, fontStyle: 'italic' }}>
+                  Not Applicable / Not Required for this case.
+                </Text>
+              </View>
+            ) : (
+              <>
+                {invsInfo?.investigations_staging ? (
+                  <PDFRichText content={invsInfo.investigations_staging} primaryColor={pdfTheme.colors.primary} />
+                ) : stagingAttachments.length > 0 ? (
+                  <Text style={{ fontSize: 8.5, color: pdfTheme.colors.textSecondary, fontStyle: 'italic', marginBottom: 4 }}>
+                    Written findings not provided; report/scan attached below.
+                  </Text>
                 ) : (
-                  <Text style={{ fontSize: 8, color: '#2563eb', marginTop: 2 }}>
-                    PDF Attachment: <Link src={att.public_url}>{att.file_name}</Link>
+                  <Text style={{ fontSize: 8.5, color: pdfTheme.colors.textSecondary, fontStyle: 'italic', marginBottom: 4 }}>
+                    No written findings specified.
                   </Text>
                 )}
-              </View>
-            ))}
+                {stagingAttachments.map((att, idx) => (
+                  <View key={`stag-${idx}`}>
+                    {att.file_type === 'image' ? (
+                      renderSingleImage(att.public_url, `Staging Report Scan — ${att.file_name}`)
+                    ) : (
+                      <Text style={{ fontSize: 8, color: '#2563eb', marginTop: 2 }}>
+                        PDF Attachment: <Link src={att.public_url}>{att.file_name}</Link>
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </>
+            )}
           </View>
           <PDFCustomFields customFields={caseData.custom_fields} sectionId="investigations" />
         </ClinicalSection>

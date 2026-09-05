@@ -173,34 +173,13 @@ export const caseSchema = z
     // Validate Step 7 Investigation conditionals
     const inv = data.investigations_info;
     const confPerformed = inv?.confirmation_performed || 'yes';
-    if (confPerformed === 'yes') {
-      const confText = inv?.investigations_confirmation?.replace(/<[^>]*>/g, '').trim();
-      if (!confText) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Written findings for Confirmation of Diagnosis is required',
-          path: ['investigations_info', 'investigations_confirmation'],
-        });
-      }
-    } else if (confPerformed === 'no') {
+    if (confPerformed === 'no') {
       const expl = (inv?.confirmation_explanation || inv?.investigations_confirmation)?.replace(/<[^>]*>/g, '').trim();
       if (!expl) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'Please provide an explanation why confirmation investigations were not performed',
           path: ['investigations_info', 'confirmation_explanation'],
-        });
-      }
-    }
-
-    const stagingApp = inv?.staging_applicable || 'yes';
-    if (stagingApp === 'yes') {
-      const stagingText = inv?.investigations_staging?.replace(/<[^>]*>/g, '').trim();
-      if (!stagingText) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Written findings for Extent of Disease (Staging) is required',
-          path: ['investigations_info', 'investigations_staging'],
         });
       }
     }
