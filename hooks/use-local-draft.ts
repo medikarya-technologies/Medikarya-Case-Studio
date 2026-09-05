@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import type { UseFormWatch, UseFormReset, FieldValues, DefaultValues } from 'react-hook-form';
 
 const DEBOUNCE_MS = 600;
@@ -42,6 +42,8 @@ export function useLocalDraft<T extends FieldValues>(
 ) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasRestored = useRef(false);
+  const isClearedRef = useRef(false);
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
   const currentStep = options?.currentStep;
   const onRestoreStep = options?.onRestoreStep;
 
@@ -56,8 +58,10 @@ export function useLocalDraft<T extends FieldValues>(
         const saved = JSON.parse(raw) as T;
         if (hasMeaningfulContent(saved)) {
           reset(saved as DefaultValues<T>);
+          setHasRestoredDraft(true);
         } else {
           localStorage.removeItem(storageKey);
+          localStorage.removeItem(`${storageKey}_step`);
         }
       }
 
@@ -70,12 +74,14 @@ export function useLocalDraft<T extends FieldValues>(
       }
     } catch {
       localStorage.removeItem(storageKey);
+      localStorage.removeItem(`${storageKey}_step`);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
   // Persist current step whenever it changes
   useEffect(() => {
+    if (isClearedRef.current) return;
     if (currentStep && currentStep >= 1) {
       try {
         localStorage.setItem(`${storageKey}_step`, String(currentStep));
@@ -88,8 +94,10 @@ export function useLocalDraft<T extends FieldValues>(
   // Subscribe to all form changes and debounce-write to localStorage
   useEffect(() => {
     const subscription = watch((values) => {
+      if (isClearedRef.current) return;
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
+        if (isClearedRef.current) return;
         try {
           if (!hasMeaningfulContent(values)) return;
           localStorage.setItem(storageKey, JSON.stringify(values));
@@ -106,16 +114,22 @@ export function useLocalDraft<T extends FieldValues>(
   }, [storageKey, watch]);
 
   /**
-   * Call this ONLY after the case is fully submitted (status = submitted).
+   * Immediately clears the draft from localStorage and cancels all active save timers.
    */
   const clearDraft = useCallback(() => {
+    isClearedRef.current = true;
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
     try {
       localStorage.removeItem(storageKey);
       localStorage.removeItem(`${storageKey}_step`);
     } catch {
       // ignore
     }
+    setHasRestoredDraft(false);
   }, [storageKey]);
 
-  return { clearDraft };
+  return { clearDraft, hasRestoredDraft, setHasRestoredDraft };
 }

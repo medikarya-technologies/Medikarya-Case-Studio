@@ -352,7 +352,15 @@ export default function EditCasePage() {
 
       if (status === 'submitted') {
         await submitCaseAction(caseId);
-        clearDraft(); // Only clear localStorage when fully submitted
+        clearDraft(); // Immediately clear localStorage and disable debouncer
+        try {
+          localStorage.removeItem(`case-draft-${caseId}`);
+          localStorage.removeItem(`case-draft-${caseId}_step`);
+          localStorage.removeItem('case-draft-new');
+          localStorage.removeItem('case-draft-new_step');
+        } catch {
+          // ignore
+        }
         toast.success('Case submitted successfully');
         router.push('/dashboard/author');
       } else {

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBeforeUnloadWarning, useNavigationGuard } from '@/hooks/use-unsaved-changes';
 import { useLocalDraft } from '@/hooks/use-local-draft';
-import { Save, Send, Check, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
+import { Save, Send, Check, ChevronRight, ChevronLeft, Loader2, RotateCcw, Trash2 } from 'lucide-react';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -142,7 +142,7 @@ export default function NewCasePage() {
   const stagingApplicable = watch('investigations_info.staging_applicable') || 'yes';
 
   // Persist form and current step to localStorage so refreshes / tab switches don't wipe state or step
-  const { clearDraft } = useLocalDraft('case-draft-new', watch, reset, {
+  const { clearDraft, hasRestoredDraft, setHasRestoredDraft } = useLocalDraft('case-draft-new', watch, reset, {
     currentStep,
     onRestoreStep: setCurrentStep,
   });
@@ -180,7 +180,17 @@ export default function NewCasePage() {
 
         if (status === 'submitted') {
           await submitCaseAction(result.caseId);
-          clearDraft(); // Only clear localStorage when fully submitted
+          clearDraft(); // Immediately clear localStorage and disable debouncer
+          try {
+            localStorage.removeItem('case-draft-new');
+            localStorage.removeItem('case-draft-new_step');
+            if (result.caseId) {
+              localStorage.removeItem(`case-draft-${result.caseId}`);
+              localStorage.removeItem(`case-draft-${result.caseId}_step`);
+            }
+          } catch {
+            // ignore
+          }
           toast.success('Case submitted successfully');
         } else {
           // Keep localStorage draft alive — acts as a backup between steps
@@ -420,6 +430,35 @@ export default function NewCasePage() {
             Step {currentStep} of {steps.length} — {steps[currentStep - 1].title}
           </p>
         </div>
+
+        {hasRestoredDraft && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 bg-blue-50/90 border border-blue-200 rounded-lg text-sm text-blue-950 gap-2">
+            <div className="flex items-center space-x-2">
+              <RotateCcw className="w-4 h-4 text-blue-600 shrink-0" />
+              <span>
+                Restored an auto-saved draft from your previous session.
+              </span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 shrink-0"
+              onClick={() => {
+                clearDraft();
+                reset(DEFAULT_FORM_DATA);
+                setCurrentStep(1);
+                setAttachments([]);
+                setCaseId(null);
+                setHasRestoredDraft(false);
+                toast.info('Draft discarded. Starting fresh new case.');
+              }}
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1" />
+              Discard &amp; Start Fresh
+            </Button>
+          </div>
+        )}
 
         {/* Step Indicator */}
         <div className="flex items-center justify-between overflow-x-auto pb-2">
