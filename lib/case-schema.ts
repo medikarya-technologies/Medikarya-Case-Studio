@@ -35,7 +35,7 @@ export const caseSchema = z
       religion: z.string().min(1, 'Religion is required'),
       occupation: z.string().min(1, 'Occupation is required'),
       address: z.string().min(1, 'Address is required'),
-      date_of_admission: z.string().min(1, 'Date of Admission is required'),
+      date_of_admission: z.string().optional(),
 
       // Backward compatibility fields
       patient_id: z.string().optional(),

@@ -771,15 +771,23 @@ export default function EditCasePage() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Date of Admission <span className="text-destructive">*</span></Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="date_of_admission">Date of Admission <span className="text-xs text-muted-foreground font-normal">(Optional)</span></Label>
+                      {watch('patient_details.date_of_admission') && (
+                        <button
+                          type="button"
+                          onClick={() => setValue('patient_details.date_of_admission', '')}
+                          className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
                     <Controller
                       name="patient_details.date_of_admission"
                       control={control}
-                      render={({ field }: any) => <Input type="date" {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Input id="date_of_admission" type="date" {...field} value={field.value || ''} />}
                     />
-                    {errors.patient_details?.date_of_admission && (
-                      <p className="text-sm text-destructive">{errors.patient_details.date_of_admission.message}</p>
-                    )}
                   </div>
                 </CardContent>
               </Card>

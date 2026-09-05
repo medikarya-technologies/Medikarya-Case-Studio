@@ -55,7 +55,6 @@ export async function validateStepAndNotify(
       if (getFieldState('patient_details.religion').error || submitErrorsForStep.some((e) => e.field === 'patient_details.religion')) missingLabels.push('Religion');
       if (getFieldState('patient_details.occupation').error || submitErrorsForStep.some((e) => e.field === 'patient_details.occupation')) missingLabels.push('Occupation');
       if (getFieldState('patient_details.address').error || submitErrorsForStep.some((e) => e.field === 'patient_details.address')) missingLabels.push('Address');
-      if (getFieldState('patient_details.date_of_admission').error || submitErrorsForStep.some((e) => e.field === 'patient_details.date_of_admission')) missingLabels.push('Date of Admission');
     }
 
     if (step === 2) {

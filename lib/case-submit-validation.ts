@@ -64,10 +64,6 @@ export function validateCaseForSubmit(
     errors.push({ field: 'patient_details.address', message: 'Address is required', step: 1 });
   }
 
-  if (!hasMinText(data.patient_details?.date_of_admission || data.patient_details?.presenting_date)) {
-    errors.push({ field: 'patient_details.date_of_admission', message: 'Date of Admission is required', step: 1 });
-  }
-
   // ==========================================
   // Step 2: History
   // ==========================================
