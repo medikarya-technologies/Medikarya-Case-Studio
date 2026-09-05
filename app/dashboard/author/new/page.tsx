@@ -27,6 +27,8 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CustomFieldsSection } from '@/components/case/form/CustomFieldsSection';
 
+import { formatSpecialtyLabel } from '@/lib/specialtyIcons';
+
 const STEPS = [
   { number: 1, title: 'Patient Details' },
   { number: 2, title: 'History' },
@@ -41,6 +43,7 @@ const DEFAULT_FORM_DATA: CaseFormData = {
   title: '',
   original_author_name: '',
   specialty: 'internal_medicine',
+  custom_specialty: '',
   difficulty: 'intermediate',
   tags: [],
   patient_details: {
@@ -134,6 +137,7 @@ export default function NewCasePage() {
 
   const localRegion = watch('local_examination.region');
   const patientSex = watch('patient_details.sex') || watch('patient_details.gender' as any);
+  const selectedSpecialty = watch('specialty');
   const confirmationPerformed = watch('investigations_info.confirmation_performed') || 'yes';
   const stagingApplicable = watch('investigations_info.staging_applicable') || 'yes';
 
@@ -297,7 +301,7 @@ export default function NewCasePage() {
             <h1 className="text-2xl font-bold">{data.title}</h1>
             <div className="flex gap-2 items-center">
               <Badge>{data.difficulty}</Badge>
-              <Badge variant="secondary">{data.specialty}</Badge>
+              <Badge variant="secondary">{formatSpecialtyLabel(data.specialty, data.custom_specialty)}</Badge>
               {data.original_author_name && (
                 <span className="text-xs text-muted-foreground">Original Author: {data.original_author_name}</span>
               )}
@@ -443,12 +447,38 @@ export default function NewCasePage() {
                             <option value="family_medicine">Family Medicine</option>
                             <option value="internal_medicine">Internal Medicine</option>
                             <option value="pediatrics">Pediatrics</option>
-                            <option value="other">Other</option>
+                            <option value="other">Other (e.g. General Surgery, ENT, etc.)</option>
                           </select>
                         )}
                       />
                       {errors.specialty && <p className="text-sm text-destructive">{errors.specialty.message}</p>}
                     </div>
+
+                    {selectedSpecialty === 'other' && (
+                      <div className="space-y-2 pt-1 md:col-span-2">
+                        <Label htmlFor="custom_specialty">
+                          Specify Specialty / Category <span className="text-destructive">*</span>
+                        </Label>
+                        <Controller
+                          name="custom_specialty"
+                          control={control}
+                          render={({ field }: any) => (
+                            <Input
+                              id="custom_specialty"
+                              placeholder="e.g. General Surgery, Ophthalmology, ENT, Psychiatry..."
+                              {...field}
+                              value={field.value || ''}
+                            />
+                          )}
+                        />
+                        {errors.custom_specialty && (
+                          <p className="text-sm text-destructive">{errors.custom_specialty.message}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          This case will display as <strong className="text-foreground">Other — {watch('custom_specialty') || 'Custom Specialty'}</strong> in case lists, searches, and exports.
+                        </p>
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <Label>Difficulty</Label>
                       <Controller

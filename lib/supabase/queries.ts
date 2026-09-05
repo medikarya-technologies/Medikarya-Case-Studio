@@ -98,7 +98,12 @@ export async function getAuthorCases(
     logSupabaseError('getAuthorCases', error);
   }
 
-  return (data as Case[]) || [];
+  return (
+    ((data as any[]) || []).map((c) => ({
+      ...c,
+      custom_specialty: c.custom_specialty || c.patient_details?.custom_specialty || null,
+    })) as Case[]
+  );
 }
 
 // PostgREST join select for cases with author and reviews
@@ -115,7 +120,12 @@ export async function getAllCases(
     logSupabaseError('getAllCases', error);
   }
 
-  return (data as Case[]) || [];
+  return (
+    ((data as any[]) || []).map((c) => ({
+      ...c,
+      custom_specialty: c.custom_specialty || c.patient_details?.custom_specialty || null,
+    })) as Case[]
+  );
 }
 
 export async function getCaseById(
@@ -162,6 +172,7 @@ export async function getCaseById(
 
   return {
     ...caseData,
+    custom_specialty: caseData.custom_specialty || (caseData.patient_details as any)?.custom_specialty || null,
     custom_fields: Array.isArray(rawCustomFields) ? rawCustomFields : [],
     reviews: reviews || [],
     attachments: (attachments as CaseAttachment[]) || [],
@@ -246,9 +257,19 @@ export async function createCase(
 ): Promise<Case> {
   const supabase = createServiceClient();
 
+  const customSpecialty = caseData.custom_specialty;
+  const enrichedPatientDetails = {
+    ...(caseData.patient_details || {}),
+    ...(customSpecialty ? { custom_specialty: customSpecialty } : {}),
+  };
+
   console.log('createCase: inserting into cases:', { author_id: userId, ...caseData });
 
-  let insertPayload: any = { author_id: userId, ...caseData };
+  let insertPayload: any = {
+    author_id: userId,
+    ...caseData,
+    patient_details: enrichedPatientDetails,
+  };
 
   let { data: newCase, error: caseError } = await supabase
     .from('cases')
@@ -256,12 +277,19 @@ export async function createCase(
     .select('*')
     .single();
 
-  if (caseError && (caseError.message?.includes('custom_fields') || caseError.details?.includes('custom_fields'))) {
-    console.warn('custom_fields column missing on cases table, falling back to embedded _custom_fields');
-    const { custom_fields, diagnosis_management, ...rest } = caseData as any;
+  if (
+    caseError &&
+    (caseError.message?.includes('custom_fields') ||
+      caseError.details?.includes('custom_fields') ||
+      caseError.message?.includes('custom_specialty') ||
+      caseError.details?.includes('custom_specialty'))
+  ) {
+    console.warn('Column missing on cases table, falling back to embedded fields in JSONB');
+    const { custom_fields, custom_specialty, diagnosis_management, ...rest } = caseData as any;
     insertPayload = {
       author_id: userId,
       ...rest,
+      patient_details: enrichedPatientDetails,
       diagnosis_management: {
         ...(diagnosis_management || {}),
         _custom_fields: custom_fields || [],
@@ -279,7 +307,16 @@ export async function createCase(
 
   return {
     ...newCase,
-    custom_fields: newCase.custom_fields || (newCase.diagnosis_management as any)?._custom_fields || caseData.custom_fields || [],
+    custom_specialty:
+      newCase.custom_specialty ||
+      (newCase.patient_details as any)?.custom_specialty ||
+      caseData.custom_specialty ||
+      null,
+    custom_fields:
+      newCase.custom_fields ||
+      (newCase.diagnosis_management as any)?._custom_fields ||
+      caseData.custom_fields ||
+      [],
   } as Case;
 }
 
@@ -289,18 +326,38 @@ export async function updateCase(
 ): Promise<void> {
   const supabase = createServiceClient();
 
+  const customSpecialty = caseData.custom_specialty;
+  const enrichedPatientDetails = caseData.patient_details !== undefined
+    ? {
+        ...(caseData.patient_details || {}),
+        ...(customSpecialty ? { custom_specialty: customSpecialty } : {}),
+      }
+    : undefined;
+
   console.log('updateCase: updating case', caseId, 'with:', caseData);
+
+  const updatePayload: any = {
+    ...caseData,
+    ...(enrichedPatientDetails !== undefined && { patient_details: enrichedPatientDetails }),
+  };
 
   let { error } = await supabase
     .from('cases')
-    .update({ ...caseData })
+    .update(updatePayload)
     .eq('id', caseId);
 
-  if (error && (error.message?.includes('custom_fields') || error.details?.includes('custom_fields'))) {
-    console.warn('custom_fields column missing on cases table, falling back to embedded _custom_fields');
-    const { custom_fields, diagnosis_management, ...rest } = caseData as any;
-    const updatePayload = {
+  if (
+    error &&
+    (error.message?.includes('custom_fields') ||
+      error.details?.includes('custom_fields') ||
+      error.message?.includes('custom_specialty') ||
+      error.details?.includes('custom_specialty'))
+  ) {
+    console.warn('Column missing on cases table, falling back to embedded fields in JSONB');
+    const { custom_fields, custom_specialty, diagnosis_management, ...rest } = caseData as any;
+    const fallbackPayload = {
       ...rest,
+      ...(enrichedPatientDetails !== undefined && { patient_details: enrichedPatientDetails }),
       ...(diagnosis_management !== undefined && {
         diagnosis_management: {
           ...(diagnosis_management || {}),
@@ -308,7 +365,7 @@ export async function updateCase(
         },
       }),
     };
-    const res = await supabase.from('cases').update(updatePayload).eq('id', caseId);
+    const res = await supabase.from('cases').update(fallbackPayload).eq('id', caseId);
     error = res.error;
   }
 

@@ -51,6 +51,13 @@ export function SpecialtyIconBadge({ specialty, size = 'md', className = '' }: S
   );
 }
 
-export function formatSpecialtyLabel(specialty: string): string {
+export function formatSpecialtyLabel(specialty?: string | null, customSpecialty?: string | null): string {
+  if (!specialty) return 'General';
+  if (specialty === 'other') {
+    if (customSpecialty && customSpecialty.trim()) {
+      return `Other — ${customSpecialty.trim()}`;
+    }
+    return 'Other';
+  }
   return specialty.replace(/_/g, ' ');
 }

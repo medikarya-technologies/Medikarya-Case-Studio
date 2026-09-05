@@ -19,6 +19,7 @@ export const caseSchema = z
       'pediatrics',
       'other',
     ]),
+    custom_specialty: z.string().optional(),
     difficulty: z.enum(['beginner', 'intermediate', 'advanced']),
     tags: z.array(z.string()),
 
@@ -139,6 +140,18 @@ export const caseSchema = z
     learning_points: z.any().optional(),
   })
   .superRefine((data, ctx) => {
+    // Validate custom specialty when 'other' is selected
+    if (data.specialty === 'other') {
+      const custom = data.custom_specialty?.trim();
+      if (!custom) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Please specify the custom specialty (e.g. General Surgery)',
+          path: ['custom_specialty'],
+        });
+      }
+    }
+
     // Validate Menstrual and Obstetric History for non-male patients
     if (data.patient_details?.sex && data.patient_details.sex !== 'male') {
       if (!data.history?.menstrual_history || !data.history.menstrual_history.trim()) {

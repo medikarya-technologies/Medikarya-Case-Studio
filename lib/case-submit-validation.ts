@@ -30,6 +30,8 @@ export function validateCaseForSubmit(
 
   if (!data.specialty) {
     errors.push({ field: 'specialty', message: 'Specialty is required', step: 1 });
+  } else if (data.specialty === 'other' && !hasMinText(data.custom_specialty)) {
+    errors.push({ field: 'custom_specialty', message: 'Please specify the custom specialty (e.g. General Surgery)', step: 1 });
   }
 
   if (!hasMinText(data.patient_details?.case_no)) {

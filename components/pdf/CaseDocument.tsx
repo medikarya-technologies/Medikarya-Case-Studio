@@ -298,7 +298,7 @@ function PatientBanner({ caseData, author }: { caseData: Case; author?: User }) 
       </View>
       <Text style={styles.caseTitle}>{caseData.title}</Text>
       <Text style={styles.caseMeta}>
-        Specialty: {formatSpecialtyLabel(caseData.specialty)}   |   Difficulty: {caseData.difficulty.toUpperCase()}   |   {authorLine}
+        Specialty: {formatSpecialtyLabel(caseData.specialty, caseData.custom_specialty)}   |   Difficulty: {caseData.difficulty.toUpperCase()}   |   {authorLine}
       </Text>
     </View>
   );

@@ -20,6 +20,7 @@ import { fetchAuthorCases, deleteCaseAction, submitCaseAction } from '@/app/acti
 import { useUser, useAuth } from '@clerk/nextjs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toaster';
+import { formatSpecialtyLabel } from '@/lib/specialtyIcons';
 
 const tips = [
   "Always include a detailed history of present illness with timeline.",
@@ -65,7 +66,7 @@ const RecentCaseCard = memo(function RecentCaseCard({
           <p className="font-semibold text-foreground">{caseItem.title}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="text-sm text-muted-foreground">
-              {caseItem.specialty?.replace(/_/g, ' ') || 'Unknown Specialty'}
+              {formatSpecialtyLabel(caseItem.specialty, caseItem.custom_specialty)}
             </span>
             <span className="text-xs text-muted-foreground/60">•</span>
             <span className="text-sm text-muted-foreground">

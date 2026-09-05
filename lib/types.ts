@@ -272,6 +272,7 @@ export interface Case {
   title: string;
   status: CaseStatus;
   specialty: MedicalSpecialty;
+  custom_specialty?: string | null;
   difficulty: DifficultyLevel;
   tags: string[];
   created_at: string;

@@ -110,7 +110,7 @@ export const CaseListFilters = memo(function CaseListFilters({
   );
 });
 
-export function filterCases<T extends { title: string; specialty?: string; status: string; added_to_platform?: boolean }>(
+export function filterCases<T extends { title: string; specialty?: string; custom_specialty?: string | null; status: string; added_to_platform?: boolean }>(
   cases: T[],
   search: string,
   specialty: string,
@@ -118,9 +118,17 @@ export function filterCases<T extends { title: string; specialty?: string; statu
   addedFilter: string = 'all'
 ): T[] {
   return cases.filter((c) => {
+    const q = search.trim().toLowerCase();
+    const customSpecialty = c.custom_specialty?.toLowerCase() || '';
     const matchesSearch =
-      !search.trim() || c.title.toLowerCase().includes(search.toLowerCase());
-    const matchesSpecialty = specialty === 'all' || c.specialty === specialty;
+      !q ||
+      c.title.toLowerCase().includes(q) ||
+      customSpecialty.includes(q);
+    const matchesSpecialty =
+      specialty === 'all' ||
+      c.specialty === specialty ||
+      (specialty === 'other' && (c.specialty === 'other' || customSpecialty.length > 0)) ||
+      (customSpecialty.includes(specialty.toLowerCase()));
     const matchesStatus = status === 'all' || c.status === status;
     const matchesAdded =
       addedFilter === 'all'

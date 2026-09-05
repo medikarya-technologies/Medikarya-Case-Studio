@@ -18,7 +18,7 @@ export async function validateStepAndNotify(
   const { trigger, getValues, setError, getFieldState } = methods;
 
   let fieldsToValidate: (keyof CaseFormData)[] = [];
-  if (step === 1) fieldsToValidate = ['title', 'specialty', 'difficulty', 'tags', 'patient_details'];
+  if (step === 1) fieldsToValidate = ['title', 'specialty', 'custom_specialty', 'difficulty', 'tags', 'patient_details'];
   if (step === 2) fieldsToValidate = ['history'];
   if (step === 3) fieldsToValidate = ['general_physical_examination'];
   if (step === 4) fieldsToValidate = ['systemic_examination'];
@@ -47,6 +47,7 @@ export async function validateStepAndNotify(
     if (step === 1) {
       if (getFieldState('title').error || submitErrorsForStep.some((e) => e.field === 'title')) missingLabels.push('Case Title');
       if (getFieldState('specialty').error || submitErrorsForStep.some((e) => e.field === 'specialty')) missingLabels.push('Specialty');
+      if (getFieldState('custom_specialty').error || submitErrorsForStep.some((e) => e.field === 'custom_specialty')) missingLabels.push('Custom Specialty');
       if (getFieldState('patient_details.case_no').error || submitErrorsForStep.some((e) => e.field === 'patient_details.case_no')) missingLabels.push('Case No.');
       if (getFieldState('patient_details.patient_name').error || submitErrorsForStep.some((e) => e.field === 'patient_details.patient_name')) missingLabels.push('Patient Name');
       if (getFieldState('patient_details.age').error || submitErrorsForStep.some((e) => e.field === 'patient_details.age')) missingLabels.push('Age');

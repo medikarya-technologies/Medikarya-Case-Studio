@@ -25,6 +25,7 @@ import { getCaseCompleteness } from '@/lib/case-completeness';
 import { ReviewHistoryTimeline } from '@/components/case/ReviewHistoryTimeline';
 import { ApproveConfirmModal, RequestChangesModal } from '@/components/case/ReviewerActionDialogs';
 import { RichTextRenderer } from '@/components/ui/RichTextRenderer';
+import { formatSpecialtyLabel } from '@/lib/specialtyIcons';
 
 const SectionCustomFields = memo(function SectionCustomFields({
   customFields,
@@ -258,7 +259,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
             <div className="space-y-2">
               <CardTitle className="text-2xl">{caseData.title}</CardTitle>
               <div className="flex items-center gap-2">
-                <Badge variant="secondary">{caseData.specialty}</Badge>
+                <Badge variant="secondary">{formatSpecialtyLabel(caseData.specialty, caseData.custom_specialty)}</Badge>
                 <Badge>{caseData.difficulty}</Badge>
                 {caseData.tags?.map((tag, i) => (
                   <Badge key={i} variant="outline">{tag}</Badge>
