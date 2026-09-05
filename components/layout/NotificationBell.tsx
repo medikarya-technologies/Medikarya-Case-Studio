@@ -6,11 +6,13 @@ import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import type { Notification } from '@/lib/types';
+import { createSupabaseClient } from '@/lib/supabase/client';
 import {
   fetchNotificationsAction,
   fetchUnreadNotificationCountAction,
   markNotificationReadAction,
   markAllNotificationsReadAction,
+  fetchCurrentUser,
 } from '@/app/actions/case-actions';
 
 export function NotificationBell() {
@@ -20,10 +22,12 @@ export function NotificationBell() {
   const [isLoading, setIsLoading] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const { isLoaded, isSignedIn } = useUser();
+  // Keep a ref to the supabase channel so we can unsubscribe on unmount
+  const channelRef = useRef<ReturnType<ReturnType<typeof createSupabaseClient>['channel']> | null>(null);
 
-  const refresh = useCallback(async () => {
-    if (!isLoaded) return;
-    if (!isSignedIn) {
+  // ─── Initial load ─────────────────────────────────────────────────────────
+  const loadInitial = useCallback(async () => {
+    if (!isLoaded || !isSignedIn) {
       setNotifications([]);
       setUnreadCount(0);
       return;
@@ -40,12 +44,66 @@ export function NotificationBell() {
     }
   }, [isLoaded, isSignedIn]);
 
+  // ─── Realtime subscription ────────────────────────────────────────────────
   useEffect(() => {
-    refresh();
-    const interval = setInterval(refresh, 60000);
-    return () => clearInterval(interval);
-  }, [refresh]);
+    if (!isLoaded || !isSignedIn) return;
 
+    let cancelled = false;
+
+    async function setupRealtime() {
+      try {
+        // Get the Supabase user UUID (needed to filter the channel)
+        const currentUserRecord = await fetchCurrentUser();
+        if (cancelled) return;
+
+        const supabase = createSupabaseClient();
+
+        // Clean up any previous channel before creating a new one
+        if (channelRef.current) {
+          supabase.removeChannel(channelRef.current);
+        }
+
+        const channel = supabase
+          .channel(`notifications:${currentUserRecord.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${currentUserRecord.id}`,
+            },
+            (payload) => {
+              const newNotification = payload.new as Notification;
+              // Prepend to list and bump unread count — no server round-trip
+              setNotifications((prev) => [newNotification, ...prev]);
+              setUnreadCount((c) => c + 1);
+            }
+          )
+          .subscribe();
+
+        channelRef.current = channel;
+      } catch (e) {
+        console.error('Failed to set up notifications realtime', e);
+      }
+    }
+
+    // Load initial data once, then subscribe
+    loadInitial();
+    setupRealtime();
+
+    return () => {
+      cancelled = true;
+      // Unsubscribe when component unmounts or user signs out
+      if (channelRef.current) {
+        const supabase = createSupabaseClient();
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [isLoaded, isSignedIn, loadInitial]);
+
+  // ─── Click outside to close panel ─────────────────────────────────────────
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
@@ -56,11 +114,13 @@ export function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
+  // ─── Handlers ─────────────────────────────────────────────────────────────
   const handleOpen = async () => {
     setOpen((v) => !v);
     if (!open) {
+      // Refresh the list when the user explicitly opens the panel
       setIsLoading(true);
-      await refresh();
+      await loadInitial();
       setIsLoading(false);
     }
   };
@@ -82,6 +142,7 @@ export function NotificationBell() {
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="relative" ref={panelRef}>
       <button
