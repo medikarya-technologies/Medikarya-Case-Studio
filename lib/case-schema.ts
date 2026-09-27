@@ -17,6 +17,11 @@ export const caseSchema = z
       'family_medicine',
       'internal_medicine',
       'pediatrics',
+      'general_surgery',
+      'obstetrics_gynaecology',
+      'psychiatry',
+      'ent',
+      'ophthalmology',
       'other',
     ]),
     custom_specialty: z.string().optional(),
@@ -32,9 +37,9 @@ export const caseSchema = z
         { message: 'Age is required' }
       ),
       sex: z.enum(['male', 'female', 'other'], { required_error: 'Sex is required' }),
-      religion: z.string().min(1, 'Religion is required'),
+      religion: z.string().optional(),
       occupation: z.string().min(1, 'Occupation is required'),
-      address: z.string().min(1, 'Address is required'),
+      address: z.string().min(1, 'Place is required'),
       date_of_admission: z.string().optional(),
 
       // Backward compatibility fields
@@ -42,6 +47,15 @@ export const caseSchema = z
       gender: z.enum(['male', 'female', 'other']).optional(),
       location: z.string().optional(),
       presenting_date: z.string().optional(),
+
+      // What the author confirmed before submitting (checked on submit, see case-submit-validation.ts)
+      declarations: z
+        .object({
+          no_identifiers: z.boolean().optional(),
+          publish_consent: z.boolean().optional(),
+          confirmed_at: z.string().optional(),
+        })
+        .optional(),
     }),
 
     // Section 2: History

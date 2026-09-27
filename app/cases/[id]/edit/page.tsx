@@ -26,6 +26,7 @@ import { AttachmentGallery } from '@/components/attachments/AttachmentGallery';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CustomFieldsSection } from '@/components/case/form/CustomFieldsSection';
+import { SubmitDeclarations } from '@/components/case/form/SubmitDeclarations';
 
 import { formatSpecialtyLabel } from '@/lib/specialtyIcons';
 
@@ -210,6 +211,7 @@ export default function EditCasePage() {
               occupation: data.patient_details?.occupation || '',
               address: data.patient_details?.address || data.patient_details?.location || '',
               date_of_admission: data.patient_details?.date_of_admission || data.patient_details?.presenting_date || '',
+              declarations: data.patient_details?.declarations,
             },
             history: {
               presenting_complaints:
@@ -658,6 +660,11 @@ export default function EditCasePage() {
                             <option value="family_medicine">Family Medicine</option>
                             <option value="internal_medicine">Internal Medicine</option>
                             <option value="pediatrics">Pediatrics</option>
+                            <option value="general_surgery">General Surgery</option>
+                            <option value="obstetrics_gynaecology">Obstetrics &amp; Gynaecology</option>
+                            <option value="psychiatry">Psychiatry</option>
+                            <option value="ent">ENT</option>
+                            <option value="ophthalmology">Ophthalmology</option>
                             <option value="other">Other (e.g. General Surgery, ENT, etc.)</option>
                           </select>
                         )}
@@ -745,7 +752,7 @@ export default function EditCasePage() {
                     <Controller
                       name="patient_details.patient_name"
                       control={control}
-                      render={({ field }: any) => <Input placeholder="Full patient name" {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Input placeholder="A made-up name, e.g. Ramesh K." {...field} value={field.value || ''} />}
                     />
                     {errors.patient_details?.patient_name && (
                       <p className="text-sm text-destructive">{errors.patient_details.patient_name.message}</p>
@@ -795,7 +802,7 @@ export default function EditCasePage() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Religion <span className="text-destructive">*</span></Label>
+                    <Label>Religion <span className="text-xs text-muted-foreground font-normal">(Optional)</span></Label>
                     <Controller
                       name="patient_details.religion"
                       control={control}
@@ -817,11 +824,11 @@ export default function EditCasePage() {
                     )}
                   </div>
                   <div className="space-y-2 col-span-2">
-                    <Label>Address <span className="text-destructive">*</span></Label>
+                    <Label>Place <span className="text-destructive">*</span></Label>
                     <Controller
                       name="patient_details.address"
                       control={control}
-                      render={({ field }: any) => <Input placeholder="Address" {...field} value={field.value || ''} />}
+                      render={({ field }: any) => <Input placeholder="Town or district, e.g. Gorakhpur, UP" {...field} value={field.value || ''} />}
                     />
                     {errors.patient_details?.address && (
                       <p className="text-sm text-destructive">{errors.patient_details.address.message}</p>
@@ -1521,6 +1528,8 @@ export default function EditCasePage() {
               </Card>
 
               <CustomFieldsSection sectionId="investigations" sectionTitle="Investigations" />
+
+              <SubmitDeclarations />
             </div>
           )} {/* end step 7 */}
           </div> {/* end step-enter animated wrapper */}

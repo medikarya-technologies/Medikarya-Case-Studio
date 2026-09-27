@@ -4,6 +4,11 @@ import {
   Bone,
   Brain,
   Droplets,
+  Ear,
+  Eye,
+  HeartPulse,
+  Scissors,
+  Smile,
   Heart,
   Stethoscope,
   Wind,
@@ -23,6 +28,11 @@ const specialtyIconMap: Record<MedicalSpecialty, LucideIcon> = {
   family_medicine: Stethoscope,
   internal_medicine: Stethoscope,
   pediatrics: Baby,
+  general_surgery: Scissors,
+  obstetrics_gynaecology: HeartPulse,
+  psychiatry: Smile,
+  ent: Ear,
+  ophthalmology: Eye,
   other: Activity,
 };
 
@@ -59,5 +69,11 @@ export function formatSpecialtyLabel(specialty?: string | null, customSpecialty?
     }
     return 'Other';
   }
-  return specialty.replace(/_/g, ' ');
+  return SPECIALTY_LABELS[specialty] ?? specialty.replace(/_/g, ' ');
 }
+
+// Names that the underscore-to-space fallback would get wrong.
+const SPECIALTY_LABELS: Record<string, string> = {
+  obstetrics_gynaecology: 'Obstetrics & Gynaecology',
+  ent: 'ENT',
+};

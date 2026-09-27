@@ -18,6 +18,11 @@ const SPECIALTIES: MedicalSpecialty[] = [
   'family_medicine',
   'internal_medicine',
   'pediatrics',
+  'general_surgery',
+  'obstetrics_gynaecology',
+  'psychiatry',
+  'ent',
+  'ophthalmology',
   'other',
 ];
 

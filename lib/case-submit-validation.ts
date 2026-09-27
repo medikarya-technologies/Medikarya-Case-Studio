@@ -52,16 +52,12 @@ export function validateCaseForSubmit(
     errors.push({ field: 'patient_details.sex', message: 'Sex is required', step: 1 });
   }
 
-  if (!hasMinText(data.patient_details?.religion)) {
-    errors.push({ field: 'patient_details.religion', message: 'Religion is required', step: 1 });
-  }
-
   if (!hasMinText(data.patient_details?.occupation)) {
     errors.push({ field: 'patient_details.occupation', message: 'Occupation is required', step: 1 });
   }
 
   if (!hasMinText(data.patient_details?.address || data.patient_details?.location)) {
-    errors.push({ field: 'patient_details.address', message: 'Address is required', step: 1 });
+    errors.push({ field: 'patient_details.address', message: 'Place is required', step: 1 });
   }
 
   // ==========================================
@@ -277,6 +273,17 @@ export function validateCaseForSubmit(
         step: 7,
       });
     }
+  }
+
+  // ==========================================
+  // Before submitting: the author's declaration (the form shows it at the end of step 7)
+  // ==========================================
+  if (!data.patient_details?.declarations?.no_identifiers) {
+    errors.push({
+      field: 'patient_details.declarations.no_identifiers',
+      message: 'Please confirm the case has no real patient identifying details',
+      step: 7,
+    });
   }
 
   return errors;

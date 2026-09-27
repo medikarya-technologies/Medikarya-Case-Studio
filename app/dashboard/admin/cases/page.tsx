@@ -28,6 +28,9 @@ interface AdminCaseRowProps {
 const AdminCaseRow = memo(function AdminCaseRow({ caseItem, onToggleAdded }: AdminCaseRowProps) {
   const canEdit = caseItem.status === 'draft' || caseItem.status === 'changes_requested';
   const isAdded = !!caseItem.added_to_platform;
+  // Only a case whose author allowed it can go on the platform (they tick this when submitting).
+  const hasConsent = !!caseItem.patient_details?.declarations?.publish_consent;
+  const blocked = !isAdded && !hasConsent;
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleToggle = async () => {
@@ -58,6 +61,12 @@ const AdminCaseRow = memo(function AdminCaseRow({ caseItem, onToggleAdded }: Adm
             </Badge>
           )}
 
+          {!hasConsent && (
+            <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-700 font-medium" title="The author has not allowed MediKarya to publish this case">
+              No publish consent
+            </Badge>
+          )}
+
           <span className="text-xs text-muted-foreground">
             Created {new Date(caseItem.created_at).toLocaleDateString()}
           </span>
@@ -73,12 +82,12 @@ const AdminCaseRow = memo(function AdminCaseRow({ caseItem, onToggleAdded }: Adm
             role="switch"
             aria-checked={isAdded}
             onClick={handleToggle}
-            disabled={isUpdating}
+            disabled={isUpdating || blocked}
             className={cn(
-              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50",
+              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed",
               isAdded ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"
             )}
-            title={isAdded ? "Mark as Not Added" : "Mark as Added to Platform"}
+            title={isAdded ? "Mark as Not Added" : blocked ? "The author has not allowed publishing this case" : "Mark as Added to Platform"}
           >
             <span
               className={cn(

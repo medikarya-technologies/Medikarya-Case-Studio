@@ -52,9 +52,8 @@ export async function validateStepAndNotify(
       if (getFieldState('patient_details.patient_name').error || submitErrorsForStep.some((e) => e.field === 'patient_details.patient_name')) missingLabels.push('Patient Name');
       if (getFieldState('patient_details.age').error || submitErrorsForStep.some((e) => e.field === 'patient_details.age')) missingLabels.push('Age');
       if (getFieldState('patient_details.sex').error || submitErrorsForStep.some((e) => e.field.startsWith('patient_details.sex'))) missingLabels.push('Sex');
-      if (getFieldState('patient_details.religion').error || submitErrorsForStep.some((e) => e.field === 'patient_details.religion')) missingLabels.push('Religion');
       if (getFieldState('patient_details.occupation').error || submitErrorsForStep.some((e) => e.field === 'patient_details.occupation')) missingLabels.push('Occupation');
-      if (getFieldState('patient_details.address').error || submitErrorsForStep.some((e) => e.field === 'patient_details.address')) missingLabels.push('Address');
+      if (getFieldState('patient_details.address').error || submitErrorsForStep.some((e) => e.field === 'patient_details.address')) missingLabels.push('Place');
     }
 
     if (step === 2) {

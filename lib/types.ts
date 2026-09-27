@@ -37,6 +37,11 @@ export type MedicalSpecialty =
   | 'family_medicine'
   | 'internal_medicine'
   | 'pediatrics'
+  | 'general_surgery'
+  | 'obstetrics_gynaecology'
+  | 'psychiatry'
+  | 'ent'
+  | 'ophthalmology'
   | 'other';
 
 // --- Patient Details ---
@@ -54,6 +59,16 @@ export interface PatientDetails {
   gender?: 'male' | 'female' | 'other';
   location?: string;
   presenting_date?: string;
+  declarations?: CaseDeclarations;
+}
+
+/** What the author confirmed when submitting. */
+export interface CaseDeclarations {
+  /** The case is made up, or has no real patient's name, UHID, hospital, face or address anywhere, attachments included. Required to submit. */
+  no_identifiers?: boolean;
+  /** The author allows MediKarya to adapt and publish the case, credited to them. Optional; only these cases can be added to the platform. */
+  publish_consent?: boolean;
+  confirmed_at?: string;
 }
 
 // --- 2. History ---

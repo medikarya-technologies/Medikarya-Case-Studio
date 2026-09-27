@@ -339,7 +339,7 @@ function DemographicsBox({ caseData }: { caseData: Case }) {
           <Text style={styles.gridValue}>{pd.date_of_admission || (pd.presenting_date ? new Date(pd.presenting_date).toLocaleDateString() : 'N/A')}</Text>
         </View>
         <View style={[styles.gridCol, { width: '100%' }]}>
-          <Text style={[styles.gridLabel, { width: '20%' }]}>Address:</Text>
+          <Text style={[styles.gridLabel, { width: '20%' }]}>Place:</Text>
           <Text style={[styles.gridValue, { width: '80%' }]}>{pd.address || pd.location || 'N/A'}</Text>
         </View>
       </View>

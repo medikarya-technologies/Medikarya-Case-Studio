@@ -185,6 +185,7 @@ export function AttachmentUploader({
           <div>
             <p className="text-sm font-semibold text-emerald-950">{label}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+            <p className="text-xs text-amber-700 mt-1">Crop out any patient name, UHID or hospital name before uploading.</p>
           </div>
           <Button
             type="button"

@@ -313,7 +313,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
               <div><p className="text-xs text-muted-foreground">Sex <span className="text-destructive">*</span></p><p className="font-medium text-sm capitalize">{caseData.patient_details?.sex || caseData.patient_details?.gender || 'N/A'}</p></div>
               <div><p className="text-xs text-muted-foreground">Religion</p><p className="font-medium text-sm">{caseData.patient_details?.religion || 'N/A'}</p></div>
               <div><p className="text-xs text-muted-foreground">Occupation</p><p className="font-medium text-sm">{caseData.patient_details?.occupation || 'N/A'}</p></div>
-              <div><p className="text-xs text-muted-foreground">Address</p><p className="font-medium text-sm">{caseData.patient_details?.address || caseData.patient_details?.location || 'N/A'}</p></div>
+              <div><p className="text-xs text-muted-foreground">Place</p><p className="font-medium text-sm">{caseData.patient_details?.address || caseData.patient_details?.location || 'N/A'}</p></div>
               <div><p className="text-xs text-muted-foreground">Date of Admission</p><p className="font-medium text-sm">{caseData.patient_details?.date_of_admission || (caseData.patient_details?.presenting_date ? new Date(caseData.patient_details.presenting_date).toLocaleDateString() : 'N/A')}</p></div>
               <div className="col-span-2 sm:col-span-4">
                 <SectionCustomFields customFields={caseData.custom_fields} sectionId="patient_details" />

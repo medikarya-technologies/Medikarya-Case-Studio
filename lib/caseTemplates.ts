@@ -21,12 +21,12 @@ export const caseTemplates: CaseTemplate[] = [
       tags: ['cardiology', 'AMI', 'chest pain'],
       patient_details: {
         case_no: 'AMI-2026-001',
-        patient_name: 'John Doe',
+        patient_name: 'Ramesh K.',
         age: 55,
         sex: 'male',
-        religion: 'Christian',
+        religion: '',
         occupation: 'Office worker',
-        address: '123 Medical Park Drive, City',
+        address: 'Kanpur, UP',
         date_of_admission: '2026-08-20',
       },
       history: {
@@ -93,12 +93,12 @@ export const caseTemplates: CaseTemplate[] = [
       tags: ['diabetes', 'endocrinology'],
       patient_details: {
         case_no: 'DM2-2026-002',
-        patient_name: 'Jane Smith',
+        patient_name: 'Sunita D.',
         age: 45,
         sex: 'female',
-        religion: 'Hindu',
+        religion: '',
         occupation: 'Teacher',
-        address: '456 Central Ave, Metro City',
+        address: 'Nashik, Maharashtra',
         date_of_admission: '2026-08-22',
       },
       history: {

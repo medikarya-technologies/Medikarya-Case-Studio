@@ -559,6 +559,12 @@ export async function toggleCaseAddedToPlatformAction(
   if (user.role !== 'admin') {
     throw new Error('Only admins can update platform status');
   }
+  if (addedToPlatform) {
+    const caseData = await getCaseById(caseId);
+    if (!caseData?.patient_details?.declarations?.publish_consent) {
+      throw new Error('The author has not allowed MediKarya to publish this case');
+    }
+  }
   await updateCaseAddedToPlatform(caseId, addedToPlatform);
 }
 
