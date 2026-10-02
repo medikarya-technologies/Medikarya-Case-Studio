@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ExternalLink, FileDown } from 'lucide-react';
 import { getOrCreateCurrentUser } from '@/app/actions/case-actions';
 import { claimForReview, getReviewerProfile, KIND_LABEL } from '@/lib/reviewers/server';
 import { AiCaseReport } from '@/components/review/AiCaseReport';
@@ -36,8 +36,16 @@ export async function ClaimReview({ claimId, base }: { claimId: string; base: st
           </Link>
         </p>
         <p className="mt-1 text-muted-foreground">
-          Below is MediKarya&apos;s interactive version of it. Please check both: that the medicine is right, and that what the AI added is realistic.
+          Below is the report of MediKarya&apos;s interactive version of it (version {conversion.version}). You review this report: there is no need to play the
+          case. Please check that the medicine is right, and that what the AI added is realistic.
         </p>
+        <Link
+          href={`/report/${claim.id}`}
+          target="_blank"
+          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 font-medium text-foreground hover:border-primary hover:text-primary"
+        >
+          <FileDown className="h-4 w-4" /> Open as a PDF to print or save
+        </Link>
       </div>
 
       {stale && (
