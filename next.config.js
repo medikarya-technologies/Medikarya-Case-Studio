@@ -13,6 +13,9 @@ const nextConfig = {
       },
     },
   }),
+  // An ID photo (and a case attachment) travels through a server action. The default limit is 1 MB; the host's own
+  // limit on a request is 4.5 MB, so there is no point allowing more.
+  experimental: { serverActions: { bodySizeLimit: '4500kb' } },
   images: {
     remotePatterns: [
       {

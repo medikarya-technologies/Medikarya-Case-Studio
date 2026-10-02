@@ -48,6 +48,15 @@ async function clean() {
   const caseIds = cases.map((c) => c.id);
   const none = ['00000000-0000-0000-0000-000000000000'];
 
+  // Their ID photos (private storage): the files do not go away with the rows that point at them.
+  for (const id of ids) {
+    const { data: files } = await db.storage.from('verification-proofs').list(id);
+    if (files?.length) {
+      const { error } = await db.storage.from('verification-proofs').remove(files.map((f) => `${id}/${f.name}`));
+      console.log(error ? `FAILED ID photos: ${error.message}` : `removed ${files.length} ID photo(s)`);
+    }
+  }
+
   // What does not go away by itself when the users and their cases are deleted.
   const steps = [
     ['payouts (theirs)', db.from('payouts').delete({ count: 'exact' }).in('user_id', ids)],
@@ -70,7 +79,7 @@ async function list() {
   const ids = users.map((u) => u.id);
   console.log('dummy users:', users.map((u) => `${u.clerk_id} (${u.role})`).join(', ') || 'none');
   if (!ids.length) return;
-  for (const [table, column] of [['cases', 'author_id'], ['reviewer_profiles', 'user_id'], ['conversion_reviews', 'reviewer_id'], ['payouts', 'user_id'], ['certificates', 'user_id']]) {
+  for (const [table, column] of [['cases', 'author_id'], ['reviewer_profiles', 'user_id'], ['writer_profiles', 'user_id'], ['conversion_reviews', 'reviewer_id'], ['payouts', 'user_id'], ['certificates', 'user_id']]) {
     const { count, error } = await db.from(table).select('*', { count: 'exact', head: true }).in(column, ids);
     console.log(`${table}:`, error ? error.message : count);
   }

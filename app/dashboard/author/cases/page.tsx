@@ -16,6 +16,7 @@ import {
   fetchCaseCommentCounts,
 } from '@/app/actions/case-actions';
 import { Skeleton } from '@/components/ui/skeleton';
+import { submitLockMessage } from '@/lib/writers/submit-lock';
 import { toast } from '@/components/ui/toaster';
 
 interface AuthorCaseCardProps {
@@ -170,6 +171,11 @@ export default function AllCasesPage() {
   }, [fetchCases]);
 
   const handleSubmit = useCallback(async (caseId: string) => {
+    const locked = await submitLockMessage();
+    if (locked) {
+      toast.error(locked);
+      return;
+    }
     if (!confirm('Are you sure you want to submit this case for review?')) return;
     setIsSubmitting(caseId);
     try {

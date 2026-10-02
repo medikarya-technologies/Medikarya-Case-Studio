@@ -21,6 +21,7 @@ import { validateCaseForSubmit } from '@/lib/case-submit-validation';
 import { validateStepAndNotify } from '@/lib/step-validation';
 import type { Case, CaseAttachment } from '@/lib/types';
 import { saveDraftCase, submitCaseAction, fetchCaseById } from '@/app/actions/case-actions';
+import { submitLockMessage } from '@/lib/writers/submit-lock';
 import { AttachmentUploader } from '@/components/attachments/AttachmentUploader';
 import { AttachmentGallery } from '@/components/attachments/AttachmentGallery';
 import { CasePreview } from '@/components/case/CasePreview';
@@ -357,6 +358,12 @@ export default function EditCasePage() {
       setLastSavedAt(new Date());
 
       if (status === 'submitted') {
+        // Not verified yet: the case stays a draft (it has just been saved), and they are told why.
+        const locked = await submitLockMessage();
+        if (locked) {
+          toast.error(`Saved as a draft. ${locked}`, { duration: 9000 });
+          return;
+        }
         await submitCaseAction(caseId);
         clearDraft(); // Immediately clear localStorage and disable debouncer
         try {

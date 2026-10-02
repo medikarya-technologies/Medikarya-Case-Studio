@@ -276,12 +276,20 @@ export async function myRewards(userId: string) {
   const reviewCount = mine.filter((r) => r.accepted && r.firstByReviewer).length; // different cases, accepted
   const waiting = mine.filter((r) => !r.accepted && r.pay.amount > 0);
   const rows = (payouts ?? []) as Payout[];
+  const month = new Date().toISOString().slice(0, 7);
+  const count = (status: string) => (cases ?? []).filter((c) => c.status === status).length;
   return {
     contributor: {
       submitted: (cases ?? []).filter((c) => c.status !== 'draft').length,
-      approved: (cases ?? []).filter((c) => c.status === 'approved').length,
+      approved: count('approved'),
       published: publishedCount,
       standing: standing(publishedCount, CONTRIBUTOR_RANKS),
+      /** Where their cases are right now, for the dashboard: being written, with a reviewer, approved and waiting to go live. */
+      writing: count('draft') + count('changes_requested'),
+      sentBack: count('changes_requested'),
+      inReview: count('submitted'),
+      /** Case payouts already counted this calendar month (the first CASE_PAYOUTS_PER_MONTH are paid). */
+      paidCasesThisMonth: rows.filter((p) => p.kind === 'case_published' && p.status !== 'void' && p.earned_at.slice(0, 7) === month).length,
     },
     reviewer: profile?.status === 'approved' ? { reviews: reviewCount, standing: standing(reviewCount, REVIEWER_RANKS), advisoryBoard: !!profile.advisory_board } : null,
     /** Reviews done but not yet accepted: what they will earn, and what each is waiting for. */

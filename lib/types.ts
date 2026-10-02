@@ -371,7 +371,9 @@ export type NotificationType =
   | 'case_approved'
   | 'changes_requested'
   | 'new_comment'
-  | 'reviewer_assigned';
+  | 'reviewer_assigned'
+  | 'verification_requested'
+  | 'verification_decided';
 
 export interface Notification {
   id: string;

@@ -13,7 +13,7 @@ function isPublicPage(pathname: string) {
 
 /** Pages that are about the signed-in person. The public ones (contributors, certificates, the reviewer page) show at once. */
 function needsSession(pathname: string) {
-  return pathname.startsWith('/dashboard') || pathname.startsWith('/cases');
+  return pathname.startsWith('/dashboard') || pathname.startsWith('/cases') || pathname.startsWith('/welcome');
 }
 
 // The account row in our database is made on the server the first time a signed-in person opens a page

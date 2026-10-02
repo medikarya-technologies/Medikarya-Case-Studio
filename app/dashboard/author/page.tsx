@@ -6,9 +6,6 @@ import { useRouter } from 'next/navigation';
 import {
   Plus,
   FileText,
-  CheckCircle,
-  Eye,
-  Clock,
   BookOpen,
   Book
 } from 'lucide-react';
@@ -22,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toaster';
 import { formatSpecialtyLabel } from '@/lib/specialtyIcons';
 import { RewardsCard } from '@/components/rewards/RewardsCard';
+import { submitLockMessage } from '@/lib/writers/submit-lock';
 
 const tips = [
   "Always include a detailed history of present illness with timeline.",
@@ -169,6 +167,11 @@ export default function AuthorDashboard() {
   }, [fetchCases]);
 
   const handleSubmit = useCallback(async (caseId: string) => {
+    const locked = await submitLockMessage();
+    if (locked) {
+      toast.error(locked);
+      return;
+    }
     if (!confirm('Are you sure you want to submit this case for review?')) return;
     setIsSubmitting(caseId);
     try {
@@ -184,13 +187,6 @@ export default function AuthorDashboard() {
     }
   }, [fetchCases]);
 
-  const stats = useMemo(() => ({
-    total: cases.length,
-    published: cases.filter(c => c.status === 'approved').length,
-    inReview: cases.filter(c => c.status === 'submitted').length,
-    drafts: cases.filter(c => c.status === 'draft' || c.status === 'changes_requested').length
-  }), [cases]);
-
   const recentCases = useMemo(() => 
     [...cases].sort((a, b) =>
       new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
@@ -201,8 +197,8 @@ export default function AuthorDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1>Welcome back, {user?.fullName || 'User'}!</h1>
-        <p className="text-muted-foreground mt-2">Here&apos;s what&apos;s happening with your cases.</p>
+        <h1>Welcome back, {user?.firstName || user?.fullName || 'Doctor'}!</h1>
+        <p className="text-muted-foreground mt-2">Here is where you stand, and what your next case gets you.</p>
       </div>
 
       {fetchError && (
@@ -215,73 +211,6 @@ export default function AuthorDashboard() {
       )}
 
       <RewardsCard mode="contributor" />
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="shadow-sm">
-              <CardContent className="p-6 flex items-center justify-between">
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-8 w-20" />
-                </div>
-                <Skeleton className="w-12 h-12 rounded-full" />
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <>
-            <Card className="shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-6 flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground font-medium">Total Cases</p>
-                  <p className="text-3xl font-bold text-foreground mt-2">{stats.total}</p>
-                </div>
-                <div className="bg-brand-muted p-3 rounded-full">
-                  <FileText className="w-6 h-6 text-primary" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-6 flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground font-medium">Published</p>
-                  <p className="text-3xl font-bold text-success mt-2">{stats.published}</p>
-                </div>
-                <div className="bg-success/10 p-3 rounded-full">
-                  <CheckCircle className="w-6 h-6 text-success" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-6 flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground font-medium">In Review</p>
-                  <p className="text-3xl font-bold text-warning mt-2">{stats.inReview}</p>
-                </div>
-                <div className="bg-warning/10 p-3 rounded-full">
-                  <Eye className="w-6 h-6 text-warning" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-6 flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground font-medium">Drafts</p>
-                  <p className="text-3xl font-bold text-muted-foreground mt-2">{stats.drafts}</p>
-                </div>
-                <div className="bg-muted p-3 rounded-full">
-                  <Clock className="w-6 h-6 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Quick Actions */}

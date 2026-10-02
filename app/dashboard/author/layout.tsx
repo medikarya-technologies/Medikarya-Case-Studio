@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getUserByClerkId, getOrCreateUser } from '@/lib/supabase/queries';
 import AuthorDashboardClientLayout from './client-layout';
 import { getReviewerProfile } from '@/lib/reviewers/server';
+import { writerStanding } from '@/lib/writers/server';
 
 export default async function AuthorDashboardLayout({
   children,
@@ -10,7 +11,7 @@ export default async function AuthorDashboardLayout({
   children: React.ReactNode;
 }>) {
   const { userId } = await auth();
-  
+
   if (!userId) {
     redirect('/sign-in');
   }
@@ -27,15 +28,24 @@ export default async function AuthorDashboardLayout({
       clerkUser.emailAddresses[0]?.emailAddress || ''
     );
   }
-  
+
   const role = user.role as 'author' | 'reviewer' | 'admin';
-  
+
   if (role !== 'author' && role !== 'admin') {
     redirect('/');
   }
-  
+
   // Someone who has applied to review MediKarya cases gets that page in their menu (their role stays as it is).
   const reviewerProfile = await getReviewerProfile(user.id).catch(() => null);
 
-  return <AuthorDashboardClientLayout reviewsMediKarya={!!reviewerProfile}>{children}</AuthorDashboardClientLayout>;
+  // A new person says who they are before anything else (/welcome): it is the first thing after signing up, by
+  // email or with Google alike. Someone who came to review has already said so on their application.
+  const standing = await writerStanding(user).catch(() => ({ state: 'verified' as const }));
+  if (standing.state === 'none' && !reviewerProfile) redirect('/welcome');
+
+  return (
+    <AuthorDashboardClientLayout reviewsMediKarya={!!reviewerProfile} standing={standing}>
+      {children}
+    </AuthorDashboardClientLayout>
+  );
 }

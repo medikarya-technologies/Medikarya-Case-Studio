@@ -175,6 +175,12 @@ export async function submitCaseAction(caseId: string): Promise<void> {
     throw new Error('Not authorized to submit this case');
   }
 
+  // Only someone an admin has verified can send a case to review (lib/writers/). Drafts are open to everyone.
+  const { writerStanding } = await import('@/lib/writers/server');
+  if ((await writerStanding(user)).state !== 'verified') {
+    throw new Error('You can submit once we have verified you. Your draft is saved.');
+  }
+
   const validationErrors = validateCaseForSubmit(caseData as CaseFormData);
   if (validationErrors.length > 0) {
     throw new Error(validationErrors.map((e) => e.message).join('. '));

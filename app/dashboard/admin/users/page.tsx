@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { Users as UsersIcon, Loader2, Search, Edit3, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Users as UsersIcon, Loader2, Search, Edit3, CheckCircle2, XCircle, Clock, ShieldCheck, IdCard } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,8 @@ import {
 import { useAuth } from '@clerk/nextjs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { decideWriterAction, fetchWritersAction, openProofAction } from '@/app/actions/writer-actions';
+import { WRITER_KIND_LABEL, type WriterForAdmin } from '@/lib/writers/shared';
 
 const ROLE_OPTIONS: Array<'author' | 'reviewer' | 'admin'> = ['author', 'reviewer', 'admin'];
 
@@ -34,9 +36,41 @@ interface AdminUserRowProps {
   user: User;
   isUpdating: boolean;
   onRoleChange: (user: User, newRole: 'author' | 'reviewer' | 'admin') => void;
+  /** Their request to be verified as a case writer, if they have made one. */
+  writer?: WriterForAdmin;
+  isDeciding: boolean;
+  onVerify: (userId: string, name: string, verify: boolean) => void;
 }
 
-const AdminUserRow = memo(function AdminUserRow({ user, isUpdating, onRoleChange }: AdminUserRowProps) {
+/** May this person submit cases? Admins and faculty reviewers can by their role; an author once verified. */
+function WriterCell({ user, writer, isDeciding, onVerify }: Pick<AdminUserRowProps, 'user' | 'writer' | 'isDeciding' | 'onVerify'>) {
+  if (user.role !== 'author') return <span className="text-xs text-muted-foreground">Yes, by role</span>;
+  const status = writer?.status;
+  const label = status === 'verified' ? 'Verified' : status === 'pending' ? 'Waiting for you' : status === 'rejected' ? 'Turned down' : 'Not verified';
+  const tone =
+    status === 'verified'
+      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+      : status === 'pending'
+        ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200'
+        : 'bg-muted text-muted-foreground';
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${tone}`}>{label}</span>
+      {status !== 'pending' && (
+        <button
+          type="button"
+          disabled={isDeciding}
+          onClick={() => onVerify(user.id, user.name, status !== 'verified')}
+          className="text-xs font-semibold text-primary hover:underline disabled:opacity-50"
+        >
+          {status === 'verified' ? 'Undo' : 'Verify by hand'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+const AdminUserRow = memo(function AdminUserRow({ user, isUpdating, onRoleChange, writer, isDeciding, onVerify }: AdminUserRowProps) {
   return (
     <tr className="border-b border-border/50 last:border-b-0 hover:bg-muted/30 transition-colors">
       <td className="py-3 font-medium">{user.name}</td>
@@ -49,6 +83,9 @@ const AdminUserRow = memo(function AdminUserRow({ user, isUpdating, onRoleChange
         >
           {user.role}
         </span>
+      </td>
+      <td className="py-3 pr-3">
+        <WriterCell user={user} writer={writer} isDeciding={isDeciding} onVerify={onVerify} />
       </td>
       <td className="py-3">
         <div className="flex gap-1.5 flex-wrap">
@@ -79,6 +116,8 @@ export default function AdminUsersPage() {
   const { isLoaded, isSignedIn } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [pendingRequests, setPendingRequests] = useState<NameChangeRequest[]>([]);
+  const [writers, setWriters] = useState<WriterForAdmin[]>([]);
+  const [decidingWriterId, setDecidingWriterId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [usersError, setUsersError] = useState<string | null>(null);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
@@ -90,12 +129,14 @@ export default function AdminUsersPage() {
     setIsLoading(true);
     setUsersError(null);
     try {
-      const [allUsers, requests] = await Promise.all([
+      const [allUsers, requests, writerList] = await Promise.all([
         fetchAllUsers(),
         fetchPendingNameChangeRequestsAction(),
+        fetchWritersAction().catch(() => [] as WriterForAdmin[]),
       ]);
       setUsers(allUsers);
       setPendingRequests(requests);
+      setWriters(writerList);
     } catch (e) {
       console.error('Error fetching users/requests:', e);
       if (retryCount < 2) {
@@ -132,6 +173,37 @@ export default function AdminUsersPage() {
       setUpdatingUserId(null);
     }
   }, [fetchUsersAndRequests]);
+
+  // Verifying someone (from their request, or by hand for a person you know), turning a request down, or undoing it.
+  const handleVerify = useCallback(async (userId: string, name: string, verify: boolean) => {
+    let note = '';
+    if (!verify) {
+      const answer = prompt(`Why can ${name} not be verified? They will see this, so say what to correct.`);
+      if (answer === null) return;
+      note = answer;
+    } else if (!confirm(`Verify ${name} as a case writer? They will be able to submit cases for review.`)) return;
+
+    setDecidingWriterId(userId);
+    try {
+      const r = await decideWriterAction(userId, verify, note);
+      if (!r.ok) toast.error(r.error);
+      else {
+        toast.success(verify ? `${name} is verified and has been told.` : `${name} has been told what to correct.`);
+        await fetchUsersAndRequests();
+      }
+    } finally {
+      setDecidingWriterId(null);
+    }
+  }, [fetchUsersAndRequests]);
+
+  const handleOpenProof = async (userId: string) => {
+    const r = await openProofAction(userId);
+    if (!r.ok) toast.error(r.error);
+    else window.open(r.url, '_blank', 'noopener,noreferrer');
+  };
+
+  const writerByUser = useMemo(() => new Map(writers.map((w) => [w.user_id, w])), [writers]);
+  const waitingWriters = useMemo(() => writers.filter((w) => w.status === 'pending'), [writers]);
 
   const handleResolveNameRequest = async (requestId: string, status: 'approved' | 'rejected') => {
     setResolvingRequestId(requestId);
@@ -186,9 +258,90 @@ export default function AdminUsersPage() {
       <div>
         <h1>Manage Users</h1>
         <p className="text-muted-foreground mt-2">
-          Manage user roles and approve or reject profile name change requests
+          Verify new case writers, manage roles, and approve or reject name change requests
         </p>
       </div>
+
+      {/* People waiting to be verified as case writers */}
+      {waitingWriters.length > 0 && (
+        <Card className="border-2 border-primary/30 bg-brand-muted/40 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <ShieldCheck className="w-5 h-5 text-primary" />
+              <span>Waiting to be verified ({waitingWriters.length})</span>
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              New people who want to write cases. Check that the ID or registration number matches the name and college, then verify. Until you do,
+              they can save drafts but not submit. The ID photo is deleted as soon as you decide.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {waitingWriters.map((w) => (
+                <div key={w.user_id} className="rounded-xl border border-border bg-card p-4 shadow-xs">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 space-y-1.5">
+                      <p className="font-semibold text-foreground">
+                        {w.name} <span className="font-normal text-muted-foreground">· {w.email}</span>
+                      </p>
+                      <p className="text-sm text-foreground">
+                        {[w.kind ? WRITER_KIND_LABEL[w.kind] : null, w.year_or_designation, w.institution, w.state].filter(Boolean).join(' · ')}
+                      </p>
+                      <dl className="flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-muted-foreground">
+                        {w.registration_no && (
+                          <div>
+                            <dt className="inline">Registration: </dt>
+                            <dd className="inline font-mono text-foreground">{w.registration_no}</dd>
+                            {w.council && <dd className="inline"> ({w.council})</dd>}
+                          </div>
+                        )}
+                        {w.phone && (
+                          <div>
+                            <dt className="inline">Mobile: </dt>
+                            <dd className="inline text-foreground">{w.phone}</dd>
+                          </div>
+                        )}
+                        <div>
+                          <dt className="inline">Asked on </dt>
+                          <dd className="inline">{new Date(w.updated_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</dd>
+                        </div>
+                      </dl>
+                      {!w.has_proof && !w.registration_no && <p className="text-[13px] font-medium text-destructive">No ID photo and no registration number.</p>}
+                    </div>
+
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      {w.has_proof && (
+                        <Button size="sm" variant="outline" className="min-h-[36px]" onClick={() => handleOpenProof(w.user_id)}>
+                          <IdCard className="w-4 h-4 mr-1.5" />
+                          View ID
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white min-h-[36px]"
+                        disabled={decidingWriterId === w.user_id}
+                        onClick={() => handleVerify(w.user_id, w.name, true)}
+                      >
+                        {decidingWriterId === w.user_id ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle2 className="w-4 h-4 mr-1.5" />Verify</>}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive border-destructive/30 hover:bg-destructive/10 min-h-[36px]"
+                        disabled={decidingWriterId === w.user_id}
+                        onClick={() => handleVerify(w.user_id, w.name, false)}
+                      >
+                        <XCircle className="w-4 h-4 mr-1.5" />
+                        Cannot verify
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Pending Name Change Requests Section */}
       {pendingRequests.length > 0 && (
@@ -322,6 +475,7 @@ export default function AdminUsersPage() {
                     <th className="pb-3 font-medium">Name</th>
                     <th className="pb-3 font-medium hidden sm:table-cell">Email</th>
                     <th className="pb-3 font-medium">Role</th>
+                    <th className="pb-3 font-medium">Can submit cases</th>
                     <th className="pb-3 font-medium">Change Role</th>
                   </tr>
                 </thead>
@@ -332,6 +486,9 @@ export default function AdminUsersPage() {
                       user={u}
                       isUpdating={updatingUserId === u.id}
                       onRoleChange={handleRoleChange}
+                      writer={writerByUser.get(u.id)}
+                      isDeciding={decidingWriterId === u.id}
+                      onVerify={handleVerify}
                     />
                   ))}
                 </tbody>
