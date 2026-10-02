@@ -208,13 +208,24 @@ async function claimCase(caseId: string, reviewerId: string): Promise<{ claimId:
 }
 
 /** The cases this reviewer could be given now, in the order they would be given: never one they appear to have written. */
-async function casesFor(profile: ReviewerProfile, reviewerId: string, reviewedBefore: ReadonlySet<string>): Promise<QueueItem[]> {
+async function casesFor(
+  profile: ReviewerProfile,
+  reviewerId: string,
+  reviewedBefore: ReadonlySet<string>,
+  /** Cases this reviewer reserved and let lapse without deciding: offered to them last, so nobody can sit on a case. */
+  letLapse: ReadonlySet<string> = new Set()
+): Promise<QueueItem[]> {
   const queue = await reviewQueue(profile);
   const facts = await loadPersonFacts(db(), [reviewerId, ...queue.map((q) => q.authorId ?? '')]);
   return queue
     .filter((q) => !samePersonReason(facts, reviewerId, { authorId: q.authorId ?? null, originalAuthorName: q.originalAuthorName }))
     // a case they reviewed before and that was rebuilt comes back to them first (they know what they asked for); then the oldest
-    .sort((a, b) => Number(reviewedBefore.has(b.caseId)) - Number(reviewedBefore.has(a.caseId)) || a.convertedAt.localeCompare(b.convertedAt));
+    .sort(
+      (a, b) =>
+        Number(letLapse.has(a.caseId)) - Number(letLapse.has(b.caseId)) ||
+        Number(reviewedBefore.has(b.caseId)) - Number(reviewedBefore.has(a.caseId)) ||
+        a.convertedAt.localeCompare(b.convertedAt)
+    );
 }
 
 /** How many cases are waiting that this reviewer could be given. They are not told which. */
@@ -240,7 +251,8 @@ export async function claimNext(reviewerId: string): Promise<{ claimId: string }
   }
 
   const reviewedBefore = new Set(mine.filter((r) => r.decision).map((r) => r.case_id));
-  for (const next of await casesFor(profile, reviewerId, reviewedBefore)) {
+  const letLapse = new Set(mine.filter((r) => !r.decision && !isOpenClaim(r)).map((r) => r.case_id));
+  for (const next of await casesFor(profile, reviewerId, reviewedBefore, letLapse)) {
     const claimed = await claimCase(next.caseId, reviewerId);
     if ('claimId' in claimed) return claimed; // otherwise another reviewer took it this instant: try the one after
   }

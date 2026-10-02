@@ -703,13 +703,15 @@ export async function setPortfolioPublic(userId: string, isPublic: boolean): Pro
 
 export async function getPublicPortfolio(userId: string): Promise<{ user: User; cases: Case[] } | null> {
   const supabase = createServiceClient();
-  const { data: user, error: userError } = await supabase.from('users').select('*').eq('id', userId).single();
+  // Anyone can call this, so it gives out only what a public portfolio shows: the person's name. Never their email,
+  // their sign-in id or their role.
+  const { data: user, error: userError } = await supabase.from('users').select('id, name, portfolio_public').eq('id', userId).maybeSingle();
   if (userError) {
     logSupabaseError('getPublicPortfolio (fetch user)', userError);
   }
   if (!user || !user.portfolio_public) return null;
   const cases = await getApprovedCasesByAuthor(userId);
-  return { user: user as User, cases };
+  return { user: { id: user.id, name: user.name } as User, cases };
 }
 
 export async function updateCaseAddedToPlatform(
