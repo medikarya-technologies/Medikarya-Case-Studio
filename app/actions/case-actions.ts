@@ -82,26 +82,76 @@ export async function fetchAuthorCases(): Promise<Case[]> {
   return cases;
 }
 
+// ── Who may do what with a case ─────────────────────────────────────────────
+// Server actions can be called by anyone on the internet, signed in or not, with any arguments: every one of them
+// has to check for itself who is calling. These three are the checks.
+
+/** The form's own fields. Anything else a caller sends (author_id, status, added_to_platform...) is dropped. */
+const CASE_FORM_FIELDS = [
+  'title',
+  'original_author_name',
+  'specialty',
+  'custom_specialty',
+  'difficulty',
+  'tags',
+  'patient_details',
+  'history',
+  'general_physical_examination',
+  'systemic_examination',
+  'local_examination',
+  'diagnosis',
+  'investigations_info',
+  'custom_fields',
+] as const;
+
+function onlyFormFields(data: CaseFormData): CaseFormData {
+  const source = (data ?? {}) as Record<string, unknown>;
+  return Object.fromEntries(CASE_FORM_FIELDS.filter((k) => k in source).map((k) => [k, source[k]])) as CaseFormData;
+}
+
+/** A case may be read by its author, by faculty reviewers and admins, and by a MediKarya reviewer it was handed to. */
+async function caseForReader(caseId: string, user: User): Promise<Case> {
+  const caseData = await getCaseById(caseId);
+  if (!caseData) throw new Error('Case not found');
+  if (caseData.author_id === user.id || user.role === 'reviewer' || user.role === 'admin') return caseData;
+  const { hasReviewedOrHolds } = await import('@/lib/reviewers/server');
+  if (await hasReviewedOrHolds(user.id, caseId)) return caseData;
+  throw new Error('Case not found');
+}
+
+/** A case may be changed by its author while it is a draft or was sent back, and by an admin. */
+async function caseForEditor(caseId: string, user: User): Promise<Case> {
+  const caseData = await getCaseById(caseId);
+  if (!caseData) throw new Error('Case not found');
+  const ownAndOpen = caseData.author_id === user.id && (caseData.status === 'draft' || caseData.status === 'changes_requested');
+  if (!ownAndOpen && user.role !== 'admin') throw new Error('You cannot change this case');
+  return caseData;
+}
+
 export async function fetchAllCases(): Promise<Case[]> {
-  const cases = await getAllCases();
-  return cases;
+  const user = await getOrCreateCurrentUser();
+  if (user.role !== 'reviewer' && user.role !== 'admin') throw new Error('Only reviewers and admins can list every case');
+  return getAllCases();
 }
 
 export async function fetchCaseById(caseId: string): Promise<Case | null> {
-  const caseData = await getCaseById(caseId);
-  return caseData;
+  const user = await getOrCreateCurrentUser();
+  return caseForReader(caseId, user).catch(() => null);
 }
 
 export async function fetchCaseCommentCounts(
   caseIds: string[]
 ): Promise<Record<string, number>> {
+  await getOrCreateCurrentUser();
   return getCommentCountsByCaseIds(caseIds);
 }
 
 export async function saveDraftCase(data: CaseFormData, caseId?: string): Promise<{ caseId: string }> {
   const user = await getOrCreateCurrentUser();
+  data = onlyFormFields(data);
 
   if (caseId) {
+    await caseForEditor(caseId, user);
     await updateCase(caseId, { ...data, status: 'draft' });
     return { caseId };
   }
@@ -146,6 +196,12 @@ export async function submitCaseAction(caseId: string): Promise<void> {
 }
 
 export async function deleteCaseAction(caseId: string): Promise<void> {
+  const user = await getOrCreateCurrentUser();
+  const caseData = await getCaseById(caseId);
+  if (!caseData) throw new Error('Case not found');
+  // An author can delete their own draft; anything further along only an admin can.
+  const ownDraft = caseData.author_id === user.id && caseData.status === 'draft';
+  if (!ownDraft && user.role !== 'admin') throw new Error('You cannot delete this case');
   await deleteCase(caseId);
 }
 
@@ -162,6 +218,7 @@ async function assertReviewerCanActOnCase(caseId: string, user: User): Promise<C
 
   const caseData = await getCaseById(caseId);
   if (!caseData) throw new Error('Case not found');
+  if (caseData.author_id === user.id) throw new Error('You cannot review a case you wrote yourself');
 
   if (
     caseData.assigned_reviewer_id &&
@@ -277,14 +334,14 @@ export async function assignReviewerAction(
 }
 
 export async function fetchCaseCommentsAction(caseId: string): Promise<CaseComment[]> {
-  await getOrCreateCurrentUser();
+  const user = await getOrCreateCurrentUser();
+  await caseForReader(caseId, user);
   return getCaseComments(caseId);
 }
 
 export async function addCaseCommentAction(caseId: string, message: string): Promise<CaseComment | null> {
   const user = await getOrCreateCurrentUser();
-  const caseData = await getCaseById(caseId);
-  if (!caseData) throw new Error('Case not found');
+  const caseData = await caseForReader(caseId, user);
 
   const trimmed = message.trim();
   if (!trimmed) throw new Error('Comment cannot be empty');
@@ -572,6 +629,13 @@ export async function firstTimeEditNameAction(newName: string): Promise<void> {
   const user = await getOrCreateCurrentUser();
   if (user.name_edited_once) {
     throw new Error('You have already edited your name once. Please submit a name change request for further changes.');
+  }
+  // A reviewer's name is what an admin checked against the medical register, and it is printed on cases and
+  // certificates: once they have applied, it changes only through a request an admin approves.
+  const supabase = (await import('@/lib/supabase/server')).createServiceClient();
+  const { data: reviewerProfile } = await supabase.from('reviewer_profiles').select('status').eq('user_id', user.id).maybeSingle();
+  if (reviewerProfile && reviewerProfile.status !== 'rejected') {
+    throw new Error('As a reviewer, please submit a name change request: your name is verified against your registration.');
   }
   const trimmed = newName.trim();
   if (!trimmed) {

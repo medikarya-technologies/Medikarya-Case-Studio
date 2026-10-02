@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { submitConversionReview } from '@/app/actions/reviewer-actions';
 
 // The reviewer's decision. Who they are comes from their verified reviewer profile, so nothing to type but the verdict.
-export function DecisionForm({ claimId, reviewerName, credit }: { claimId: string; reviewerName: string; credit: string }) {
+export function DecisionForm({ claimId, reviewerName, credit, backHref }: { claimId: string; reviewerName: string; credit: string; backHref: string }) {
   const router = useRouter();
   const [comments, setComments] = useState('');
   const [showName, setShowName] = useState(true);
@@ -19,7 +19,7 @@ export function DecisionForm({ claimId, reviewerName, credit }: { claimId: strin
       if (!r.ok) toast.error(r.error);
       else {
         toast.success(decision === 'approved' ? 'Approved. Thank you!' : 'Sent back with your comments. Thank you!');
-        router.push('/dashboard/reviewer/medikarya');
+        router.push(backHref);
         router.refresh();
       }
     });

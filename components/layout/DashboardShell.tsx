@@ -109,7 +109,7 @@ export function DashboardShell({ children, navItems, roleLabel }: DashboardShell
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <header className="bg-card border-b border-border px-4 lg:px-6 py-3 flex items-center justify-between shadow-sm">
+        <header className="bg-card border-b border-border px-4 lg:px-10 py-2.5 flex items-center justify-between">
           <button
             onClick={() => setIsMobileMenuOpen(true)}
             className="lg:hidden p-2 rounded-lg hover:bg-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
@@ -131,7 +131,9 @@ export function DashboardShell({ children, navItems, roleLabel }: DashboardShell
             </div>
           </div>
         </header>
-        <div className="flex-1 overflow-y-auto p-4 lg:p-8 page-enter">{children}</div>
+        <div className="flex-1 overflow-y-auto px-4 py-6 lg:px-10 lg:py-9 page-enter">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
+        </div>
       </main>
     </div>
   );

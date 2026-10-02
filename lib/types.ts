@@ -53,6 +53,8 @@ export interface PatientDetails {
   religion?: string;
   occupation?: string;
   address?: string;
+  /** The patient's state (lib/indian-states.ts). Unlike the place, it is passed on when the case becomes a MediKarya patient. */
+  state?: string;
   date_of_admission?: string;
   // Backward compatibility fields
   patient_id?: string;

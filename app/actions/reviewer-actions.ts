@@ -6,13 +6,13 @@
 import { revalidatePath } from 'next/cache';
 import { getOrCreateCurrentUser } from './case-actions';
 import {
-  claimCase,
+  claimNext,
   decideApplication,
   getReviewerProfile,
   listApplications,
   myReviews,
   recordConversionDecision,
-  reviewQueue,
+  waitingCount,
   saveApplication,
   type Application,
 } from '@/lib/reviewers/server';
@@ -42,19 +42,22 @@ export async function submitReviewerApplication(a: Application): Promise<Result>
 export async function fetchMyReviewerState() {
   const user = await getOrCreateCurrentUser();
   const profile = await getReviewerProfile(user.id);
-  const [queue, mine] = profile?.status === 'approved' ? await Promise.all([reviewQueue(profile), myReviews(user.id)]) : [[], []];
-  return { user: { name: user.name, role: user.role }, profile, queue, mine };
+  const [waiting, mine] = profile?.status === 'approved' ? await Promise.all([waitingCount(profile, user.id), myReviews(user.id)]) : [0, []];
+  // how many cases are waiting, not which: the next one is handed out, not chosen
+  return { user: { name: user.name, role: user.role }, profile, waiting, mine };
 }
 
-export async function claimCaseAction(caseId: string): Promise<Result<{ claimId: string }>> {
+export async function claimNextCaseAction(): Promise<Result<{ claimId: string }>> {
   try {
     const user = await getOrCreateCurrentUser();
-    const r = await claimCase(caseId, user.id);
+    const r = await claimNext(user.id);
     if ('error' in r) return { ok: false, error: r.error };
     revalidatePath('/dashboard/reviewer/medikarya');
+    revalidatePath('/dashboard/admin/medikarya');
+    revalidatePath('/dashboard/author/medikarya');
     return { ok: true, data: { claimId: r.claimId } };
   } catch (error) {
-    return fail(error, 'Could not claim the case.');
+    return fail(error, 'Could not get your next case.');
   }
 }
 
@@ -67,6 +70,8 @@ export async function submitConversionReview(
     const r = await recordConversionDecision(claimId, user.id, d);
     if ('error' in r) return { ok: false, error: r.error };
     revalidatePath('/dashboard/reviewer/medikarya');
+    revalidatePath('/dashboard/admin/medikarya');
+    revalidatePath('/dashboard/author/medikarya');
     return { ok: true };
   } catch (error) {
     return fail(error, 'Could not save your review.');

@@ -3,6 +3,7 @@ import type { Case, User, CustomField } from '@/lib/types';
 import type { ResolvedImageMap } from '@/app/actions/attachment-actions';
 import { formatSpecialtyLabel } from '@/lib/specialtyIcons';
 import { PDFRichText } from './PDFRichText';
+import { richTextToPlain } from '@/lib/rich-text';
 
 function PDFCustomFields({
   customFields,
@@ -275,7 +276,7 @@ function RunningFooter() {
   return (
     <View style={styles.runningFooter} fixed>
       <Text style={styles.runningFooterText}>
-        Generated via MediKarya • Exported on {new Date().toLocaleDateString()}
+        Generated via MediKarya • Exported on {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
       </Text>
       <Text
         style={styles.runningFooterPage}
@@ -336,11 +337,11 @@ function DemographicsBox({ caseData }: { caseData: Case }) {
         </View>
         <View style={styles.gridCol}>
           <Text style={styles.gridLabel}>Date of Admission:</Text>
-          <Text style={styles.gridValue}>{pd.date_of_admission || (pd.presenting_date ? new Date(pd.presenting_date).toLocaleDateString() : 'N/A')}</Text>
+          <Text style={styles.gridValue}>{pd.date_of_admission || (pd.presenting_date ? new Date(pd.presenting_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A')}</Text>
         </View>
         <View style={[styles.gridCol, { width: '100%' }]}>
           <Text style={[styles.gridLabel, { width: '20%' }]}>Place:</Text>
-          <Text style={[styles.gridValue, { width: '80%' }]}>{pd.address || pd.location || 'N/A'}</Text>
+          <Text style={[styles.gridValue, { width: '80%' }]}>{[pd.address || pd.location, pd.state].filter(Boolean).join(', ') || 'N/A'}</Text>
         </View>
       </View>
       <PDFCustomFields customFields={caseData.custom_fields} sectionId="patient_details" />
@@ -366,7 +367,7 @@ function ApprovalSignoff({ caseData }: { caseData: Case }) {
     <View style={styles.approvalBox} wrap={false}>
       <Text style={styles.approvalHeader}>APPROVED FOR CLINICAL REVIEW</Text>
       <Text style={styles.approvalDetails}>
-        Verified by Reviewer   |   Approval Date: {new Date(caseData.approved_at).toLocaleDateString()}
+        Verified by Reviewer   |   Approval Date: {new Date(caseData.approved_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
       </Text>
     </View>
   );
@@ -649,13 +650,14 @@ export function CaseDocument({
             {invsInfo?.confirmation_performed === 'no' ? (
               <View style={styles.paragraph}>
                 <Text style={{ fontSize: 9, color: pdfTheme.colors.textSecondary, fontStyle: 'italic' }}>
-                  Not Performed — Reason: {invsInfo.confirmation_not_performed_reason || 'No explanation provided.'}
+                  Not Performed — Reason: {richTextToPlain(invsInfo.confirmation_explanation) || 'No explanation provided.'}
                 </Text>
               </View>
             ) : invsInfo?.confirmation_performed === 'not_required' ? (
               <View style={styles.paragraph}>
                 <Text style={{ fontSize: 9, color: pdfTheme.colors.textSecondary, fontStyle: 'italic' }}>
                   Not Required for this clinical presentation.
+                  {richTextToPlain(invsInfo.confirmation_explanation) ? ` Rationale: ${richTextToPlain(invsInfo.confirmation_explanation)}` : ''}
                 </Text>
               </View>
             ) : (
@@ -695,6 +697,7 @@ export function CaseDocument({
               <View style={styles.paragraph}>
                 <Text style={{ fontSize: 9, color: pdfTheme.colors.textSecondary, fontStyle: 'italic' }}>
                   Not Applicable / Not Required for this case.
+                  {richTextToPlain(invsInfo.staging_explanation) ? ` ${richTextToPlain(invsInfo.staging_explanation)}` : ''}
                 </Text>
               </View>
             ) : (

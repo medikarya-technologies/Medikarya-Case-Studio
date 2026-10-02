@@ -15,7 +15,7 @@ export const getUserByClerkId = cache(async (clerkId: string): Promise<User | nu
     .from('users')
     .select('*')
     .eq('clerk_id', clerkId)
-    .single();
+    .maybeSingle(); // no row yet is normal for someone signing in for the first time
 
   if (error) {
     logSupabaseError('getUserByClerkId', error);
@@ -36,6 +36,15 @@ export const getOrCreateUser = cache(async (
   }
 
   const supabase = createServiceClient();
+
+  // On a development machine only: localhost signs in through Clerk's development instance, which gives the same
+  // person a different Clerk id than the live site does, while both share this database. Use their existing account
+  // (found by email) instead of failing to create a second one. Nothing is written, so the live site is unaffected.
+  if (process.env.NODE_ENV !== 'production' && email) {
+    const { data: sameEmail } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
+    if (sameEmail) return sameEmail as User;
+  }
+
   const { data: newUser, error } = await supabase
     .from('users')
     .insert([{ clerk_id: clerkId, name, email, role }])
@@ -135,9 +144,9 @@ export async function getCaseById(
   const client = supabase || createServiceClient();
   const { data: caseData, error: caseError } = await client
     .from('cases')
-    .select('*')
+    .select('*, author:users!cases_author_id_fkey(id, name, email)')
     .eq('id', caseId)
-    .single();
+    .maybeSingle();
 
   if (caseError) {
     logSupabaseError('getCaseById (fetch case)', caseError);
@@ -263,12 +272,10 @@ export async function createCase(
     ...(customSpecialty ? { custom_specialty: customSpecialty } : {}),
   };
 
-  console.log('createCase: inserting into cases:', { author_id: userId, ...caseData });
-
   let insertPayload: any = {
-    author_id: userId,
     ...caseData,
     patient_details: enrichedPatientDetails,
+    author_id: userId, // last, so nothing in caseData can name a different author
   };
 
   let { data: newCase, error: caseError } = await supabase
@@ -333,8 +340,6 @@ export async function updateCase(
         ...(customSpecialty ? { custom_specialty: customSpecialty } : {}),
       }
     : undefined;
-
-  console.log('updateCase: updating case', caseId, 'with:', caseData);
 
   const updatePayload: any = {
     ...caseData,

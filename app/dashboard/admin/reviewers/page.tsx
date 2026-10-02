@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { decideReviewerApplication, fetchReviewerApplications } from '@/app/actions/reviewer-actions';
+import { setAdvisoryBoardAction } from '@/app/actions/reward-actions';
+import { ADVISORY_BOARD_TITLE } from '@/lib/rewards/config';
 import { KIND_LABEL, type ApplicationWithUser } from '@/lib/reviewers/shared';
 import { REVIEW_SPECIALTIES, specialtyLabel } from '@/lib/reviewers/specialties';
 
@@ -22,11 +24,31 @@ const STATUS_STYLE: Record<string, string> = {
   rejected: 'bg-red-100 text-red-800',
 };
 
+function Field({ name, wide, children }: { name: string; wide?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={wide ? 'sm:col-span-2' : undefined}>
+      <dt className="field-name">{name}</dt>
+      <dd className="mt-0.5 text-[15px] font-medium text-foreground">{children}</dd>
+    </div>
+  );
+}
+
 function ApplicationCard({ a, onDone }: { a: ApplicationWithUser; onDone: () => void }) {
   const [pending, start] = useTransition();
   const [chosen, setChosen] = useState<string[]>(a.status === 'approved' ? a.approved_specialties : a.specialties);
   const [note, setNote] = useState(a.admin_note ?? '');
   const toggle = (s: string) => setChosen(chosen.includes(s) ? chosen.filter((x) => x !== s) : [...chosen, s]);
+  const onBoard = !!a.advisory_board;
+
+  const setBoard = () =>
+    start(async () => {
+      const r = await setAdvisoryBoardAction(a.user_id, !onBoard);
+      if (!r.ok) toast.error(r.error);
+      else {
+        toast.success(onBoard ? `${a.name} is no longer on the advisory board.` : `${a.name} is now on the ${ADVISORY_BOARD_TITLE}.`);
+        onDone();
+      }
+    });
 
   const decide = (approve: boolean) =>
     start(async () => {
@@ -42,21 +64,35 @@ function ApplicationCard({ a, onDone }: { a: ApplicationWithUser; onDone: () => 
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-lg font-semibold text-foreground">{a.name}</p>
+          <p className="font-display text-xl font-semibold text-foreground">{a.name}</p>
           <p className="text-sm text-muted-foreground">{a.email}</p>
         </div>
-        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLE[a.status]}`}>{a.status}</span>
+        <div className="flex items-center gap-2">
+          {onBoard && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">{ADVISORY_BOARD_TITLE}</span>}
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${STATUS_STYLE[a.status]}`}>{a.status}</span>
+        </div>
       </div>
 
-      <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-        <div><dt className="inline text-muted-foreground">Role: </dt><dd className="inline">{KIND_LABEL[a.kind]}{a.designation ? `, ${a.designation}` : ''}</dd></div>
-        <div><dt className="inline text-muted-foreground">Department: </dt><dd className="inline">{a.department ?? '—'}</dd></div>
-        <div className="sm:col-span-2"><dt className="inline text-muted-foreground">Institution: </dt><dd className="inline">{a.institution}</dd></div>
-        <div><dt className="inline text-muted-foreground">Council: </dt><dd className="inline">{a.council ?? '—'}</dd></div>
-        <div><dt className="inline text-muted-foreground">Registration no.: </dt><dd className="inline font-mono">{a.registration_no ?? '—'}</dd></div>
-        <div><dt className="inline text-muted-foreground">UPI: </dt><dd className="inline">{a.upi_id ?? '—'}</dd></div>
-        <div><dt className="inline text-muted-foreground">Applied: </dt><dd className="inline">{new Date(a.created_at).toLocaleDateString('en-IN')}</dd></div>
+      <dl className="mt-4 grid gap-x-6 gap-y-3.5 border-y border-border py-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Field name="Role">{KIND_LABEL[a.kind]}{a.designation ? `, ${a.designation}` : ''}</Field>
+        <Field name="Department">{a.department ?? '—'}</Field>
+        <Field name="Institution" wide>{a.institution}</Field>
+        <Field name="Council">{a.council ?? '—'}</Field>
+        <Field name="Registration no."><span className="font-mono">{a.registration_no ?? '—'}</span></Field>
+        <Field name="UPI"><span className="font-mono">{a.upi_id ?? '—'}</span></Field>
+        <Field name="Applied">{new Date(a.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Field>
       </dl>
+
+      {a.cases_reviewed > 0 && (
+        <p className="mt-3 text-sm text-foreground">
+          <span className="font-semibold">
+            {a.cases_reviewed} case{a.cases_reviewed === 1 ? '' : 's'} reviewed
+          </span>
+          <span className="text-muted-foreground">
+            , changes asked on {a.cases_sent_back}. What they asked for is in Case Records on MediKarya.
+          </span>
+        </p>
+      )}
 
       <div className="mt-3 flex flex-wrap gap-2 text-sm">
         <a href={IMR_SEARCH} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
@@ -100,6 +136,15 @@ function ApplicationCard({ a, onDone }: { a: ApplicationWithUser; onDone: () => 
           )}
         </div>
       </div>
+
+      {a.status === 'approved' && (
+        <p className="mt-3 text-sm text-muted-foreground">
+          {onBoard ? `On the ${ADVISORY_BOARD_TITLE}: the title replaces their reviewer title, and they get a certificate for it.` : `An honorary title for one or two senior reviewers.`}{' '}
+          <button type="button" disabled={pending} onClick={setBoard} className="font-medium text-primary hover:underline disabled:opacity-50">
+            {onBoard ? 'Remove from the board' : `Add to the ${ADVISORY_BOARD_TITLE}`}
+          </button>
+        </p>
+      )}
     </div>
   );
 }

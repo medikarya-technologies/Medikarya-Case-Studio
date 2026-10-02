@@ -32,14 +32,15 @@ export const caseSchema = z
     patient_details: z.object({
       case_no: z.string().min(1, 'Case No. is required'),
       patient_name: z.string().min(1, 'Patient Name is required'),
-      age: z.union([z.number({ required_error: 'Age is required' }), z.nan()]).refine(
+      age: z.union([z.number({ error: 'Age is required' }), z.nan()]).refine(
         (val) => !isNaN(val as number),
         { message: 'Age is required' }
       ),
-      sex: z.enum(['male', 'female', 'other'], { required_error: 'Sex is required' }),
+      sex: z.enum(['male', 'female', 'other'], { error: 'Sex is required' }),
       religion: z.string().optional(),
       occupation: z.string().min(1, 'Occupation is required'),
       address: z.string().min(1, 'Place is required'),
+      state: z.string().optional(),
       date_of_admission: z.string().optional(),
 
       // Backward compatibility fields

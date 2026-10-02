@@ -4,80 +4,37 @@ import { ReactNode } from 'react';
 import { ClerkProvider, useUser } from '@clerk/nextjs';
 import { Navbar } from '@/components/layout/Navbar';
 import { AuthSplash } from '@/components/layout/AuthSplash';
-import { useEffect, useState, useRef } from 'react';
-import { createSupabaseClient } from '@/lib/supabase/client';
 import { usePathname } from 'next/navigation';
 
-function UserSync({ children }: { children: ReactNode }) {
-  const { user, isLoaded: isClerkLoaded } = useUser();
-  const [isSyncing, setIsSyncing] = useState(false);
+/** The front page and the sign-in pages: they get the site's top bar. */
+function isPublicPage(pathname: string) {
+  return pathname === '/' || pathname.startsWith('/sign-');
+}
+
+/** Pages that are about the signed-in person. The public ones (contributors, certificates, the reviewer page) show at once. */
+function needsSession(pathname: string) {
+  return pathname.startsWith('/dashboard') || pathname.startsWith('/cases');
+}
+
+// The account row in our database is made on the server the first time a signed-in person opens a page
+// (getOrCreateUser), so there is nothing to sync from the browser: this only holds the page until Clerk has loaded.
+function WaitForSession({ children }: { children: ReactNode }) {
+  const { isLoaded } = useUser();
   const pathname = usePathname();
-  const isPublicLandingPage = pathname === '/' || pathname.startsWith('/sign-');
-  const syncedUserIdRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!isClerkLoaded) return;
-    if (!user) return;
-    // Don't re-sync or block if this user ID has already synced in this session
-    if (syncedUserIdRef.current === user.id) return;
-
-    const syncUser = async () => {
-      // Only show splash on the very first sync if needed
-      if (!syncedUserIdRef.current) {
-        setIsSyncing(true);
-      }
-      try {
-        const supabase = createSupabaseClient();
-
-        const { data } = await supabase
-          .from('users')
-          .select('*')
-          .eq('clerk_id', user.id)
-          .single();
-
-        if (!data) {
-          const role = (user.publicMetadata?.role as string) || 'author';
-          await supabase.from('users').insert([
-            {
-              clerk_id: user.id,
-              name: user.fullName || user.firstName || '',
-              email: user.primaryEmailAddress?.emailAddress || '',
-              role,
-            },
-          ]);
-        }
-        syncedUserIdRef.current = user.id;
-      } catch (e) {
-        console.error('Error syncing user:', e);
-      } finally {
-        setIsSyncing(false);
-      }
-    };
-
-    syncUser();
-  }, [user?.id, isClerkLoaded]);
-
-  if (!isPublicLandingPage && (!isClerkLoaded || (isSyncing && !syncedUserIdRef.current))) {
-    return <AuthSplash />;
-  }
-
+  if (needsSession(pathname) && !isLoaded) return <AuthSplash />;
   return <>{children}</>;
 }
 
 export function Providers({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isPublicLandingPage = pathname === '/' || pathname.startsWith('/sign-');
+  const isPublicLandingPage = isPublicPage(pathname);
 
   return (
     <ClerkProvider>
-      <UserSync>
+      <WaitForSession>
         {isPublicLandingPage && <Navbar />}
-        {isPublicLandingPage ? (
-          <main>{children}</main>
-        ) : (
-          children
-        )}
-      </UserSync>
+        {isPublicLandingPage ? <main>{children}</main> : children}
+      </WaitForSession>
     </ClerkProvider>
   );
 }

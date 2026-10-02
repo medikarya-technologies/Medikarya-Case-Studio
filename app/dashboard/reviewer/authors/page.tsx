@@ -602,7 +602,7 @@ export default function ReviewerAuthorOverviewPage() {
                           <span>•</span>
                           <span>Completeness: <strong className="text-foreground">{completeness.score}%</strong></span>
                           <span>•</span>
-                          <span>Created: {new Date(caseItem.created_at).toLocaleDateString()}</span>
+                          <span>Created: {new Date(caseItem.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                         </div>
                       </div>
 

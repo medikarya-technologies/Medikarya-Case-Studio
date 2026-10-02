@@ -23,6 +23,8 @@ import type { Case, CaseAttachment } from '@/lib/types';
 import { saveDraftCase, submitCaseAction, fetchCaseById } from '@/app/actions/case-actions';
 import { AttachmentUploader } from '@/components/attachments/AttachmentUploader';
 import { AttachmentGallery } from '@/components/attachments/AttachmentGallery';
+import { CasePreview } from '@/components/case/CasePreview';
+import { STATE_OPTIONS } from '@/lib/indian-states';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CustomFieldsSection } from '@/components/case/form/CustomFieldsSection';
@@ -55,6 +57,7 @@ const DEFAULT_FORM_DATA: CaseFormData = {
     religion: '',
     occupation: '',
     address: '',
+    state: '',
     date_of_admission: '',
   },
   history: {
@@ -144,7 +147,7 @@ export default function EditCasePage() {
     resolver: zodResolver(caseSchema),
     defaultValues: DEFAULT_FORM_DATA,
   });
-  const { control, handleSubmit, watch, getValues, reset, setError, formState: { errors, isDirty } } = methods;
+  const { control, handleSubmit, watch, getValues, setValue, reset, setError, formState: { errors, isDirty } } = methods;
 
   const localRegion = watch('local_examination.region');
   const patientSex = watch('patient_details.sex') || watch('patient_details.gender' as any);
@@ -210,6 +213,7 @@ export default function EditCasePage() {
               religion: data.patient_details?.religion || '',
               occupation: data.patient_details?.occupation || '',
               address: data.patient_details?.address || data.patient_details?.location || '',
+              state: data.patient_details?.state || '',
               date_of_admission: data.patient_details?.date_of_admission || data.patient_details?.presenting_date || '',
               declarations: data.patient_details?.declarations,
             },
@@ -461,10 +465,6 @@ export default function EditCasePage() {
 
   if (isPreviewMode) {
     const data = getValues();
-    const localTitle = data.local_examination?.region?.trim()
-      ? `Local Examination (${data.local_examination.region.trim()})`
-      : 'Local Examination';
-
     return (
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
@@ -475,97 +475,7 @@ export default function EditCasePage() {
           </Button>
         </div>
 
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold">{data.title}</h1>
-            <div className="flex gap-2 items-center">
-              <Badge>{data.difficulty}</Badge>
-              <Badge variant="secondary">{formatSpecialtyLabel(data.specialty, data.custom_specialty)}</Badge>
-            </div>
-          </div>
-
-          <Card>
-            <CardHeader><CardTitle>1. Patient Details</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4 text-sm">
-              <div><Label className="text-muted-foreground">Case No.</Label><p>{data.patient_details.case_no}</p></div>
-              <div><Label className="text-muted-foreground">Patient Name</Label><p className="font-semibold">{data.patient_details.patient_name}</p></div>
-              <div><Label className="text-muted-foreground">Age</Label><p>{data.patient_details.age}</p></div>
-              <div><Label className="text-muted-foreground">Sex</Label><p className="capitalize">{data.patient_details.sex}</p></div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>2. History</CardTitle></CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div><Label className="text-muted-foreground">Presenting Complaints</Label><p className="font-medium">{data.history.presenting_complaints}</p></div>
-              <div><Label className="text-muted-foreground">History of Present Illness</Label><p>{data.history.history_of_present_illness}</p></div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>5. {localTitle}</CardTitle></CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              {data.local_examination?.inspection && <div><Label className="text-muted-foreground">Inspection</Label><p>{data.local_examination.inspection}</p></div>}
-              {data.local_examination?.palpation && <div><Label className="text-muted-foreground">Palpation</Label><p>{data.local_examination.palpation}</p></div>}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>6. Diagnosis</CardTitle></CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div><Label className="text-muted-foreground">Provisional Diagnosis</Label><p className="font-semibold">{data.diagnosis.provisional_diagnosis}</p></div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>7. Investigations</CardTitle></CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div className="p-3 border rounded-md space-y-2">
-                <p className="font-semibold text-foreground">7.1 Confirmation of Diagnosis</p>
-                {data.investigations_info?.confirmation_performed === 'no' ? (
-                  <p className="text-muted-foreground">Not Performed: {data.investigations_info?.confirmation_explanation || 'No reason provided.'}</p>
-                ) : data.investigations_info?.confirmation_performed === 'not_required' ? (
-                  <p className="text-muted-foreground">Not Required: {data.investigations_info?.confirmation_explanation || 'Clinical diagnosis established.'}</p>
-                ) : (
-                  <div>
-                    {data.investigations_info?.investigations_confirmation ? (
-                      <div dangerouslySetInnerHTML={{ __html: data.investigations_info.investigations_confirmation }} />
-                    ) : (
-                      <p className="text-muted-foreground italic">Written findings not entered (see attached reports/scans).</p>
-                    )}
-                  </div>
-                )}
-                {attachments.filter((a) => a.investigation_group === 'confirmation').length > 0 && (
-                  <div className="pt-2">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">Attached Reports / Scans ({attachments.filter((a) => a.investigation_group === 'confirmation').length})</p>
-                    <AttachmentGallery attachments={attachments.filter((a) => a.investigation_group === 'confirmation')} canDelete={false} />
-                  </div>
-                )}
-              </div>
-
-              <div className="p-3 border rounded-md space-y-2">
-                <p className="font-semibold text-foreground">7.2 Determining Extent of Disease (Staging)</p>
-                {data.investigations_info?.staging_applicable === 'no' ? (
-                  <p className="text-muted-foreground">Not Applicable {data.investigations_info?.staging_explanation ? `(${data.investigations_info.staging_explanation})` : ''}</p>
-                ) : (
-                  <div>
-                    {data.investigations_info?.investigations_staging ? (
-                      <div dangerouslySetInnerHTML={{ __html: data.investigations_info.investigations_staging }} />
-                    ) : (
-                      <p className="text-muted-foreground italic">Written findings not entered (see attached reports/scans).</p>
-                    )}
-                  </div>
-                )}
-                {attachments.filter((a) => a.investigation_group === 'staging').length > 0 && (
-                  <div className="pt-2">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">Attached Staging Reports / Scans ({attachments.filter((a) => a.investigation_group === 'staging').length})</p>
-                    <AttachmentGallery attachments={attachments.filter((a) => a.investigation_group === 'staging')} canDelete={false} />
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <CasePreview data={data} attachments={attachments} />
 
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setIsPreviewMode(false)} disabled={isSubmitting}>
@@ -599,20 +509,24 @@ export default function EditCasePage() {
                     step.number < currentStep
                       ? 'bg-primary border-primary text-primary-foreground group-hover:bg-primary/90'
                       : step.number === currentStep
-                      ? 'bg-primary/10 border-primary text-primary'
+                      ? 'bg-card border-primary text-primary ring-4 ring-primary/15'
                       : 'border-muted-foreground text-muted-foreground group-hover:border-primary/50'
                   }`}
                 >
                   {step.number < currentStep ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : step.number}
                 </div>
-                <span className="mt-2 text-xs font-medium text-center w-16 sm:w-20 hidden sm:block">
+                <span
+                  className={`mt-2 text-xs text-center w-16 sm:w-20 hidden sm:block ${
+                    step.number === currentStep ? 'font-bold text-primary' : step.number < currentStep ? 'font-medium text-foreground' : 'font-medium text-muted-foreground'
+                  }`}
+                >
                   {step.title}
                 </span>
               </button>
               {i < steps.length - 1 && (
                 <div
                   className={`flex-1 h-1 mx-1 sm:mx-2 min-w-[12px] ${
-                    step.number < currentStep ? 'bg-primary' : 'bg-muted-foreground/30'
+                    step.number < currentStep ? 'bg-primary' : 'bg-border'
                   }`}
                 />
               )}
@@ -823,7 +737,7 @@ export default function EditCasePage() {
                       <p className="text-sm text-destructive">{errors.patient_details.occupation.message}</p>
                     )}
                   </div>
-                  <div className="space-y-2 col-span-2">
+                  <div className="space-y-2">
                     <Label>Place <span className="text-destructive">*</span></Label>
                     <Controller
                       name="patient_details.address"
@@ -833,6 +747,24 @@ export default function EditCasePage() {
                     {errors.patient_details?.address && (
                       <p className="text-sm text-destructive">{errors.patient_details.address.message}</p>
                     )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="patient_state">State <span className="text-xs text-muted-foreground font-normal">(Optional)</span></Label>
+                    <Controller
+                      name="patient_details.state"
+                      control={control}
+                      render={({ field }: any) => (
+                        <select id="patient_state" className="select-field" {...field} value={field.value || ''}>
+                          <option value="">Select state</option>
+                          {STATE_OPTIONS.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    />
+                    <p className="field-hint">Kept when the case becomes a MediKarya patient. The place is not.</p>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">

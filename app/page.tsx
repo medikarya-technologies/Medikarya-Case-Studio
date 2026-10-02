@@ -1,75 +1,105 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import {
-  FileText,
-  Users,
-  Shield,
-  PenTool,
-  Send,
-  CheckCircle,
-  Download,
-  ArrowRight,
-} from 'lucide-react';
+import { ArrowRight, BadgeCheck, Check, ShieldCheck, Stethoscope } from 'lucide-react';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getOrCreateUser } from '@/lib/supabase/queries';
+import { getReviewerProfile } from '@/lib/reviewers/server';
 import { Logo } from '@/components/layout/Logo';
-import { APP_NAME, APP_DESCRIPTION } from '@/lib/constants';
+import { APP_NAME } from '@/lib/constants';
+import { CONTRIBUTOR_RANKS, REVIEWER_RANKS } from '@/lib/rewards/config';
 
-const steps = [
-  {
-    icon: PenTool,
-    title: 'Write',
-    description:
-      'Use structured templates to draft patient details, history, examination, investigations, and management.',
-  },
-  {
-    icon: Send,
-    title: 'Submit',
-    description:
-      'Send your completed case to faculty reviewers for constructive feedback and academic oversight.',
-  },
-  {
-    icon: CheckCircle,
-    title: 'Review & Approve',
-    description:
-      'Reviewers evaluate clinical accuracy and structure, approving cases or requesting targeted revisions.',
-  },
-  {
-    icon: Download,
-    title: 'Export PDF',
-    description:
-      'Build your portfolio with professionally formatted, approved case reports ready to share.',
-  },
+// The public front page. Signed-in people never see it: they go straight to their dashboard.
+// Its job: tell a medical student, and a doctor, what happens to a case here, in the order it happens.
+
+const JOURNEY = [
+  { title: 'You write it', text: 'A case you saw on the ward, on a structured seven-part sheet. Made-up name, no real identifiers.' },
+  { title: 'Faculty review it', text: 'A reviewer reads your sheet and approves it, or tells you exactly what to fix.' },
+  { title: 'It becomes a patient', text: 'With your permission, MediKarya turns it into an interactive patient, and a doctor checks that version too.' },
+  { title: 'It goes live, with your name', text: 'Students practise on it at medikarya.in. You get the credit, a title and a certificate.' },
 ];
 
-const features = [
-  {
-    icon: FileText,
-    title: 'Structured Case Templates',
-    description:
-      'Guided multi-step forms for cardiology, internal medicine, emergency medicine, and more.',
-  },
-  {
-    icon: Users,
-    title: 'Faculty Review & Feedback',
-    description:
-      'Get meaningful review from professors and peers before your case is approved.',
-  },
-  {
-    icon: Download,
-    title: 'Professional PDF Export',
-    description:
-      'Export approved cases as polished PDFs for portfolios, presentations, and study groups.',
-  },
-  {
-    icon: Shield,
-    title: 'Role-Based Dashboards',
-    description:
-      'Tailored views for authors, reviewers, and admins with secure access controls.',
-  },
-];
+const SHEET_SECTIONS = ['Patient details', 'History', 'General physical examination', 'Systemic examination', 'Local examination', 'Diagnosis', 'Investigations'];
+
+/** A case sheet as it looks in the studio, drawn small: the thing this site is for. */
+function SheetPreview() {
+  const row = (name: string, value: string) => (
+    <div>
+      <p className="field-name">{name}</p>
+      <p className="mt-0.5 text-[13px] font-medium leading-snug text-foreground">{value}</p>
+    </div>
+  );
+  return (
+    <div className="relative isolate mx-auto w-full max-w-md lg:mx-0 lg:ml-auto">
+      <div className="absolute -inset-2 -z-10 rotate-3 rounded-2xl border border-primary/25 bg-brand-muted" aria-hidden />
+      <div className="relative overflow-hidden rounded-xl border border-border bg-card shadow-[0_18px_50px_-18px_rgba(31,81,56,0.45)]">
+        <div className="flex items-start justify-between gap-3 border-b border-border bg-muted/50 px-5 py-3.5">
+          <div>
+            <p className="eyebrow">Case sheet</p>
+            <p className="mt-1 font-display text-[17px] font-semibold leading-snug text-foreground">Fever and productive cough in a 45-year-old man</p>
+          </div>
+          <span className="mt-1 shrink-0 rounded-full bg-status-approved px-2.5 py-0.5 text-[11px] font-bold text-white">Approved</span>
+        </div>
+        <div className="space-y-3.5 px-5 py-4">
+          {row('Presenting complaints', 'Fever for 5 days. Cough with yellow sputum for 4 days.')}
+          <div className="grid grid-cols-3 gap-3 border-y border-border py-3">
+            {row('Pulse', '104/min')}
+            {row('BP', '118/76')}
+            {row('Temp', '38.9 °C')}
+          </div>
+          {row('Provisional diagnosis', 'Community-acquired pneumonia, right lower lobe')}
+        </div>
+        <div className="flex items-center gap-2 border-t border-border bg-brand-muted/60 px-5 py-2.5 text-[12.5px] text-primary">
+          <BadgeCheck className="h-4 w-4 shrink-0" />
+          <span>
+            <span className="font-semibold">Clinically reviewed</span> before it reaches students
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** A small certificate, in the same style as the real one (/certificate/<id>). */
+function CertificatePreview() {
+  return (
+    <div className="mx-auto w-full max-w-md bg-[#FFFEFA] p-2.5 shadow-[0_18px_50px_-18px_rgba(0,0,0,0.6)]">
+      <div className="border-2 border-[#2F7A5C] px-6 py-7 text-center outline outline-1 -outline-offset-[7px] outline-[#2F7A5C]">
+        <div className="flex items-center justify-center gap-2 text-[#16302B]">
+          <Logo size={20} />
+          <span className="text-[15px] font-extrabold tracking-tight">MediKarya</span>
+        </div>
+        <p className="mt-4 text-[9px] font-semibold uppercase tracking-[0.4em] text-[#2F7A5C]">Certificate of Recognition</p>
+        <p className="mt-3 text-[11px] text-[#5B6F69]">This is to certify that</p>
+        <p className="mt-1 font-serif text-[26px] font-bold leading-tight text-[#16302B]">Your Name</p>
+        <div className="mx-auto mt-2 h-px w-40 bg-[#2F7A5C]/50" />
+        <p className="mt-3 text-[11px] text-[#5B6F69]">has been recognised as</p>
+        <p className="mt-0.5 text-[18px] font-bold text-[#2F7A5C]">{CONTRIBUTOR_RANKS[1].title}</p>
+        <p className="mt-4 font-mono text-[10px] text-[#5B6F69]">Credential ID MK-2026-00000 · medikarya.in/verify</p>
+      </div>
+    </div>
+  );
+}
+
+function Ladder({ ranks, unit, tone }: { ranks: readonly { at: number; title: string }[]; unit: string; tone: 'light' | 'dark' }) {
+  return (
+    <ol className={`ml-1 mt-5 border-l ${tone === 'dark' ? 'border-white/25' : 'border-primary/30'}`}>
+      {ranks.map((r, i) => (
+        <li key={r.title} className="relative pl-5">
+          <span className={`absolute -left-[5.5px] top-1 h-2.5 w-2.5 rounded-full ${tone === 'dark' ? 'bg-emerald-300' : 'bg-primary'}`} />
+          <p className={`text-[15px] leading-tight ${i < ranks.length - 1 ? 'pb-4' : 'pb-1'}`}>
+            <span className={`font-semibold ${tone === 'dark' ? 'text-white' : 'text-foreground'}`}>{r.title}</span>
+            <span className={tone === 'dark' ? 'text-white/60' : 'text-muted-foreground'}>
+              {' '}
+              · {r.at} {unit}
+              {r.at === 1 ? '' : 's'}
+            </span>
+          </p>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 export default async function Home() {
   const { userId } = await auth();
@@ -88,147 +118,194 @@ export default async function Home() {
     } else if (role === 'admin') {
       redirect('/dashboard/admin');
     } else {
-      redirect('/dashboard/author');
+      // someone verified to review MediKarya cases (their role is still 'author') goes to their queue
+      const profile = await getReviewerProfile(user.id).catch(() => null);
+      redirect(profile?.status === 'approved' ? '/dashboard/author/medikarya' : '/dashboard/author');
     }
   }
 
   return (
     <div className="min-h-screen bg-surface">
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-muted/60 via-surface to-background" />
-        <div className="relative px-4 sm:px-6 py-16 sm:py-24 max-w-5xl mx-auto text-center space-y-8">
-          <div className="inline-flex items-center gap-2 bg-brand-muted px-4 py-2 rounded-full text-primary font-medium text-sm">
-            <Logo size={22} />
-            <span>{APP_NAME}</span>
+      {/* What this is, and what to do */}
+      <section className="relative overflow-hidden border-b border-border">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(60rem_30rem_at_85%_-10%,hsl(var(--brand-muted)),transparent)]" aria-hidden />
+        <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
+          <div>
+            <p className="eyebrow">For MBBS students, interns and the doctors who teach them</p>
+            <h1 className="mt-4 text-[2.5rem] font-bold leading-[1.08] tracking-tight text-foreground sm:text-[3.4rem]">
+              Write up the case you saw. <span className="text-primary">Watch it become a patient</span> others learn from.
+            </h1>
+            <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
+              The Case Studio is where clinical cases are written, reviewed by a doctor, and turned into the interactive patients students practise on
+              at MediKarya, with the author&apos;s name on them.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link href="/sign-up">
+                <Button size="lg" className="h-12 w-full px-7 text-base sm:w-auto">
+                  Start writing a case
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/join/reviewer">
+                <Button variant="outline" size="lg" className="h-12 w-full px-7 text-base sm:w-auto">
+                  <Stethoscope className="mr-2 h-4 w-4" />
+                  I&apos;m a doctor: review cases
+                </Button>
+              </Link>
+            </div>
+            <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+              {['Free to use', 'No real patient details, ever', 'Credit stays with the author'].map((t) => (
+                <li key={t} className="flex items-center gap-1.5">
+                  <Check className="h-4 w-4 text-primary" />
+                  {t}
+                </li>
+              ))}
+            </ul>
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-foreground leading-tight tracking-tight">
-            Practice writing real
-            <span className="text-primary"> clinical case reports</span>
-          </h1>
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            {APP_DESCRIPTION}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-2">
-            <Link href="/sign-up">
-              <Button size="lg" className="h-12 px-8 text-base w-full sm:w-auto">
-                Get Started Free
-                <ArrowRight className="w-4 h-4 ml-2" />
+          <SheetPreview />
+        </div>
+      </section>
+
+      {/* What happens to a case, in order */}
+      <section className="bg-card px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          <p className="eyebrow">From the ward to the platform</p>
+          <h2 className="mt-2 max-w-2xl text-3xl sm:text-[2.1rem] sm:leading-tight">What happens to a case you write</h2>
+          <ol className="mt-10 grid gap-8 md:grid-cols-4 md:gap-0">
+            {JOURNEY.map((s, i) => (
+              <li key={s.title} className="relative md:pr-8">
+                <div className="flex items-center">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary font-display text-[15px] font-bold text-primary-foreground">{i + 1}</span>
+                  {i < JOURNEY.length - 1 && <span className="ml-3 hidden h-px flex-1 bg-primary/25 md:block" aria-hidden />}
+                </div>
+                <p className="mt-4 text-[17px] font-semibold text-foreground">{s.title}</p>
+                <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">{s.text}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* Who it is for: two people, two different deals */}
+      <section className="px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-2">
+          <div className="rounded-2xl border border-border bg-card p-7 sm:p-9">
+            <p className="eyebrow">If you are a student or intern</p>
+            <h2 className="mt-2 text-[1.7rem] leading-tight">Your cases, on your record</h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+              Every case that goes live on MediKarya carries your name, counts towards a title, and earns a reward. Each title comes with a certificate
+              anyone can verify.
+            </p>
+            <Ladder ranks={CONTRIBUTOR_RANKS} unit="published case" tone="light" />
+            <Link href="/sign-up" className="mt-3 inline-block">
+              <Button>
+                Write your first case <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-            <Link href="/sign-in">
-              <Button
-                variant="outline"
-                size="lg"
-                className="h-12 px-8 text-base w-full sm:w-auto hover:border-primary hover:text-primary"
-              >
-                Sign In
+          </div>
+
+          <div className="rounded-2xl bg-sidebar p-7 text-sidebar-foreground sm:p-9">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300">If you are a PG resident or faculty</p>
+            <h2 className="mt-2 text-[1.7rem] leading-tight text-white">Ten minutes a case, in your specialty</h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-white/70">
+              Read a one-page report with everything the AI added marked, then approve it or say what is wrong. Each case you review earns an honorarium and
+              counts towards a reviewer title. Your name goes on the case only if you want it to.
+            </p>
+            <Ladder ranks={REVIEWER_RANKS} unit="reviewed case" tone="dark" />
+            <Link href="/join/reviewer" className="mt-3 inline-block">
+              <Button className="bg-white text-primary hover:bg-brand-muted">
+                Become a reviewer <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="px-4 sm:px-6 py-16 sm:py-20 bg-card border-y border-border">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2>How It Works</h2>
-            <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
-              From first draft to approved portfolio piece — a clear workflow built for medical education.
+      {/* The sheet itself, and the privacy rule */}
+      <section className="border-y border-border bg-card px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <p className="eyebrow">The case sheet</p>
+            <h2 className="mt-2 text-3xl sm:text-[2.1rem] sm:leading-tight">The way you are taught to present a case</h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+              Seven parts, in the order of a bedside presentation. Your work saves as you go, you can attach reports and scans, and you can export the
+              finished sheet as a PDF.
             </p>
+            <ol className="mt-6 grid gap-x-8 gap-y-0 sm:grid-cols-2">
+              {SHEET_SECTIONS.map((s, i) => (
+                <li key={s} className="flex items-baseline gap-3 border-b border-border py-2.5 text-[15px]">
+                  <span className="w-5 font-display font-bold text-primary">{i + 1}</span>
+                  <span className="text-foreground">{s}</span>
+                </li>
+              ))}
+            </ol>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {steps.map((step, i) => {
-              const Icon = step.icon;
-              return (
-                <Card
-                  key={step.title}
-                  className="shadow-sm hover:shadow-md hover:border-primary/20 transition-all border-border relative"
-                >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">
-                        {i + 1}
-                      </span>
-                      <div className="bg-brand-muted p-2.5 rounded-lg">
-                        <Icon className="w-5 h-5 text-primary" />
-                      </div>
-                    </div>
-                    <CardTitle className="text-lg">{step.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm text-muted-foreground leading-relaxed">
-                    {step.description}
-                  </CardContent>
-                </Card>
-              );
-            })}
+          <div className="flex flex-col justify-center">
+            <div className="rounded-2xl border border-primary/25 bg-brand-muted/50 p-7">
+              <ShieldCheck className="h-7 w-7 text-primary" />
+              <h3 className="mt-3 font-display text-[1.35rem] font-semibold leading-snug">No real patient is ever identifiable</h3>
+              <ul className="mt-4 space-y-2.5 text-[15px] leading-relaxed text-foreground">
+                {[
+                  'Patient names are made up. No hospital numbers, faces or addresses.',
+                  'You confirm this each time you submit a case.',
+                  'A case reaches students only if you choose to allow it.',
+                ].map((t) => (
+                  <li key={t} className="flex gap-2.5">
+                    <Check className="mt-1 h-4 w-4 shrink-0 text-primary" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="px-4 sm:px-6 py-16 sm:py-20">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2>Built for Medical Education</h2>
-            <p className="text-muted-foreground mt-3">
-              Purpose-built tools for students, faculty, and program administrators.
+      {/* The certificate, and the last ask */}
+      <section className="bg-sidebar px-4 py-16 text-sidebar-foreground sm:px-6 sm:py-20">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2">
+          <CertificatePreview />
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300">Recognition you can show</p>
+            <h2 className="mt-2 text-3xl leading-tight text-white sm:text-[2.3rem]">A certificate anyone can check</h2>
+            <p className="mt-4 max-w-lg text-[16px] leading-relaxed text-white/70">
+              Each title comes with a certificate carrying its own credential ID. Add it to LinkedIn or your CV: whoever reads it can confirm it on
+              medikarya.in in one click.
             </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {features.map((feature) => {
-              const Icon = feature.icon;
-              return (
-                <Card
-                  key={feature.title}
-                  className="shadow-sm hover:shadow-md hover:border-secondary/30 transition-all border-border"
-                >
-                  <CardHeader className="flex flex-row items-start gap-4 pb-2">
-                    <div className="bg-secondary/10 p-3 rounded-lg shrink-0">
-                      <Icon className="w-6 h-6 text-secondary" />
-                    </div>
-                    <CardTitle className="text-lg">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-muted-foreground pl-[4.5rem]">
-                    {feature.description}
-                  </CardContent>
-                </Card>
-              );
-            })}
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Link href="/sign-up">
+                <Button size="lg" className="h-12 w-full bg-white px-7 text-base text-primary hover:bg-brand-muted sm:w-auto">
+                  Create a free account
+                </Button>
+              </Link>
+              <Link href="/contributors">
+                <Button size="lg" variant="outline" className="h-12 w-full border-white/30 bg-transparent px-7 text-base text-white hover:bg-white/10 hover:text-white sm:w-auto">
+                  See the contributors
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="px-4 sm:px-6 py-16 sm:py-20 bg-sidebar text-sidebar-foreground">
-        <div className="max-w-3xl mx-auto text-center space-y-6">
-          <h2 className="text-white text-3xl sm:text-4xl font-bold">
-            Start building your case portfolio today
-          </h2>
-          <p className="text-lg text-sidebar-foreground/70">
-            Join medical students and faculty using {APP_NAME} to create, review, and share
-            high-quality clinical case reports.
-          </p>
-          <Link href="/sign-up">
-            <Button
-              size="lg"
-              className="h-12 px-8 bg-card text-primary hover:bg-brand-muted font-semibold"
-            >
-              Sign Up for Free
-            </Button>
-          </Link>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="px-4 sm:px-6 py-8 border-t border-border bg-card">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+      <footer className="border-t border-border bg-card px-4 py-8 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-sm text-muted-foreground sm:flex-row">
           <div className="flex items-center gap-2">
             <Logo size={24} />
             <span className="font-medium text-foreground">{APP_NAME}</span>
           </div>
-          <p>© {new Date().getFullYear()} MediKarya. All rights reserved.</p>
+          <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            <Link href="/contributors" className="hover:text-foreground">
+              Contributors
+            </Link>
+            <Link href="/join/reviewer" className="hover:text-foreground">
+              Become a reviewer
+            </Link>
+            <a href="https://www.medikarya.in" className="hover:text-foreground">
+              medikarya.in
+            </a>
+          </nav>
+          <p>© {new Date().getFullYear()} MediKarya</p>
         </div>
       </footer>
     </div>

@@ -41,11 +41,8 @@ const ReviewerCaseCard = memo(function ReviewerCaseCard({
   return (
     <Card className="shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-lg font-semibold line-clamp-2 leading-snug">{caseItem.title}</CardTitle>
+        <div className="flex flex-wrap items-center gap-1.5">
           <StatusBadge status={caseItem.status} />
-        </div>
-        <div className="flex flex-wrap gap-1.5 pt-2">
           <Badge variant="secondary" className="text-xs bg-secondary/15 text-secondary border-secondary/30 dark:bg-secondary/30 dark:text-secondary-foreground font-medium">
             {completeness.score}% Complete
           </Badge>
@@ -55,21 +52,22 @@ const ReviewerCaseCard = memo(function ReviewerCaseCard({
             </Badge>
           )}
         </div>
+        <CardTitle className="pt-2 text-[17px] font-semibold line-clamp-3 leading-snug">{caseItem.title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-1 text-xs text-muted-foreground">
+        <div className="space-y-1 text-[13px] text-muted-foreground">
           <p className="flex items-center gap-1">
             <Clock className="w-3.5 h-3.5" />
-            Submitted: {new Date(caseItem.created_at).toLocaleDateString()}
+            Submitted: {new Date(caseItem.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
           {caseItem.author?.name && (
             <p>Author: <span className="font-semibold text-foreground">{caseItem.author.name}</span></p>
           )}
         </div>
 
-        <div className="flex gap-2 flex-wrap pt-2 border-t">
+        <div className="flex gap-2 flex-wrap pt-3 border-t">
           <Link href={`/cases/${caseItem.id}`}>
-            <Button variant="secondary" size="sm">
+            <Button size="sm">
               <Eye className="h-4 w-4 mr-1" />
               View & Review
             </Button>

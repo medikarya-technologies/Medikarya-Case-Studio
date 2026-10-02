@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createServiceClient } from '@/lib/supabase/server';
+import { loadPersonFacts, samePersonReason } from './same-person';
 
 // The reviewer programme (supabase/migrations/010_reviewer_programme.sql). People apply at /join/reviewer; an admin
 // verifies them (their medical council registration, checked on the public Indian Medical Register) and approves
@@ -25,15 +26,22 @@ export async function getReviewerProfile(userId: string): Promise<ReviewerProfil
 export async function saveApplication(userId: string, a: Application): Promise<void> {
   const existing = await getReviewerProfile(userId);
   const clean = (s: string, max = 160) => s.trim().slice(0, max) || null;
+  // What an admin verified (who they are, and so what they may review and how they are credited on a case) cannot be
+  // changed by the reviewer afterwards: only their contact details can.
+  const verified = existing?.status === 'approved';
   const row = {
     user_id: userId,
-    kind: a.kind,
-    designation: clean(a.designation),
-    department: clean(a.department),
-    institution: clean(a.institution) ?? '',
-    specialties: a.specialties.slice(0, 20),
-    council: clean(a.council),
-    registration_no: clean(a.registration_no, 40),
+    ...(verified
+      ? {}
+      : {
+          kind: a.kind,
+          designation: clean(a.designation),
+          department: clean(a.department),
+          institution: clean(a.institution) ?? '',
+          specialties: a.specialties.slice(0, 20),
+          council: clean(a.council),
+          registration_no: clean(a.registration_no, 40),
+        }),
     linkedin_url: clean(a.linkedin_url, 300),
     upi_id: clean(a.upi_id, 80),
     updated_at: new Date().toISOString(),
@@ -51,10 +59,28 @@ export async function listApplications(): Promise<ApplicationWithUser[]> {
     .select('*, users!reviewer_profiles_user_id_fkey(name, email, role)')
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((r: any) => ({ ...r, name: r.users?.name ?? '', email: r.users?.email ?? '', role: r.users?.role ?? '' }));
+
+  // How each reviewer has been deciding: a habit of sending cases back for small things shows here.
+  const { data: reviews } = await db().from('conversion_reviews').select('reviewer_id, case_id, decision').not('decision', 'is', null);
+  const tally = new Map<string, { cases: Set<string>; sentBack: Set<string> }>();
+  for (const r of reviews ?? []) {
+    const t = tally.get(r.reviewer_id) ?? { cases: new Set<string>(), sentBack: new Set<string>() };
+    t.cases.add(r.case_id);
+    if (r.decision === 'changes_requested') t.sentBack.add(r.case_id);
+    tally.set(r.reviewer_id, t);
+  }
+
+  return (data ?? []).map((r: any) => ({
+    ...r,
+    name: r.users?.name ?? '',
+    email: r.users?.email ?? '',
+    role: r.users?.role ?? '',
+    cases_reviewed: tally.get(r.user_id)?.cases.size ?? 0,
+    cases_sent_back: tally.get(r.user_id)?.sentBack.size ?? 0,
+  }));
 }
 
-/** Approves (with the specialties they may review) or rejects an application. Approval makes them a reviewer. */
+/** Approves (with the specialties they may review) or rejects an application. */
 export async function decideApplication(userId: string, approve: boolean, specialties: string[], note: string, adminId: string): Promise<void> {
   const client = db();
   const { error } = await client
@@ -69,11 +95,15 @@ export async function decideApplication(userId: string, approve: boolean, specia
     })
     .eq('user_id', userId);
   if (error) throw error;
-  if (approve) {
-    // An admin stays an admin; anyone else becomes a reviewer.
-    const { error: roleError } = await client.from('users').update({ role: 'reviewer' }).eq('id', userId).neq('role', 'admin');
-    if (roleError) throw roleError;
-  }
+  // Their account's role does not change. Being a MediKarya reviewer is this profile: it lets them review the
+  // converted cases they are handed, and read those cases' sheets. The 'reviewer' ROLE is the faculty one (every
+  // student's case sheet, approving and sending back), which an admin gives in Manage Users.
+}
+
+/** Has this person been given this case to review (now or before)? It lets them read its case sheet. */
+export async function hasReviewedOrHolds(userId: string, caseId: string): Promise<boolean> {
+  const { data, error } = await db().from('conversion_reviews').select('id').eq('reviewer_id', userId).eq('case_id', caseId).limit(1);
+  return !error && (data?.length ?? 0) > 0;
 }
 
 // ── The queue ───────────────────────────────────────────────────────────────
@@ -94,7 +124,7 @@ export async function reviewQueue(profile: ReviewerProfile): Promise<QueueItem[]
   const client = db();
   const { data: conversions, error } = await client
     .from('case_conversions')
-    .select('case_id, version, converted_at, case_json, cases!inner(title, specialty, original_author_name, patient_details)');
+    .select('case_id, version, converted_at, case_json, cases!inner(title, specialty, author_id, original_author_name, patient_details, users!cases_author_id_fkey(name))');
   if (error) throw error;
   if (!conversions?.length) return [];
 
@@ -118,26 +148,30 @@ export async function reviewQueue(profile: ReviewerProfile): Promise<QueueItem[]
       difficulty,
       version: c.version,
       convertedAt: c.converted_at,
-      author: c.cases.original_author_name ?? null,
+      // the named author of a case someone else typed in, else the student who wrote it in the studio
+      author: c.cases.original_author_name || c.cases.users?.name || null,
+      authorId: c.cases.author_id ?? null,
+      originalAuthorName: c.cases.original_author_name ?? null,
     });
   }
   return items.sort((a, b) => a.convertedAt.localeCompare(b.convertedAt));
 }
 
-/** Reserves a case for this reviewer for CLAIM_HOURS. Returns the claim id, or why not. */
-export async function claimCase(caseId: string, reviewerId: string): Promise<{ claimId: string } | { error: string }> {
+/** Reserves a case for this reviewer for CLAIM_HOURS. Only claimNext calls it: a reviewer cannot ask for a particular case. */
+async function claimCase(caseId: string, reviewerId: string): Promise<{ claimId: string } | { error: string }> {
   const client = db();
   const profile = await getReviewerProfile(reviewerId);
   if (!profile || profile.status !== 'approved') return { error: 'Your reviewer account is not verified yet.' };
 
   const { data: conv, error } = await client
     .from('case_conversions')
-    .select('version, case_json, cases!inner(specialty)')
+    .select('version, case_json, cases!inner(specialty, author_id)')
     .eq('case_id', caseId)
     .maybeSingle();
   if (error) throw error;
   if (!conv) return { error: 'This case is not ready for review.' };
   const c = conv as any;
+  if (c.cases.author_id === reviewerId) return { error: 'You cannot review a case you wrote yourself.' };
   if (!mayReview(profile, c.cases.specialty, String(c.case_json?.difficulty ?? ''))) return { error: 'This case is outside the specialties you review.' };
 
   const { data: existing, error: existingError } = await client
@@ -171,6 +205,46 @@ export async function claimCase(caseId: string, reviewerId: string): Promise<{ c
     return { error: 'Another reviewer has just taken this case.' };
   }
   return { claimId: inserted.id };
+}
+
+/** The cases this reviewer could be given now, in the order they would be given: never one they appear to have written. */
+async function casesFor(profile: ReviewerProfile, reviewerId: string, reviewedBefore: ReadonlySet<string>): Promise<QueueItem[]> {
+  const queue = await reviewQueue(profile);
+  const facts = await loadPersonFacts(db(), [reviewerId, ...queue.map((q) => q.authorId ?? '')]);
+  return queue
+    .filter((q) => !samePersonReason(facts, reviewerId, { authorId: q.authorId ?? null, originalAuthorName: q.originalAuthorName }))
+    // a case they reviewed before and that was rebuilt comes back to them first (they know what they asked for); then the oldest
+    .sort((a, b) => Number(reviewedBefore.has(b.caseId)) - Number(reviewedBefore.has(a.caseId)) || a.convertedAt.localeCompare(b.convertedAt));
+}
+
+/** How many cases are waiting that this reviewer could be given. They are not told which. */
+export async function waitingCount(profile: ReviewerProfile, reviewerId: string): Promise<number> {
+  return (await casesFor(profile, reviewerId, new Set())).length;
+}
+
+/**
+ * Gives the reviewer their next case. Reviewers do not choose: they get the oldest waiting case in their specialties
+ * (so nobody can pick out a particular case, such as one a friend or their own second account wrote), and one at a
+ * time (so nobody can reserve the whole queue). If they already hold a case, that one is returned.
+ */
+export async function claimNext(reviewerId: string): Promise<{ claimId: string } | { error: string }> {
+  const profile = await getReviewerProfile(reviewerId);
+  if (!profile || profile.status !== 'approved') return { error: 'Your reviewer account is not verified yet.' };
+
+  const mine = await myReviews(reviewerId);
+  const open = mine.filter((r) => isOpenClaim(r));
+  if (open.length) {
+    const { data: current } = await db().from('case_conversions').select('case_id, version').in('case_id', open.map((r) => r.case_id));
+    const live = open.find((r) => (current ?? []).some((c) => c.case_id === r.case_id && c.version === r.version));
+    if (live) return { claimId: live.id }; // a claim on a version that was since rebuilt no longer holds them up
+  }
+
+  const reviewedBefore = new Set(mine.filter((r) => r.decision).map((r) => r.case_id));
+  for (const next of await casesFor(profile, reviewerId, reviewedBefore)) {
+    const claimed = await claimCase(next.caseId, reviewerId);
+    if ('claimId' in claimed) return claimed; // otherwise another reviewer took it this instant: try the one after
+  }
+  return { error: 'No cases are waiting in your specialties right now.' };
 }
 
 export async function myReviews(reviewerId: string) {
@@ -219,5 +293,7 @@ export async function recordConversionDecision(
     .maybeSingle();
   if (error) throw error;
   if (!data) return { error: 'You have already reviewed this case.' };
+
+  // What the review earns is worked out later, once it is accepted (lib/rewards/server.ts, reviewLedger).
   return { ok: true };
 }

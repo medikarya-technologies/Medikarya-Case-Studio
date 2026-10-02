@@ -89,7 +89,7 @@ export const ReviewHistoryTimeline = memo(function ReviewHistoryTimeline({ revie
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5" />
-                        {new Date(review.created_at).toLocaleDateString()} at{' '}
+                        {new Date(review.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} at{' '}
                         {new Date(review.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>

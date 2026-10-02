@@ -59,7 +59,8 @@ const AdminUserRow = memo(function AdminUserRow({ user, isUpdating, onRoleChange
               variant={user.role === option ? 'default' : 'outline'}
               disabled={user.role === option || isUpdating}
               onClick={() => onRoleChange(user, option)}
-              className="capitalize min-h-[36px]"
+              // the role they have now stays solid (not faded) so it reads as "this one"
+              className={`capitalize min-h-[36px] ${user.role === option ? 'disabled:opacity-100' : ''}`}
             >
               {isUpdating ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -223,7 +224,7 @@ export default function AdminUsersPage() {
                       </span>
                     </div>
                     <p className="text-[11px] text-muted-foreground pt-1">
-                      Submitted on {new Date(req.created_at).toLocaleDateString()}
+                      Submitted on {new Date(req.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
                   </div>
 

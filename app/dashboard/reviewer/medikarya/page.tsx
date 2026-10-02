@@ -5,13 +5,14 @@
 
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { CheckCircle2, Clock, Loader2, MessageSquareWarning } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { claimCaseAction, fetchMyReviewerState } from '@/app/actions/reviewer-actions';
+import { claimNextCaseAction, fetchMyReviewerState } from '@/app/actions/reviewer-actions';
 import { specialtyLabel } from '@/lib/reviewers/specialties';
+import { RewardsCard } from '@/components/rewards/RewardsCard';
 
 type State = Awaited<ReturnType<typeof fetchMyReviewerState>>;
 
@@ -20,10 +21,11 @@ const until = (iso: string) => new Date(iso).toLocaleString('en-IN', { day: 'num
 
 export default function MediKaryaReviewsPage() {
   const router = useRouter();
+  // The same queue is shown inside each dashboard (author, reviewer, admin): its links stay in the one it was opened in.
+  const base = `/dashboard/${usePathname().split('/')[2] ?? 'reviewer'}/medikarya`;
   const [state, setState] = useState<State | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const [claiming, setClaiming] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -36,22 +38,20 @@ export default function MediKaryaReviewsPage() {
     void load();
   }, [load]);
 
-  const claim = (caseId: string) => {
-    setClaiming(caseId);
+  // Reviewers are given their next case; they do not pick one from a list.
+  const next = () =>
     start(async () => {
-      const r = await claimCaseAction(caseId);
-      setClaiming(null);
+      const r = await claimNextCaseAction();
       if (!r.ok) {
         toast.error(r.error);
         void load();
-      } else router.push(`/dashboard/reviewer/medikarya/${r.data!.claimId}`);
+      } else router.push(`${base}/${r.data!.claimId}`);
     });
-  };
 
   if (error) return <p className="rounded-lg bg-destructive/10 p-4 text-destructive">{error}</p>;
   if (!state) return <Skeleton className="h-64 w-full rounded-xl" />;
 
-  const { profile, queue, mine } = state;
+  const { profile, waiting, mine } = state;
   if (!profile || profile.status !== 'approved') {
     return (
       <div className="max-w-xl rounded-xl border border-border bg-card p-6">
@@ -61,6 +61,12 @@ export default function MediKaryaReviewsPage() {
             ? 'Your reviewer application is being verified. You will see cases here once it is approved.'
             : 'To review MediKarya cases, apply as a reviewer first. It takes two minutes.'}
         </p>
+        {base.startsWith('/dashboard/admin') && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            This page is a reviewer&apos;s own queue. As an admin you can review too: apply here, then approve your application under Reviewers. Where
+            every case stands is on MediKarya, in Admin, Studio cases.
+          </p>
+        )}
         <Link href="/join/reviewer" className="mt-4 inline-block">
           <Button>{profile ? 'View my application' : 'Apply as a reviewer'}</Button>
         </Link>
@@ -77,9 +83,11 @@ export default function MediKaryaReviewsPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">MediKarya reviews</h1>
         <p className="mt-1 text-muted-foreground">
-          You review: {profile.approved_specialties.map(specialtyLabel).join(', ')}. Each case is a one-page report; claiming one reserves it for 72 hours.
+          You review: {profile.approved_specialties.map(specialtyLabel).join(', ')}. Each case is a one-page report. You are given one case at a time, reserved for you for 72 hours.
         </p>
       </div>
+
+      <RewardsCard mode="reviewer" />
 
       {inProgress.length > 0 && (
         <section className="space-y-3">
@@ -92,7 +100,7 @@ export default function MediKaryaReviewsPage() {
                   <Clock className="h-3.5 w-3.5" /> Reserved for you until {until(r.claim_expires_at)}
                 </p>
               </div>
-              <Link href={`/dashboard/reviewer/medikarya/${r.id}`}>
+              <Link href={`${base}/${r.id}`}>
                 <Button>Continue review</Button>
               </Link>
             </div>
@@ -100,25 +108,26 @@ export default function MediKaryaReviewsPage() {
         </section>
       )}
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-foreground">Waiting for a reviewer ({queue.length})</h2>
-        {queue.length === 0 && <p className="rounded-xl border border-dashed border-border p-6 text-center text-muted-foreground">No cases waiting in your specialties right now. New ones appear here as soon as they are ready.</p>}
-        {queue.map((q) => (
-          <div key={q.caseId} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-semibold text-foreground">{q.title}</p>
-              <p className="text-sm text-muted-foreground">
-                {q.specialty === 'other' && q.customSpecialty ? q.customSpecialty : specialtyLabel(q.specialty)} · {q.difficulty}
-                {q.author ? ` · written by ${q.author}` : ''} · ready since {day(q.convertedAt)}
-              </p>
-            </div>
-            <Button disabled={pending} onClick={() => claim(q.caseId)}>
-              {claiming === q.caseId && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Review this case
-            </Button>
+      {inProgress.length === 0 && (
+        <section className="rounded-xl border border-border bg-card p-5 sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">
+              {waiting === 0 ? 'No cases waiting right now' : `${waiting} case${waiting === 1 ? '' : 's'} waiting in your specialties`}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {waiting === 0
+                ? 'New ones appear here as soon as they are ready.'
+                : 'You get the one that has waited longest. A case you sent back comes to you first once it has been rebuilt.'}
+            </p>
           </div>
-        ))}
-      </section>
+          {waiting > 0 && (
+            <Button size="lg" disabled={pending} onClick={next} className="mt-4 shrink-0 sm:mt-0">
+              {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Review the next case
+            </Button>
+          )}
+        </section>
+      )}
 
       {done.length > 0 && (
         <section className="space-y-2">

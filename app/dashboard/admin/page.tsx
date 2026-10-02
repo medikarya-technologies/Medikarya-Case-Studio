@@ -161,7 +161,7 @@ export default function AdminDashboard() {
                   <div className="min-w-0">
                     <p className="font-medium truncate">{caseItem.title}</p>
                     <p className="text-sm text-muted-foreground">
-                      Updated {new Date(caseItem.updated_at).toLocaleDateString()}
+                      Updated {new Date(caseItem.updated_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
                   </div>
                   <StatusBadge status={caseItem.status} />

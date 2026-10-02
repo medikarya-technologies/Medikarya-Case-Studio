@@ -96,12 +96,12 @@ export function CasePDF({ caseData, sections, author }: CasePDFProps) {
           {caseData.approved_at && (
             <View style={styles.approval}>
               <Text style={{ fontWeight: 'bold' }}>APPROVED</Text>
-              <Text>Date: {new Date(caseData.approved_at).toLocaleDateString()}</Text>
+              <Text>Date: {new Date(caseData.approved_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
             </View>
           )}
 
           <Text style={styles.footer}>
-            MediKarya Case Report - Generated on {new Date().toLocaleDateString()}
+            MediKarya Case Report - Generated on {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
           </Text>
         </Page>
       </Document>

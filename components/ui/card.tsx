@@ -13,7 +13,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'rounded-xl border bg-card text-card-foreground shadow',
+      'rounded-xl border border-border bg-card text-card-foreground shadow-[0_1px_2px_rgba(30,31,34,0.05)]',
       className
     )}
     {...props}
@@ -27,7 +27,9 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn('flex flex-col space-y-1.5 p-6', className)}
+    // A plain header is a section heading: its title, then a rule that separates it from the fields below. A header
+    // given its own classes (a card with badges or an icon beside the title) keeps the open layout.
+    className={className ? cn('flex flex-col space-y-1.5 p-6', className) : 'mb-5 flex flex-col space-y-1.5 border-b border-border px-6 py-4'}
     {...props}
   />
 ));
@@ -39,7 +41,7 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn('font-semibold leading-none tracking-tight', className)}
+    className={cn('font-display text-[17px] font-bold leading-snug tracking-tight', className)}
     {...props}
   />
 ));

@@ -79,7 +79,6 @@ export function getCaseCompleteness(caseData: Partial<Case> | null | undefined):
   checkField('patient_details', 'Patient Details', 'Sex', pd.sex || pd.gender, { isRequired: true });
   checkField('patient_details', 'Patient Details', 'Occupation', pd.occupation);
   checkField('patient_details', 'Patient Details', 'Place', pd.address || pd.location);
-  checkField('patient_details', 'Patient Details', 'Date of Admission', pd.date_of_admission || pd.presenting_date);
 
   // 2. History
   const h: any = caseData.history || {};

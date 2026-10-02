@@ -274,7 +274,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 ) : (
                   <p><span className="font-semibold text-foreground">Author:</span> {caseData.author?.name || 'Unknown'}</p>
                 )}
-                <p className="text-xs pt-1">Created: {new Date(caseData.created_at).toLocaleDateString()}</p>
+                <p className="text-xs pt-1">Created: {new Date(caseData.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
               </div>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
@@ -307,14 +307,15 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             </CardHeader>
             <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div><p className="text-xs text-muted-foreground">Case No.</p><p className="font-medium text-sm">{caseData.patient_details?.case_no || 'N/A'}</p></div>
-              <div><p className="text-xs text-muted-foreground">Patient Name <span className="text-destructive">*</span></p><p className="font-semibold text-sm">{caseData.patient_details?.patient_name || 'N/A'}</p></div>
-              <div><p className="text-xs text-muted-foreground">Age <span className="text-destructive">*</span></p><p className="font-medium text-sm">{caseData.patient_details?.age != null ? `${caseData.patient_details.age} yrs` : 'N/A'}</p></div>
-              <div><p className="text-xs text-muted-foreground">Sex <span className="text-destructive">*</span></p><p className="font-medium text-sm capitalize">{caseData.patient_details?.sex || caseData.patient_details?.gender || 'N/A'}</p></div>
-              <div><p className="text-xs text-muted-foreground">Religion</p><p className="font-medium text-sm">{caseData.patient_details?.religion || 'N/A'}</p></div>
-              <div><p className="text-xs text-muted-foreground">Occupation</p><p className="font-medium text-sm">{caseData.patient_details?.occupation || 'N/A'}</p></div>
-              <div><p className="text-xs text-muted-foreground">Place</p><p className="font-medium text-sm">{caseData.patient_details?.address || caseData.patient_details?.location || 'N/A'}</p></div>
-              <div><p className="text-xs text-muted-foreground">Date of Admission</p><p className="font-medium text-sm">{caseData.patient_details?.date_of_admission || (caseData.patient_details?.presenting_date ? new Date(caseData.patient_details.presenting_date).toLocaleDateString() : 'N/A')}</p></div>
+              <div><p className="field-name">Case No.</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.patient_details?.case_no || 'N/A'}</p></div>
+              <div><p className="field-name">Patient Name</p><p className="mt-0.5 text-[15px] font-semibold text-foreground">{caseData.patient_details?.patient_name || 'N/A'}</p></div>
+              <div><p className="field-name">Age</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.patient_details?.age != null ? `${caseData.patient_details.age} yrs` : 'N/A'}</p></div>
+              <div><p className="field-name">Sex</p><p className="mt-0.5 text-[15px] font-medium text-foreground capitalize">{caseData.patient_details?.sex || caseData.patient_details?.gender || 'N/A'}</p></div>
+              <div><p className="field-name">Religion</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.patient_details?.religion || 'N/A'}</p></div>
+              <div><p className="field-name">Occupation</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.patient_details?.occupation || 'N/A'}</p></div>
+              <div><p className="field-name">Place</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.patient_details?.address || caseData.patient_details?.location || 'N/A'}</p></div>
+              <div><p className="field-name">State</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.patient_details?.state || 'N/A'}</p></div>
+              <div><p className="field-name">Date of Admission</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.patient_details?.date_of_admission || (caseData.patient_details?.presenting_date ? new Date(caseData.patient_details.presenting_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A')}</p></div>
               <div className="col-span-2 sm:col-span-4">
                 <SectionCustomFields customFields={caseData.custom_fields} sectionId="patient_details" />
               </div>
@@ -336,36 +337,36 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Presenting Complaints <span className="text-destructive">*</span></p>
+                <p className="field-name">Presenting Complaints</p>
                 <RichTextRenderer content={caseData.history?.presenting_complaints || caseData.chief_complaint_history?.chief_complaint || 'N/A'} className="mt-1" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase">History of Present Illness <span className="text-destructive">*</span></p>
+                <p className="field-name">History of Present Illness</p>
                 <RichTextRenderer content={caseData.history?.history_of_present_illness || caseData.chief_complaint_history?.hpi_additional || 'N/A'} className="mt-1" />
               </div>
               {caseData.history?.past_history && (
-                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Past History</p><RichTextRenderer content={caseData.history.past_history} className="mt-1" /></div>
+                <div><p className="field-name">Past History</p><RichTextRenderer content={caseData.history.past_history} className="mt-1" /></div>
               )}
               {caseData.history?.personal_history && (
-                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Personal History</p><RichTextRenderer content={caseData.history.personal_history} className="mt-1" /></div>
+                <div><p className="field-name">Personal History</p><RichTextRenderer content={caseData.history.personal_history} className="mt-1" /></div>
               )}
               {caseData.history?.treatment_history && (
-                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Treatment History</p><RichTextRenderer content={caseData.history.treatment_history} className="mt-1" /></div>
+                <div><p className="field-name">Treatment History</p><RichTextRenderer content={caseData.history.treatment_history} className="mt-1" /></div>
               )}
               {caseData.history?.family_history && (
-                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Family History</p><RichTextRenderer content={caseData.history.family_history} className="mt-1" /></div>
+                <div><p className="field-name">Family History</p><RichTextRenderer content={caseData.history.family_history} className="mt-1" /></div>
               )}
               {caseData.history?.menstrual_history && (
-                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Menstrual History</p><RichTextRenderer content={caseData.history.menstrual_history} className="mt-1" /></div>
+                <div><p className="field-name">Menstrual History</p><RichTextRenderer content={caseData.history.menstrual_history} className="mt-1" /></div>
               )}
               {caseData.history?.obstetric_history && (
-                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Obstetric History</p><RichTextRenderer content={caseData.history.obstetric_history} className="mt-1" /></div>
+                <div><p className="field-name">Obstetric History</p><RichTextRenderer content={caseData.history.obstetric_history} className="mt-1" /></div>
               )}
               {caseData.history?.socio_economic_history && (
-                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Socio-economic History</p><RichTextRenderer content={caseData.history.socio_economic_history} className="mt-1" /></div>
+                <div><p className="field-name">Socio-economic History</p><RichTextRenderer content={caseData.history.socio_economic_history} className="mt-1" /></div>
               )}
               {caseData.history?.any_other && (
-                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Any Other Notes</p><RichTextRenderer content={caseData.history.any_other} className="mt-1" /></div>
+                <div><p className="field-name">Any Other Notes</p><RichTextRenderer content={caseData.history.any_other} className="mt-1" /></div>
               )}
               <SectionCustomFields customFields={caseData.custom_fields} sectionId="history" />
             </CardContent>
@@ -377,37 +378,37 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {caseData.general_physical_examination?.consciousness_orientation && (
-                  <div><p className="text-xs text-muted-foreground">Consciousness / Orientation</p><p className="font-medium text-sm">{caseData.general_physical_examination.consciousness_orientation}</p></div>
+                  <div><p className="field-name">Consciousness / Orientation</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.general_physical_examination.consciousness_orientation}</p></div>
                 )}
                 {caseData.general_physical_examination?.pulse && (
-                  <div><p className="text-xs text-muted-foreground">Pulse</p><p className="font-medium text-sm">{caseData.general_physical_examination.pulse}</p></div>
+                  <div><p className="field-name">Pulse</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.general_physical_examination.pulse}</p></div>
                 )}
                 {caseData.general_physical_examination?.bp && (
-                  <div><p className="text-xs text-muted-foreground">Blood Pressure</p><p className="font-medium text-sm">{caseData.general_physical_examination.bp}</p></div>
+                  <div><p className="field-name">Blood Pressure</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.general_physical_examination.bp}</p></div>
                 )}
                 {caseData.general_physical_examination?.respiratory_rate && (
-                  <div><p className="text-xs text-muted-foreground">Respiratory Rate</p><p className="font-medium text-sm">{caseData.general_physical_examination.respiratory_rate}</p></div>
+                  <div><p className="field-name">Respiratory Rate</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.general_physical_examination.respiratory_rate}</p></div>
                 )}
                 {caseData.general_physical_examination?.temperature && (
-                  <div><p className="text-xs text-muted-foreground">Temperature</p><p className="font-medium text-sm">{caseData.general_physical_examination.temperature}</p></div>
+                  <div><p className="field-name">Temperature</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.general_physical_examination.temperature}</p></div>
                 )}
                 {caseData.general_physical_examination?.jvp && (
-                  <div><p className="text-xs text-muted-foreground">JVP</p><p className="font-medium text-sm">{caseData.general_physical_examination.jvp}</p></div>
+                  <div><p className="field-name">JVP</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.general_physical_examination.jvp}</p></div>
                 )}
                 {caseData.general_physical_examination?.pallor && (
-                  <div><p className="text-xs text-muted-foreground">Pallor</p><p className="font-medium text-sm">{caseData.general_physical_examination.pallor}</p></div>
+                  <div><p className="field-name">Pallor</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.general_physical_examination.pallor}</p></div>
                 )}
                 {caseData.general_physical_examination?.cyanosis && (
-                  <div><p className="text-xs text-muted-foreground">Cyanosis</p><p className="font-medium text-sm">{caseData.general_physical_examination.cyanosis}</p></div>
+                  <div><p className="field-name">Cyanosis</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.general_physical_examination.cyanosis}</p></div>
                 )}
                 {caseData.general_physical_examination?.icterus && (
-                  <div><p className="text-xs text-muted-foreground">Icterus</p><p className="font-medium text-sm">{caseData.general_physical_examination.icterus}</p></div>
+                  <div><p className="field-name">Icterus</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.general_physical_examination.icterus}</p></div>
                 )}
                 {caseData.general_physical_examination?.peripheral_oedema && (
-                  <div><p className="text-xs text-muted-foreground">Peripheral Oedema</p><p className="font-medium text-sm">{caseData.general_physical_examination.peripheral_oedema}</p></div>
+                  <div><p className="field-name">Peripheral Oedema</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.general_physical_examination.peripheral_oedema}</p></div>
                 )}
                 {caseData.general_physical_examination?.clubbing && (
-                  <div><p className="text-xs text-muted-foreground">Clubbing</p><p className="font-medium text-sm">{caseData.general_physical_examination.clubbing}</p></div>
+                  <div><p className="field-name">Clubbing</p><p className="mt-0.5 text-[15px] font-medium text-foreground">{caseData.general_physical_examination.clubbing}</p></div>
                 )}
               </div>
 
@@ -424,7 +425,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
               )}
 
               {caseData.general_physical_examination?.other_significant_findings && (
-                <div><p className="text-xs font-semibold text-muted-foreground uppercase">Other Significant Findings</p><RichTextRenderer content={caseData.general_physical_examination.other_significant_findings} className="mt-1" /></div>
+                <div><p className="field-name">Other Significant Findings</p><RichTextRenderer content={caseData.general_physical_examination.other_significant_findings} className="mt-1" /></div>
               )}
               <SectionCustomFields customFields={caseData.custom_fields} sectionId="general_physical_examination" />
             </CardContent>
@@ -435,11 +436,11 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
             <Card id="section-systemic_examination">
               <CardHeader><CardTitle>4. Systemic Examination</CardTitle></CardHeader>
               <CardContent className="space-y-3">
-                {caseData.systemic_examination.respiratory_system && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Respiratory System</p><RichTextRenderer content={caseData.systemic_examination.respiratory_system} className="mt-1" /></div>}
-                {caseData.systemic_examination.cardiovascular_system && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Cardiovascular System</p><RichTextRenderer content={caseData.systemic_examination.cardiovascular_system} className="mt-1" /></div>}
-                {caseData.systemic_examination.nervous_system && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Nervous System</p><RichTextRenderer content={caseData.systemic_examination.nervous_system} className="mt-1" /></div>}
-                {caseData.systemic_examination.genito_urinary_system && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Genito-Urinary System</p><RichTextRenderer content={caseData.systemic_examination.genito_urinary_system} className="mt-1" /></div>}
-                {caseData.systemic_examination.gastrointestinal_system && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Gastrointestinal System</p><RichTextRenderer content={caseData.systemic_examination.gastrointestinal_system} className="mt-1" /></div>}
+                {caseData.systemic_examination.respiratory_system && <div><p className="field-name">Respiratory System</p><RichTextRenderer content={caseData.systemic_examination.respiratory_system} className="mt-1" /></div>}
+                {caseData.systemic_examination.cardiovascular_system && <div><p className="field-name">Cardiovascular System</p><RichTextRenderer content={caseData.systemic_examination.cardiovascular_system} className="mt-1" /></div>}
+                {caseData.systemic_examination.nervous_system && <div><p className="field-name">Nervous System</p><RichTextRenderer content={caseData.systemic_examination.nervous_system} className="mt-1" /></div>}
+                {caseData.systemic_examination.genito_urinary_system && <div><p className="field-name">Genito-Urinary System</p><RichTextRenderer content={caseData.systemic_examination.genito_urinary_system} className="mt-1" /></div>}
+                {caseData.systemic_examination.gastrointestinal_system && <div><p className="field-name">Gastrointestinal System</p><RichTextRenderer content={caseData.systemic_examination.gastrointestinal_system} className="mt-1" /></div>}
                 <SectionCustomFields customFields={caseData.custom_fields} sectionId="systemic_examination" />
               </CardContent>
             </Card>
@@ -450,10 +451,10 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
             <Card id="section-local_examination">
               <CardHeader><CardTitle>5. {localTitle}</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {caseData.local_examination.inspection && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Inspection</p><RichTextRenderer content={caseData.local_examination.inspection} className="mt-1" /></div>}
-                {caseData.local_examination.palpation && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Palpation</p><RichTextRenderer content={caseData.local_examination.palpation} className="mt-1" /></div>}
-                {caseData.local_examination.percussion && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Percussion</p><RichTextRenderer content={caseData.local_examination.percussion} className="mt-1" /></div>}
-                {caseData.local_examination.auscultation && <div><p className="text-xs font-semibold text-muted-foreground uppercase">Auscultation</p><RichTextRenderer content={caseData.local_examination.auscultation} className="mt-1" /></div>}
+                {caseData.local_examination.inspection && <div><p className="field-name">Inspection</p><RichTextRenderer content={caseData.local_examination.inspection} className="mt-1" /></div>}
+                {caseData.local_examination.palpation && <div><p className="field-name">Palpation</p><RichTextRenderer content={caseData.local_examination.palpation} className="mt-1" /></div>}
+                {caseData.local_examination.percussion && <div><p className="field-name">Percussion</p><RichTextRenderer content={caseData.local_examination.percussion} className="mt-1" /></div>}
+                {caseData.local_examination.auscultation && <div><p className="field-name">Auscultation</p><RichTextRenderer content={caseData.local_examination.auscultation} className="mt-1" /></div>}
                 <div className="col-span-1 sm:col-span-2">
                   <SectionCustomFields customFields={caseData.custom_fields} sectionId="local_examination" />
                 </div>
@@ -476,12 +477,12 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Provisional Diagnosis <span className="text-destructive">*</span></p>
+                <p className="field-name">Provisional Diagnosis</p>
                 <RichTextRenderer content={caseData.diagnosis?.provisional_diagnosis || caseData.diagnosis_management?.provisional_diagnosis || caseData.diagnosis_management?.final_diagnosis || 'N/A'} className="mt-1" />
               </div>
               {caseData.diagnosis?.differential_diagnosis && (
                 <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Differential Diagnosis</p>
+                  <p className="field-name">Differential Diagnosis</p>
                   <RichTextRenderer content={caseData.diagnosis.differential_diagnosis} className="mt-1" />
                 </div>
               )}
@@ -508,7 +509,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
 
                 {caseData.investigations_info?.confirmation_performed === 'no' ? (
                   <div className="space-y-1">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase">Reason not performed</p>
+                    <p className="field-name">Reason not performed</p>
                     <RichTextRenderer
                       content={
                         caseData.investigations_info?.confirmation_explanation ||
@@ -519,7 +520,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                   </div>
                 ) : caseData.investigations_info?.confirmation_performed === 'not_required' ? (
                   <div className="space-y-1">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase">Rationale</p>
+                    <p className="field-name">Rationale</p>
                     <RichTextRenderer
                       content={
                         caseData.investigations_info?.confirmation_explanation ||
@@ -609,19 +610,19 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                 <CardContent className="space-y-4 pt-2 border-t text-sm">
                   {caseData.diagnosis_management?.treatment_plan && (
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase">Treatment / Management Plan</p>
+                      <p className="field-name">Treatment / Management Plan</p>
                       <RichTextRenderer content={caseData.diagnosis_management.treatment_plan} className="mt-1" />
                     </div>
                   )}
                   {caseData.diagnosis_management?.outcome && (
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase">Outcome</p>
+                      <p className="field-name">Outcome</p>
                       <RichTextRenderer content={caseData.diagnosis_management.outcome} className="mt-1" />
                     </div>
                   )}
                   {caseData.learning_points && caseData.learning_points.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase">Learning Points</p>
+                      <p className="field-name">Learning Points</p>
                       <ul className="list-disc list-inside mt-1 space-y-1">
                         {caseData.learning_points.map((pt, i) => (
                           <li key={i}>{pt}</li>
@@ -631,7 +632,7 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                   )}
                   {caseData.current_medications && caseData.current_medications.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase">Current Medications</p>
+                      <p className="field-name">Current Medications</p>
                       <div className="space-y-1 mt-1">
                         {caseData.current_medications.map((m, i) => (
                           <p key={i} className="text-xs">• {m.name} — {m.dose} ({m.frequency})</p>

@@ -68,7 +68,7 @@ const AdminCaseRow = memo(function AdminCaseRow({ caseItem, onToggleAdded }: Adm
           )}
 
           <span className="text-xs text-muted-foreground">
-            Created {new Date(caseItem.created_at).toLocaleDateString()}
+            Created {new Date(caseItem.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
           </span>
         </div>
       </div>

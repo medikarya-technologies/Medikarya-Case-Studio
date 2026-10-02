@@ -23,7 +23,7 @@
     --secondary-foreground: 0 0% 100%;
 
     --muted: 45 10% 95%; /* #F3F2EF */
-    --muted-foreground: 220 9% 46%;
+    --muted-foreground: 220 9% 40%;
 
     --accent: 36 52% 55%; /* warm terracotta/amber accent */
     --accent-foreground: 0 0% 100%;
@@ -37,8 +37,9 @@
     --warning: 32 95% 44%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 40 8% 90%;
-    --input: 40 8% 90%;
+    /* Lines you can see: cards and sections against the page, and a darker one for fields you type in */
+    --border: 40 10% 85%;
+    --input: 40 8% 72%;
     --ring: 152 44% 22%;
 
     --radius: 0.5rem;
@@ -47,7 +48,7 @@
     --brand: 152 44% 22%;
     --brand-light: 152 34% 35%;
     --brand-muted: 152 25% 92%;
-    --surface: 45 14% 97%; /* #F7F6F3 */
+    --surface: 45 16% 95.5%;
     --sidebar: 220 13% 13%; /* charcoal sidebar */
     --sidebar-foreground: 0 0% 98%;
     --sidebar-accent: 152 34% 35%;
@@ -69,13 +70,41 @@
     @apply bg-background text-foreground antialiased;
   }
   h1 {
-    @apply text-3xl font-bold tracking-tight text-foreground;
+    @apply font-display text-3xl font-extrabold tracking-tight text-foreground;
   }
   h2 {
-    @apply text-2xl font-semibold tracking-tight text-foreground;
+    @apply font-display text-2xl font-bold tracking-tight text-foreground;
   }
   h3 {
     @apply text-xl font-semibold text-foreground;
+  }
+  ::placeholder {
+    /* an example, clearly not something already filled in */
+    @apply font-normal italic text-muted-foreground/60;
+  }
+}
+
+@layer components {
+  /* The small green label above a title or a group: "STEP 2", "WRITTEN BY". */
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-primary;
+  }
+  /* The name of a value that is shown, not typed: small and quiet, the value under it carries the weight. */
+  .field-name {
+    @apply text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground;
+  }
+  /* One part of a long form: a numbered heading with a rule under it, then its fields. */
+  .form-section {
+    @apply space-y-4 border-t border-border pt-6 first:border-t-0 first:pt-0;
+  }
+  .form-section-title {
+    @apply flex items-center gap-3 text-base font-semibold text-foreground;
+  }
+  .form-section-number {
+    @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground;
+  }
+  .field-hint {
+    @apply text-[13px] leading-snug text-muted-foreground;
   }
 }
 
@@ -88,9 +117,9 @@
   }
   /* Consistent focus ring for native <select> elements to match <Input> */
   .select-field {
-    @apply flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm
-           transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1
-           disabled:cursor-not-allowed disabled:opacity-50;
+    @apply flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-[15px] text-foreground
+           transition-colors hover:border-foreground/40 focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-primary/15
+           disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60;
   }
 }
 

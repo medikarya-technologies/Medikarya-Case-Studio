@@ -3,6 +3,7 @@
 import React from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { sanitizeRichText } from '@/lib/rich-text';
 
 function cn(...inputs: any[]) {
   return twMerge(clsx(inputs));
@@ -95,7 +96,8 @@ export function RichTextRenderer({ content, className }: RichTextRendererProps) 
           '[&_strong]:font-semibold',
           className
         )}
-        dangerouslySetInnerHTML={{ __html: content }}
+        // only the formatting the editor can produce; anything else in the saved text is dropped (lib/rich-text.ts)
+        dangerouslySetInnerHTML={{ __html: sanitizeRichText(content) }}
       />
     );
   }

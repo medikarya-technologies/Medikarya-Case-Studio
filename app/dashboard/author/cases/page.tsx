@@ -40,10 +40,9 @@ const AuthorCaseCard = memo(function AuthorCaseCard({
 
   return (
     <Card className="shadow-sm hover:shadow-md hover:border-primary/20 transition-all">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-lg line-clamp-1">{caseItem.title}</CardTitle>
-          <div className="flex items-center gap-1 shrink-0">
+      <CardHeader className="pb-3">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-1.5">
             {commentCount > 0 && (
               <Badge variant="secondary" className="gap-1">
                 <MessageSquare className="h-3 w-3" />
@@ -52,15 +51,16 @@ const AuthorCaseCard = memo(function AuthorCaseCard({
             )}
             <StatusBadge status={caseItem.status} />
           </div>
+          <CardTitle className="text-[17px] leading-snug line-clamp-3">{caseItem.title}</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Created: {new Date(caseItem.created_at).toLocaleDateString()}
+          Created: {new Date(caseItem.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
         </p>
         <div className="flex gap-2 flex-wrap">
           <Link href={`/cases/${caseItem.id}`}>
-            <Button variant="secondary" size="sm">
+            <Button size="sm">
               <Eye className="h-4 w-4 mr-1" />
               View
             </Button>

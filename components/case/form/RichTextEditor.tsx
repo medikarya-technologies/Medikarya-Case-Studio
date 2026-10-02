@@ -80,7 +80,7 @@ export function RichTextEditor({
     return (
       <div
         className={cn(
-          'border border-input rounded-md bg-background p-3 text-sm text-muted-foreground animate-pulse',
+          'border border-input rounded-lg bg-card p-3 text-sm text-muted-foreground animate-pulse',
           className
         )}
         style={{ minHeight }}
@@ -93,7 +93,7 @@ export function RichTextEditor({
   return (
     <div
       className={cn(
-        'border border-input rounded-md bg-background overflow-hidden focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-colors',
+        'border border-input rounded-lg bg-card overflow-hidden hover:border-foreground/40 focus-within:ring-[3px] focus-within:ring-primary/15 focus-within:border-primary transition-colors',
         className
       )}
     >

@@ -25,6 +25,8 @@ export interface ReviewerProfile {
   admin_note: string | null;
   verified_at: string | null;
   created_at: string;
+  /** An honorary title an admin gives (migration 011); absent until that has been run. */
+  advisory_board?: boolean;
 }
 
 export interface ConversionReview {
@@ -49,6 +51,9 @@ export interface QueueItem {
   version: number;
   convertedAt: string;
   author: string | null;
+  /** Who wrote it, to keep it away from a reviewer who appears to be the same person. Never sent to the browser. */
+  authorId?: string | null;
+  originalAuthorName?: string | null;
 }
 
 export interface Application {
@@ -67,4 +72,7 @@ export interface ApplicationWithUser extends ReviewerProfile {
   name: string;
   email: string;
   role: string;
+  /** Different cases they have reviewed, and on how many of those they asked for changes at least once. */
+  cases_reviewed: number;
+  cases_sent_back: number;
 }

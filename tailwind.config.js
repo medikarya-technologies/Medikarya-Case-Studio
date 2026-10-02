@@ -1,11 +1,18 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // One theme (light): `dark:` styles apply only if a `dark` class is ever added, not because the computer is in dark mode.
+  darkMode: 'class',
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     extend: {
+      fontFamily: {
+        // Headings use the same font as the text (Inter), set apart by size and weight. The serif is kept for the
+        // certificate only. Change this one line to give headings a font of their own.
+        display: ['inherit'],
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',

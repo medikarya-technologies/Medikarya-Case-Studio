@@ -1,5 +1,18 @@
+// Test mode (`npm run dev:test`, never a production build): Clerk is swapped for dummy users chosen at /dev/login,
+// and the server keeps its files in .next-test so it can run beside the normal dev server. See lib/dev/.
+const testLogin = process.env.NODE_ENV !== 'production' && process.env.STUDIO_TEST_LOGIN === '1';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  ...(testLogin && {
+    distDir: '.next-test',
+    turbopack: {
+      resolveAlias: {
+        '@clerk/nextjs': './lib/dev/clerk-client-stub.tsx',
+        '@clerk/nextjs/server': './lib/dev/clerk-server-stub.ts',
+      },
+    },
+  }),
   images: {
     remotePatterns: [
       {
@@ -23,9 +36,6 @@ const nextConfig = {
         hostname: '**',
       },
     ],
-  },
-  typescript: {
-    ignoreBuildErrors: true,
   },
 };
 

@@ -8,7 +8,7 @@ function cn(...inputs: any[]) {
 }
 
 const labelVariants = cva(
-  'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
+  'block text-[13.5px] font-semibold leading-snug text-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
 );
 
 export interface LabelProps

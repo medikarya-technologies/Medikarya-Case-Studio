@@ -191,7 +191,9 @@ export async function fetchCaseAttachmentsAction(caseId: string): Promise<CaseAt
   const isReviewerOrAdmin = user.role === 'reviewer' || user.role === 'admin';
 
   if (!isAuthor && !isReviewerOrAdmin) {
-    throw new Error('You are not authorized to view attachments for this case');
+    // a MediKarya reviewer may see the reports of a case they were handed
+    const { hasReviewedOrHolds } = await import('@/lib/reviewers/server');
+    if (!(await hasReviewedOrHolds(user.id, caseId))) throw new Error('You are not authorized to view attachments for this case');
   }
 
   return getCaseAttachments(caseId);
@@ -206,11 +208,18 @@ export async function resolvePdfImagesAction(
   urls: string[]
 ): Promise<ResolvedImageMap> {
   const result: ResolvedImageMap = {};
+  await getOrCreateCurrentUser();
 
-  const uniqueUrls = [...new Set(urls.filter((u) => u && typeof u === 'string' && u.trim().length > 0))];
+  // Only attachments in our own storage are fetched: this runs on the server, and must not be a way to make the
+  // server fetch an address of the caller's choosing.
+  const storage = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/`;
+  const ours = (u: string) => u.startsWith('data:image/') || (u.startsWith(storage) && !u.includes('..'));
+
+  const uniqueUrls = [...new Set((Array.isArray(urls) ? urls : []).filter((u) => u && typeof u === 'string' && u.trim().length > 0))].slice(0, 40);
+  for (const u of uniqueUrls) if (!ours(u.trim())) result[u.trim()] = { success: false, error: 'Not an attachment' };
 
   await Promise.all(
-    uniqueUrls.map(async (url) => {
+    uniqueUrls.filter((u) => ours(u.trim())).map(async (url) => {
       const trimmedUrl = url.trim();
 
       if (trimmedUrl.startsWith('data:image/')) {

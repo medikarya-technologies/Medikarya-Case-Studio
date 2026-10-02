@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { auth } from '@clerk/nextjs/server';
-import { CheckCircle2, ClipboardCheck, FileText, ShieldCheck } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/layout/Logo';
 import { getOrCreateCurrentUser } from '@/app/actions/case-actions';
@@ -18,10 +18,10 @@ export const metadata: Metadata = {
 };
 
 const STEPS = [
-  { icon: FileText, title: 'Apply in two minutes', text: 'Your specialty, institution and medical council registration number.' },
-  { icon: ShieldCheck, title: 'We verify you', text: 'We check your registration on the Indian Medical Register, usually within a day or two.' },
-  { icon: ClipboardCheck, title: 'Review cases in your specialty', text: 'Read a one-page report of each case, with everything AI-added marked, and approve it or ask for changes. 5 to 10 minutes a case.' },
-  { icon: CheckCircle2, title: 'Get credited', text: 'Your name on the cases you review (if you choose), a reviewer title that grows with you, and a certificate.' },
+  { title: 'Apply in two minutes', text: 'Your specialty, institution and medical council registration number.' },
+  { title: 'We verify you', text: 'We check your registration on the Indian Medical Register, usually within a day or two.' },
+  { title: 'Review cases in your specialty', text: 'Read a one-page report of each case, with everything AI-added marked, and approve it or ask for changes. 5 to 10 minutes a case.' },
+  { title: 'Get credited', text: 'Your name on the cases you review (if you choose), a reviewer title that grows with you, and a certificate.' },
 ];
 
 export default async function JoinReviewerPage() {
@@ -36,21 +36,23 @@ export default async function JoinReviewerPage() {
           <Logo size={26} />
           <span className="font-semibold">MediKarya Case Studio</span>
         </div>
-        <h1 className="mt-5 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">Become a clinical reviewer</h1>
-        <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
+        <p className="eyebrow mt-8">For PG residents and faculty</p>
+        <h1 className="mt-2 text-4xl font-bold tracking-tight text-foreground sm:text-[2.75rem] sm:leading-[1.1]">Become a clinical reviewer</h1>
+        <p className="mt-4 text-[17px] leading-relaxed text-muted-foreground">
           MediKarya turns real clinical cases written by medical students into interactive patients that thousands of students learn from. Every
           case is checked by a doctor before it goes live. We are looking for <strong className="text-foreground">PG residents and faculty</strong> to
           be those doctors.
         </p>
 
-        <ol className="mt-8 grid gap-4 sm:grid-cols-2">
+        <p className="eyebrow mt-10">How it works</p>
+        <ol className="mt-3 grid gap-x-8 gap-y-5 border-y border-border py-6 sm:grid-cols-2">
           {STEPS.map((s, i) => (
-            <li key={s.title} className="rounded-xl border border-border bg-card p-4">
-              <s.icon className="h-5 w-5 text-primary" />
-              <p className="mt-2 font-semibold text-foreground">
-                {i + 1}. {s.title}
-              </p>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{s.text}</p>
+            <li key={s.title} className="flex gap-3">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-primary/40 text-xs font-bold text-primary">{i + 1}</span>
+              <div>
+                <p className="font-semibold leading-7 text-foreground">{s.title}</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">{s.text}</p>
+              </div>
             </li>
           ))}
         </ol>
@@ -73,7 +75,7 @@ export default async function JoinReviewerPage() {
             <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-6">
               <p className="text-lg font-semibold text-emerald-950">You are a verified reviewer.</p>
               <p className="mt-1 text-sm text-emerald-900">Your cases are waiting in your reviewer dashboard.</p>
-              <Link href="/dashboard/reviewer/medikarya" className="mt-4 inline-block">
+              <Link href={`/dashboard/${user?.role === 'admin' ? 'admin' : user?.role === 'reviewer' ? 'reviewer' : 'author'}/medikarya`} className="mt-4 inline-block">
                 <Button>Go to my review queue</Button>
               </Link>
             </div>

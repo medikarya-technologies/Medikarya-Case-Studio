@@ -21,6 +21,7 @@ import { useUser, useAuth } from '@clerk/nextjs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toaster';
 import { formatSpecialtyLabel } from '@/lib/specialtyIcons';
+import { RewardsCard } from '@/components/rewards/RewardsCard';
 
 const tips = [
   "Always include a detailed history of present illness with timeline.",
@@ -70,7 +71,7 @@ const RecentCaseCard = memo(function RecentCaseCard({
             </span>
             <span className="text-xs text-muted-foreground/60">•</span>
             <span className="text-sm text-muted-foreground">
-              {new Date(caseItem.updated_at).toLocaleDateString()}
+              {new Date(caseItem.updated_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
             <div className="flex gap-2 ml-2">
               <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full capitalize">
@@ -212,6 +213,8 @@ export default function AuthorDashboard() {
           </Button>
         </div>
       )}
+
+      <RewardsCard mode="contributor" />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
