@@ -4,7 +4,19 @@
 
 import { revalidatePath } from 'next/cache';
 import { getOrCreateCurrentUser } from './case-actions';
-import { listCertificates, listPayouts, markPayoutsPaid, myRewards, reviewLedger, saveUpi, setAdvisoryBoard, voidPayouts } from '@/lib/rewards/server';
+import {
+  issueInternshipCertificate,
+  listCertificates,
+  listPayouts,
+  markPayoutsPaid,
+  myRewards,
+  reviewLedger,
+  saveUpi,
+  setAdvisoryBoard,
+  setCertificateRevoked,
+  voidPayouts,
+} from '@/lib/rewards/server';
+import type { InternshipInput } from '@/lib/rewards/config';
 
 export async function fetchMyRewards() {
   const user = await getOrCreateCurrentUser();
@@ -67,5 +79,34 @@ export async function setAdvisoryBoardAction(userId: string, on: boolean): Promi
     return { ok: true };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : 'Could not update.' };
+  }
+}
+
+// ── Certificates (Admin → Certificates) ─────────────────────────────────────
+
+export async function fetchCertificates() {
+  await requireAdmin();
+  return listCertificates();
+}
+
+export async function issueInternshipAction(input: InternshipInput): Promise<{ ok: true; credentialId: string } | { ok: false; error: string }> {
+  try {
+    await requireAdmin();
+    const certificate = await issueInternshipCertificate(input);
+    revalidatePath('/dashboard/admin/certificates');
+    return { ok: true, credentialId: certificate.credential_id };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Could not issue the certificate.' };
+  }
+}
+
+export async function setCertificateRevokedAction(id: string, revoked: boolean): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireAdmin();
+    await setCertificateRevoked(id, revoked);
+    revalidatePath('/dashboard/admin/certificates');
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Could not update the certificate.' };
   }
 }

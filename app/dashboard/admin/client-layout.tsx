@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Users, FileText, ShieldCheck, ClipboardCheck, IndianRupee } from 'lucide-react';
+import { Home, Users, FileText, ShieldCheck, ClipboardCheck, IndianRupee, Award } from 'lucide-react';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { href: '/dashboard/admin/reviewers', label: 'Reviewers', icon: ShieldCheck },
   { href: '/dashboard/admin/medikarya', label: 'MediKarya reviews', icon: ClipboardCheck },
   { href: '/dashboard/admin/payouts', label: 'Payouts', icon: IndianRupee },
+  { href: '/dashboard/admin/certificates', label: 'Certificates', icon: Award },
 ];
 
 export default function AdminDashboardClientLayout({

@@ -10,6 +10,9 @@ import {
   reviewPay,
   casePay,
   certificateDetail,
+  internshipDetail,
+  internshipProblem,
+  type InternshipInput,
   standing,
   type Rank,
 } from './config';
@@ -38,7 +41,7 @@ export interface Payout {
 export interface Certificate {
   id: string;
   credential_id: string;
-  kind: 'contributor' | 'reviewer' | 'advisory_board';
+  kind: 'contributor' | 'reviewer' | 'advisory_board' | 'internship';
   user_id: string | null;
   recipient_name: string;
   title: string;
@@ -402,6 +405,48 @@ export async function listCertificates(): Promise<Certificate[]> {
   const { data, error } = await db().from('certificates').select('*').order('issued_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as Certificate[];
+}
+
+/**
+ * Issues an internship certificate (needs migration 013). Issuing the same internship twice (same person, same
+ * dates) gives back the certificate that already exists instead of a second one.
+ */
+export async function issueInternshipCertificate(input: InternshipInput): Promise<Certificate> {
+  const problem = internshipProblem(input);
+  if (problem) throw new Error(problem);
+  const client = db();
+  const name = input.name.trim().replace(/\s+/g, ' ');
+  const ref = `internship:${name.toLowerCase()}:${input.from}:${input.to}`;
+
+  const { data: existing } = await client.from('certificates').select('*').eq('ref', ref).maybeSingle();
+  if (existing) return existing as Certificate;
+
+  const { data: credentialId, error: idError } = await client.rpc('next_credential_id');
+  if (idError) throw idError;
+  const { data, error } = await client
+    .from('certificates')
+    .insert({
+      credential_id: credentialId,
+      ref,
+      kind: 'internship',
+      user_id: null,
+      recipient_name: name,
+      title: input.role.trim().replace(/\s+/g, ' '),
+      detail: internshipDetail(input),
+      ...(input.issuedOn ? { issued_at: `${input.issuedOn}T06:30:00Z` } : {}), // midday in India, so the date reads the same everywhere
+    })
+    .select('*')
+    .single();
+  if (error) {
+    throw new Error(/certificates_kind_check/.test(error.message) ? 'Run migration 013_internship_certificates.sql first: the database does not allow internship certificates yet.' : error.message);
+  }
+  return data as Certificate;
+}
+
+/** Withdraws a certificate (its verification page then says so) or restores it. The record is never deleted. */
+export async function setCertificateRevoked(id: string, revoked: boolean): Promise<void> {
+  const { error } = await db().from('certificates').update({ revoked }).eq('id', id);
+  if (error) throw error;
 }
 
 export async function getCertificate(credentialId: string): Promise<Certificate | null> {

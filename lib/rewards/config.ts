@@ -95,7 +95,47 @@ export const rupees = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 // ── Certificates ────────────────────────────────────────────────────────────
 
 /** Who signs a certificate. */
-export const CERTIFICATE_SIGNATORY = { name: 'Abhishek Singh', role: 'Founder, MediKarya' };
+export const CERTIFICATE_SIGNATORY = { name: 'Gaurav Talwar', role: 'Co-founder, MediKarya' };
 
 /** Where anyone can check a certificate is real: this address followed by its credential id. */
 export const VERIFY_URL = 'https://www.medikarya.in/verify';
+
+/** The company's registered name, as it appears on letters and certificates. */
+export const COMPANY_LEGAL_NAME = 'MediKarya Technologies Pvt. Ltd.';
+
+// ── Internship certificates (issued by hand, Admin → Certificates) ──────────
+
+export interface InternshipInput {
+  /** The intern's full name, as on their college records. */
+  name: string;
+  /** e.g. "Developer Intern". */
+  role: string;
+  /** First and last day, as YYYY-MM-DD. */
+  from: string;
+  to: string;
+  /** One sentence on what they worked on (optional), e.g. "Built and developed MediKarya's Case Studio." */
+  summary: string;
+  /** The date on the certificate, as YYYY-MM-DD; today when left empty. */
+  issuedOn: string;
+}
+
+const longDate = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+/** "Completed an internship at MediKarya Technologies Pvt. Ltd. from 3 July 2026 to 2 September 2026. Built ..." */
+export function internshipDetail(i: Pick<InternshipInput, 'from' | 'to' | 'summary'>): string {
+  const summary = i.summary.trim().replace(/\s+/g, ' ');
+  const sentence = summary && !/[.!?]$/.test(summary) ? `${summary}.` : summary;
+  return `Completed an internship at ${COMPANY_LEGAL_NAME} from ${longDate(i.from)} to ${longDate(i.to)}.${sentence ? ` ${sentence}` : ''}`;
+}
+
+/** What is wrong with the form, in words; null when it can be issued. */
+export function internshipProblem(i: InternshipInput): string | null {
+  const day = /^\d{4}-\d{2}-\d{2}$/;
+  if (i.name.trim().length < 3) return "Enter the intern's full name.";
+  if (i.role.trim().length < 3) return 'Enter their role, for example "Developer Intern".';
+  if (!day.test(i.from) || !day.test(i.to)) return 'Enter the first and last day of the internship.';
+  if (i.to < i.from) return 'The last day is before the first day.';
+  if (i.issuedOn && !day.test(i.issuedOn)) return 'The issue date is not a date.';
+  if (i.summary.length > 300) return 'Keep the description to a sentence or two (300 characters).';
+  return null;
+}
