@@ -4,6 +4,7 @@
 // top. A copy of MediKarya's components/review/case-report.tsx: keep the two alike. Server-safe, printable.
 
 import type { ReactNode } from "react"
+import { LivePlanReport } from "./LivePlanReport"
 
 type Json = Record<string, any>
 const isObj = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v)
@@ -105,6 +106,9 @@ export function AiCaseReport({ caseJson: c, reviewNotes, testNames = {} }: { cas
           <Origin origin="case_sheet" /> are the student&apos;s own.
         </p>
       </header>
+
+      {/* A case with a live course: it comes first, since it is what most needs a clinician's eye. */}
+      <LivePlanReport caseJson={c} />
 
       {(reviewNotes.length > 0 || aiTests.length > 0) && (
         <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4">

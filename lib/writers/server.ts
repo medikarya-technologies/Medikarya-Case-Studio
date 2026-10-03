@@ -196,3 +196,20 @@ export async function decideWriter(userId: string, verify: boolean, note: string
       : `We could not verify you yet${note.trim() ? `: ${note.trim()}` : '.'} You can correct your details and ask again.`
   );
 }
+
+/**
+ * Who may write a LIVE COURSE for a case (lib/live-plan.ts): residents and above. A live course says how a patient
+ * deteriorates and what each treatment does, which takes having managed such patients: admins and faculty reviewers
+ * (by role), verified writers who are PG residents, practising doctors or faculty, and approved MediKarya reviewers of
+ * those kinds. Not students or interns.
+ */
+export async function canWriteLiveCourse(user: Pick<User, 'id' | 'role'>): Promise<boolean> {
+  if (user.role === 'admin' || user.role === 'reviewer') return true;
+  const senior = ['pg_resident', 'doctor', 'faculty'];
+  const [{ profile }, { data: reviewer }] = await Promise.all([
+    getWriterProfile(user.id),
+    db().from('reviewer_profiles').select('status, kind').eq('user_id', user.id).maybeSingle(),
+  ]);
+  if (profile?.status === 'verified' && profile.kind && senior.includes(profile.kind)) return true;
+  return reviewer?.status === 'approved' && senior.includes(reviewer.kind);
+}

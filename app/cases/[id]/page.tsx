@@ -8,10 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/case/StatusBadge';
 import { BackButton } from '@/components/ui/BackButton';
 import { Case, CustomField } from '@/lib/types';
-import { Edit, AlertTriangle, CheckCircle2, XCircle, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { Edit, AlertTriangle, CheckCircle2, XCircle, ArrowRight, ChevronDown, ChevronUp, Activity } from 'lucide-react';
+import { LivePlanReport, type Vitals } from '@/components/review/LivePlanReport';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { fetchCaseById, fetchCurrentUser, approveCaseAction, requestChangesAction } from '@/app/actions/case-actions';
+import { canWriteLiveCourseAction } from '@/app/actions/live-actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 const ExportPDFButton = dynamic(
@@ -65,6 +67,21 @@ const SectionCustomFields = memo(function SectionCustomFields({
   );
 });
 
+/** The case sheet's vitals, written as text ("112/min", "90/60 mmHg", "38.5°C"), as numbers for the live course. */
+function sheetVitals(gpe: Record<string, any> | null | undefined): Vitals {
+  const first = (s: unknown) => (typeof s === 'string' ? Number(/(\d+(?:\.\d+)?)/.exec(s)?.[1]) : NaN);
+  const bp = typeof gpe?.bp === 'string' ? /(\d{2,3})\s*\/\s*(\d{2,3})/.exec(gpe.bp) : null;
+  const out: Vitals = {};
+  const hr = first(gpe?.pulse);
+  if (Number.isFinite(hr)) out.hr = hr;
+  if (bp) [out.sbp, out.dbp] = [Number(bp[1]), Number(bp[2])];
+  const rr = first(gpe?.respiratory_rate);
+  if (Number.isFinite(rr)) out.rr = rr;
+  const temp = first(gpe?.temperature);
+  if (Number.isFinite(temp)) out.temp = temp > 50 ? Math.round(((temp - 32) * 5) / 9 * 10) / 10 : temp;
+  return out;
+}
+
 export default function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { isLoaded } = useUser();
@@ -75,13 +92,15 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
   const [isRequestChangesOpen, setIsRequestChangesOpen] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [isLegacyExpanded, setIsLegacyExpanded] = useState(false);
+  const [writesLive, setWritesLive] = useState(false);
 
   useEffect(() => {
     const fetchCase = async () => {
       try {
-        const [caseData, user] = await Promise.all([fetchCaseById(id), fetchCurrentUser()]);
+        const [caseData, user, live] = await Promise.all([fetchCaseById(id), fetchCurrentUser(), canWriteLiveCourseAction()]);
         if (caseData) setCaseData(caseData);
         setCurrentUser(user);
+        setWritesLive(live);
       } catch (e) {
         console.error('Error fetching case:', e);
       } finally {
@@ -288,11 +307,22 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
                   </Button>
                 </Link>
               )}
+              {((canEdit && writesLive) || (caseData as any).live_plan) && (
+                <Link href={`/cases/${id}/live`}>
+                  <Button variant="outline" size="sm">
+                    <Activity className="h-4 w-4 mr-2" />
+                    {(caseData as any).live_plan ? 'Live course' : 'Add a live course'}
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </CardHeader>
 
         <CardContent className="space-y-6">
+          {/* A live course, written by a resident or above: shown first, as it is what a reviewer most needs to check. */}
+          {(caseData as any).live_plan && <LivePlanReport caseJson={{ live_plan: (caseData as any).live_plan }} arrival={sheetVitals(caseData.general_physical_examination)} />}
+
           {/* Section 1: Patient Details */}
           <Card id="section-patient_details">
             <CardHeader>
