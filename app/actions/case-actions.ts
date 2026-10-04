@@ -11,7 +11,6 @@ import {
   getCaseById,
   deleteCase,
   getAllCases,
-  createReview,
   getAllUsers,
   updateUserRole,
   assignReviewer,
@@ -211,56 +210,8 @@ export async function deleteCaseAction(caseId: string): Promise<void> {
   await deleteCase(caseId);
 }
 
-async function assertReviewerCanActOnCase(caseId: string, user: User): Promise<Case> {
-  if (user.role === 'admin') {
-    const caseData = await getCaseById(caseId);
-    if (!caseData) throw new Error('Case not found');
-    return caseData;
-  }
-
-  if (user.role !== 'reviewer') {
-    throw new Error('Only reviewers and admins can perform this action');
-  }
-
-  const caseData = await getCaseById(caseId);
-  if (!caseData) throw new Error('Case not found');
-  if (caseData.author_id === user.id) throw new Error('You cannot review a case you wrote yourself');
-
-  if (
-    caseData.assigned_reviewer_id &&
-    caseData.assigned_reviewer_id !== user.id
-  ) {
-    throw new Error('This case is assigned to another reviewer');
-  }
-
-  return caseData;
-}
-
-export async function approveCaseAction(caseId: string, comments?: string): Promise<void> {
-  const user = await getOrCreateCurrentUser();
-  const caseData = await assertReviewerCanActOnCase(caseId, user);
-  await createReview(caseId, user.id, 'approved', comments || '');
-
-  await createNotification(
-    caseData.author_id,
-    'case_approved',
-    `Your case "${caseData.title}" was approved.`,
-    caseId
-  );
-}
-
-export async function requestChangesAction(caseId: string, comments: string): Promise<void> {
-  const user = await getOrCreateCurrentUser();
-  const caseData = await assertReviewerCanActOnCase(caseId, user);
-  await createReview(caseId, user.id, 'changes_requested', comments);
-
-  await createNotification(
-    caseData.author_id,
-    'changes_requested',
-    `Changes requested on "${caseData.title}": ${comments}`,
-    caseId
-  );
-}
+// Faculty no longer approve the raw case sheet: MediKarya's admin converts it with AI (or sends it back to the author,
+// from MediKarya: Admin, Studio cases), and the converted case gets the one review (lib/reviewers/server.ts).
 
 export async function useTemplateAction(templateId: string): Promise<string> {
   const user = await getOrCreateCurrentUser();

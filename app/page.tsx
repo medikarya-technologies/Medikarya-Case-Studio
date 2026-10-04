@@ -14,8 +14,8 @@ import { CONTRIBUTOR_RANKS, REVIEWER_RANKS } from '@/lib/rewards/config';
 
 const JOURNEY = [
   { title: 'You write it', text: 'A case you saw on the ward, on a structured seven-part sheet. Made-up name, no real identifiers.' },
-  { title: 'Faculty review it', text: 'A reviewer reads your sheet and approves it, or tells you exactly what to fix.' },
-  { title: 'It becomes a patient', text: 'With your permission, MediKarya turns it into an interactive patient, and a doctor checks that version too.' },
+  { title: 'It becomes a patient', text: 'With your permission, MediKarya turns it into an interactive patient (or tells you exactly what to add first).' },
+  { title: 'A doctor reviews it', text: 'One review, of the finished patient: a verified doctor approves it, or says what to change.' },
   { title: 'It goes live, with your name', text: 'Students practise on it at medikarya.in. You get the credit, a title and a certificate.' },
 ];
 

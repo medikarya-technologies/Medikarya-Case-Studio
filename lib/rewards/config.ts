@@ -18,7 +18,7 @@ export const CASE_PAYOUTS_PER_MONTH = 10;
  * who comes back to a case they already reviewed is paid nothing more, so asking for changes and then approving
  * earns the same as approving at once.
  */
-export const REVIEW_PAY = { first: 250, reReview: 100 };
+export const REVIEW_PAY = { first: 150, reReview: 75 };
 
 export const OWN_FOLLOW_UP_NOTE = 'Follow-up on a case they had already reviewed: covered by their first review of it';
 

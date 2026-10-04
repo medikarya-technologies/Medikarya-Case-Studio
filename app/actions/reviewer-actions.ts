@@ -8,7 +8,7 @@ import { getOrCreateCurrentUser } from './case-actions';
 import {
   claimNext,
   decideApplication,
-  getReviewerProfile,
+  queueProfile,
   listApplications,
   myReviews,
   recordConversionDecision,
@@ -41,7 +41,7 @@ export async function submitReviewerApplication(a: Application): Promise<Result>
 
 export async function fetchMyReviewerState() {
   const user = await getOrCreateCurrentUser();
-  const profile = await getReviewerProfile(user.id);
+  const profile = await queueProfile(user.id);
   const [waiting, mine] = profile?.status === 'approved' ? await Promise.all([waitingCount(profile, user.id), myReviews(user.id)]) : [0, []];
   // how many cases are waiting, not which: the next one is handed out, not chosen
   return { user: { name: user.name, role: user.role }, profile, waiting, mine };

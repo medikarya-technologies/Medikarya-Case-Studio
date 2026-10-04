@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ExternalLink, FileDown } from 'lucide-react';
 import { getOrCreateCurrentUser } from '@/app/actions/case-actions';
-import { claimForReview, getReviewerProfile, KIND_LABEL } from '@/lib/reviewers/server';
+import { claimForReview, queueProfile, KIND_LABEL } from '@/lib/reviewers/server';
 import { AiCaseReport } from '@/components/review/AiCaseReport';
 import { DecisionForm } from './decision-form';
 
@@ -14,7 +14,7 @@ export async function ClaimReview({ claimId, base }: { claimId: string; base: st
   const user = await getOrCreateCurrentUser();
   const found = await claimForReview(claimId, user.id);
   if (!found) notFound();
-  const profile = await getReviewerProfile(user.id);
+  const profile = await queueProfile(user.id);
 
   const { claim, conversion, sheet, stale } = found;
   const expired = !claim.decision && Date.parse(claim.claim_expires_at) <= Date.now();

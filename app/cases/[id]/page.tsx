@@ -8,14 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/case/StatusBadge';
 import { BackButton } from '@/components/ui/BackButton';
 import { Case, CustomField } from '@/lib/types';
-import { Edit, AlertTriangle, CheckCircle2, XCircle, ArrowRight, ChevronDown, ChevronUp, Activity } from 'lucide-react';
+import { Edit, AlertTriangle, ArrowRight, ChevronDown, ChevronUp, Activity } from 'lucide-react';
 import { LivePlanReport, type Vitals } from '@/components/review/LivePlanReport';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { fetchCaseById, fetchCurrentUser, approveCaseAction, requestChangesAction } from '@/app/actions/case-actions';
+import { fetchCaseById, fetchCurrentUser } from '@/app/actions/case-actions';
 import { canWriteLiveCourseAction } from '@/app/actions/live-actions';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
 const ExportPDFButton = dynamic(
   () => import('@/components/pdf/ExportPDFButton').then((mod) => mod.ExportPDFButton),
   { ssr: false }
@@ -25,7 +24,6 @@ import { AttachmentGallery } from '@/components/attachments/AttachmentGallery';
 import type { User } from '@/lib/types';
 import { getCaseCompleteness } from '@/lib/case-completeness';
 import { ReviewHistoryTimeline } from '@/components/case/ReviewHistoryTimeline';
-import { ApproveConfirmModal, RequestChangesModal } from '@/components/case/ReviewerActionDialogs';
 import { RichTextRenderer } from '@/components/ui/RichTextRenderer';
 import { formatSpecialtyLabel } from '@/lib/specialtyIcons';
 
@@ -88,9 +86,6 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
   const [caseData, setCaseData] = useState<Case | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isApproveOpen, setIsApproveOpen] = useState(false);
-  const [isRequestChangesOpen, setIsRequestChangesOpen] = useState(false);
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [isLegacyExpanded, setIsLegacyExpanded] = useState(false);
   const [writesLive, setWritesLive] = useState(false);
 
@@ -130,47 +125,6 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
     );
   }
 
-  const reloadCase = async () => {
-    try {
-      const updated = await fetchCaseById(id);
-      if (updated) setCaseData(updated);
-    } catch (e) {
-      console.error('Error reloading case:', e);
-    }
-  };
-
-  const handleApproveConfirm = async () => {
-    if (!caseData) return;
-    setIsSubmittingReview(true);
-    try {
-      await approveCaseAction(caseData.id);
-      toast.success('Case approved successfully');
-      setIsApproveOpen(false);
-      await reloadCase();
-    } catch (e) {
-      console.error('Error approving case:', e);
-      toast.error('Failed to approve case');
-    } finally {
-      setIsSubmittingReview(false);
-    }
-  };
-
-  const handleRequestChangesConfirm = async (commentsJsonString: string) => {
-    if (!caseData) return;
-    setIsSubmittingReview(true);
-    try {
-      await requestChangesAction(caseData.id, commentsJsonString);
-      toast.success('Changes requested successfully');
-      setIsRequestChangesOpen(false);
-      await reloadCase();
-    } catch (e) {
-      console.error('Error requesting changes:', e);
-      toast.error('Failed to request changes');
-    } finally {
-      setIsSubmittingReview(false);
-    }
-  };
-
   const scrollToSection = (sectionId: string) => {
     const el = document.getElementById(`section-${sectionId}`);
     if (el) {
@@ -185,14 +139,13 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
   if (!caseData) return <div>Case not found</div>;
 
   const canEdit = caseData.status === 'draft' || caseData.status === 'changes_requested';
-  const isReviewerOrAdmin = currentUser?.role === 'reviewer' || currentUser?.role === 'admin';
   const completeness = getCaseCompleteness(caseData);
 
   const backHref =
     currentUser?.role === 'admin'
       ? '/dashboard/admin/cases'
       : currentUser?.role === 'reviewer'
-      ? '/dashboard/reviewer'
+      ? '/dashboard/reviewer/medikarya'
       : '/dashboard/author/cases';
 
   // Dynamic Local Examination Heading
@@ -211,34 +164,12 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
     <div className="max-w-4xl mx-auto space-y-6">
       <BackButton href={backHref} />
 
-      {/* Reviewer Action Bar */}
-      {isReviewerOrAdmin && caseData.status === 'submitted' && (
-        <Card className="border-2 border-primary/30 bg-primary/5 shadow-md">
-          <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
-            <div className="space-y-1">
-              <h3 className="font-bold text-foreground text-base flex items-center gap-2">
-                <span>Review Action Required</span>
-                <Badge variant="secondary">{completeness.score}% Complete</Badge>
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Review clinical content and either Approve or Request Changes.
-              </p>
-            </div>
-            <div className="flex gap-2 shrink-0">
-              <Button
-                variant="outline"
-                className="text-amber-800 border-amber-500 bg-amber-50 hover:bg-amber-600 hover:text-white"
-                onClick={() => setIsRequestChangesOpen(true)}
-              >
-                <XCircle className="w-4 h-4 mr-2" />
-                Request Changes
-              </Button>
-              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setIsApproveOpen(true)}>
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                Approve Case
-              </Button>
-            </div>
-          </CardContent>
+      {/* A submitted sheet is not approved here: MediKarya's admin converts it with AI, or sends it back to the author,
+          and the converted case is what gets its one review (Case Studio, MediKarya reviews). */}
+      {caseData.status === 'submitted' && (
+        <Card className="border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+          Submitted to MediKarya. The team turns the sheet into a playable case with AI, or sends it back to the author with
+          comments. The converted case is then reviewed once, as a report, by a verified reviewer.
         </Card>
       )}
 
@@ -682,21 +613,6 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
 
       {caseData.status !== 'draft' && <CaseComments caseId={id} />}
 
-      {/* Review Modals */}
-      <ApproveConfirmModal
-        isOpen={isApproveOpen}
-        onClose={() => setIsApproveOpen(false)}
-        onConfirm={handleApproveConfirm}
-        caseTitle={caseData.title}
-        isSubmitting={isSubmittingReview}
-      />
-      <RequestChangesModal
-        isOpen={isRequestChangesOpen}
-        onClose={() => setIsRequestChangesOpen(false)}
-        onConfirm={handleRequestChangesConfirm}
-        caseTitle={caseData.title}
-        isSubmitting={isSubmittingReview}
-      />
     </div>
   );
 }

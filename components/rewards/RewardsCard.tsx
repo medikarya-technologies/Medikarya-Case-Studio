@@ -189,9 +189,9 @@ export function RewardsCard({ mode }: { mode: 'contributor' | 'reviewer' }) {
               <div className="mt-2">
                 <Pipeline
                   steps={[
-                    { label: me.sentBack > 0 ? `Writing (${me.sentBack} sent back)` : 'Writing', count: me.writing, hint: 'Drafts, and cases a reviewer sent back for changes', strong: me.sentBack > 0 },
-                    { label: 'With a reviewer', count: me.inReview, hint: 'Submitted, waiting for a doctor to review' },
-                    { label: 'Approved', count: Math.max(0, me.approved - me.published), hint: 'Approved by a reviewer, being made into a MediKarya patient' },
+                    { label: me.sentBack > 0 ? `Writing (${me.sentBack} sent back)` : 'Writing', count: me.writing, hint: 'Drafts, and cases sent back to you with what to fix', strong: me.sentBack > 0 },
+                    // one review now, of the patient MediKarya makes from the sheet (sheets approved the old way wait here too)
+                    { label: 'With MediKarya', count: me.inReview + Math.max(0, me.approved - me.published), hint: 'Being turned into a patient, then reviewed once by a doctor' },
                     { label: 'Live on MediKarya', count: me.published, hint: 'Published: students are learning from these', strong: true },
                   ]}
                 />

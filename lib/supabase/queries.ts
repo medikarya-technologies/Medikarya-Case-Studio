@@ -599,17 +599,14 @@ export async function notifyReviewersAndAdminsOfSubmission(
   assignedReviewerId?: string | null
 ): Promise<void> {
   const supabase = createServiceClient();
-  const message = `New case submitted for review: "${caseTitle}"`;
+  const message = `New case submitted: "${caseTitle}"`;
 
-  if (assignedReviewerId) {
-    await createNotification(assignedReviewerId, 'case_submitted', message, caseId);
-    return;
-  }
-
+  // Only admins act on a submitted sheet now (they convert it, or send it back); reviewers meet it once converted.
+  void assignedReviewerId;
   const { data: recipients, error: recipientsError } = await supabase
     .from('users')
     .select('id')
-    .in('role', ['reviewer', 'admin']);
+    .eq('role', 'admin');
 
   if (recipientsError) {
     logSupabaseError('notifyReviewersAndAdminsOfSubmission (fetch recipients)', recipientsError);

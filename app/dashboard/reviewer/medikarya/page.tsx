@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { claimNextCaseAction, fetchMyReviewerState } from '@/app/actions/reviewer-actions';
-import { specialtyLabel } from '@/lib/reviewers/specialties';
+import { REVIEW_SPECIALTIES, specialtyLabel } from '@/lib/reviewers/specialties';
 import { RewardsCard } from '@/components/rewards/RewardsCard';
 
 type State = Awaited<ReturnType<typeof fetchMyReviewerState>>;
@@ -83,7 +83,8 @@ export default function MediKaryaReviewsPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">MediKarya reviews</h1>
         <p className="mt-1 text-muted-foreground">
-          You review: {profile.approved_specialties.map(specialtyLabel).join(', ')}. Each case is a one-page report. You are given one case at a time, reserved for you for 72 hours.
+          You review:{' '}
+          {profile.approved_specialties.length >= REVIEW_SPECIALTIES.length ? 'every specialty' : profile.approved_specialties.map(specialtyLabel).join(', ')}. Each case is a one-page report. You are given one case at a time, reserved for you for 72 hours.
         </p>
       </div>
 

@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createServiceClient } from '@/lib/supabase/server';
 import { loadPersonFacts, samePersonReason } from './same-person';
+import { REVIEW_SPECIALTIES } from './specialties';
 
 // The reviewer programme (supabase/migrations/010_reviewer_programme.sql). People apply at /join/reviewer; an admin
 // verifies them (their medical council registration, checked on the public Indian Medical Register) and approves
@@ -100,6 +101,37 @@ export async function decideApplication(userId: string, approve: boolean, specia
   // student's case sheet, approving and sending back), which an admin gives in Manage Users.
 }
 
+/**
+ * The profile the queue works from. Faculty (the studio's 'reviewer' role, given by an admin in Manage Users) review
+ * every specialty at every difficulty without applying: they used to approve the students' raw case sheets, and now
+ * review only the converted cases, like everyone else.
+ */
+export async function queueProfile(userId: string): Promise<ReviewerProfile | null> {
+  const profile = await getReviewerProfile(userId);
+  if (profile?.status === 'approved') return profile;
+  const { data: user, error } = await db().from('users').select('role').eq('id', userId).maybeSingle();
+  if (error) throw error;
+  if (user?.role !== 'reviewer') return profile;
+  return {
+    user_id: userId,
+    designation: null,
+    department: null,
+    institution: '',
+    specialties: [],
+    council: null,
+    registration_no: null,
+    linkedin_url: null,
+    upi_id: null,
+    admin_note: null,
+    verified_at: null,
+    created_at: new Date().toISOString(),
+    ...(profile ?? {}),
+    kind: 'faculty',
+    status: 'approved',
+    approved_specialties: [...REVIEW_SPECIALTIES],
+  };
+}
+
 /** Has this person been given this case to review (now or before)? It lets them read its case sheet. */
 export async function hasReviewedOrHolds(userId: string, caseId: string): Promise<boolean> {
   const { data, error } = await db().from('conversion_reviews').select('id').eq('reviewer_id', userId).eq('case_id', caseId).limit(1);
@@ -160,7 +192,7 @@ export async function reviewQueue(profile: ReviewerProfile): Promise<QueueItem[]
 /** Reserves a case for this reviewer for CLAIM_HOURS. Only claimNext calls it: a reviewer cannot ask for a particular case. */
 async function claimCase(caseId: string, reviewerId: string): Promise<{ claimId: string } | { error: string }> {
   const client = db();
-  const profile = await getReviewerProfile(reviewerId);
+  const profile = await queueProfile(reviewerId);
   if (!profile || profile.status !== 'approved') return { error: 'Your reviewer account is not verified yet.' };
 
   const { data: conv, error } = await client
@@ -239,7 +271,7 @@ export async function waitingCount(profile: ReviewerProfile, reviewerId: string)
  * time (so nobody can reserve the whole queue). If they already hold a case, that one is returned.
  */
 export async function claimNext(reviewerId: string): Promise<{ claimId: string } | { error: string }> {
-  const profile = await getReviewerProfile(reviewerId);
+  const profile = await queueProfile(reviewerId);
   if (!profile || profile.status !== 'approved') return { error: 'Your reviewer account is not verified yet.' };
 
   const mine = await myReviews(reviewerId);
