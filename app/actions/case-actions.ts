@@ -47,6 +47,28 @@ import type {
 import { validateCaseForSubmit } from '@/lib/case-submit-validation';
 import { caseTemplates } from '@/lib/caseTemplates';
 
+const PICTURE_REFRESH_MS = 7 * 24 * 3_600_000;
+
+/**
+ * Keeps the user's profile picture (their Google or other sign-in account's) in the users table, checked at most once
+ * a week, so medikarya.in/contributors can show published writers and named reviewers with their own photo. Does
+ * nothing before migration 016 is run, and never stops the page if Clerk or the database cannot be reached.
+ */
+async function refreshPicture(user: User): Promise<void> {
+  if (!('avatar_checked_at' in user)) return; // migration 016 not run yet
+  if (user.avatar_checked_at && Date.now() - Date.parse(user.avatar_checked_at) < PICTURE_REFRESH_MS) return;
+  try {
+    const clerkUser = await currentUser();
+    if (!clerkUser) return;
+    // Clerk gives everyone an image URL; only a picture they actually have (e.g. their Google photo) counts.
+    const url = clerkUser.hasImage ? clerkUser.imageUrl : null;
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    await createServiceClient().from('users').update({ avatar_url: url, avatar_checked_at: new Date().toISOString() }).eq('id', user.id);
+  } catch (e) {
+    console.error('Could not refresh the profile picture:', e);
+  }
+}
+
 export const getOrCreateCurrentUser = cache(async () => {
   const { userId } = await auth();
 
@@ -56,6 +78,7 @@ export const getOrCreateCurrentUser = cache(async () => {
 
   const existingUser = await getUserByClerkId(userId);
   if (existingUser) {
+    await refreshPicture(existingUser);
     return existingUser;
   }
 
@@ -68,6 +91,7 @@ export const getOrCreateCurrentUser = cache(async () => {
   const name = clerkUser.fullName || clerkUser.username || 'Unknown User';
 
   const user = await getOrCreateUser(userId, name, email);
+  await refreshPicture(user);
   return user;
 });
 

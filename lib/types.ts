@@ -9,6 +9,9 @@ export interface User {
   portfolio_public?: boolean;
   name_edited_once?: boolean;
   created_at: string;
+  /** Their sign-in account's picture (migration 016); absent before it is run, null when they have none. */
+  avatar_url?: string | null;
+  avatar_checked_at?: string | null;
 }
 
 export type NameChangeRequestStatus = 'pending' | 'approved' | 'rejected';
