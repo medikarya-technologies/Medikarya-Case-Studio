@@ -56,7 +56,11 @@ export function SubmitDeclarations() {
                     onChange={(e) => set('publish_consent', e.target.checked)}
                   />
                   <span>
-                    I allow MediKarya to adapt and publish this case for other students to practise on, with credit to me.
+                    I allow MediKarya to adapt and publish this case for other students to practise on, with credit to me, under the{' '}
+                    <a href="/terms" target="_blank" rel="noreferrer" className="font-medium text-primary underline-offset-2 hover:underline">
+                      contributor terms
+                    </a>
+                    .
                     <span className="block text-xs text-muted-foreground mt-0.5">
                       Optional. It does not affect your review.
                     </span>

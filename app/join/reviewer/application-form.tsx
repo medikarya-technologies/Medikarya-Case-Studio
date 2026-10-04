@@ -166,7 +166,17 @@ export function ApplicationForm({ initial }: { initial: ReviewerProfile | null }
       </div>
 
       <div className="flex flex-col gap-3 border-t border-border bg-muted/50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
-        {error ? <p className="text-sm font-medium text-destructive">{error}</p> : <p className="field-hint">We usually verify applications within a day or two.</p>}
+        {error ? (
+          <p className="text-sm font-medium text-destructive">{error}</p>
+        ) : (
+          <p className="field-hint">
+            We usually verify applications within a day or two. By applying you agree to the{' '}
+            <a href="/terms" target="_blank" rel="noreferrer" className="font-medium text-primary underline-offset-2 hover:underline">
+              contributor terms
+            </a>
+            .
+          </p>
+        )}
         <Button type="button" size="lg" onClick={submit} disabled={pending} className="shrink-0">
           {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {initial ? 'Update my application' : 'Submit application'}
