@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: 'The terms for writing and reviewing clinical cases for MediKarya: joining, patient privacy, use of your case, reviewing, payments and certificates.',
 };
 
-const UPDATED = '4 October 2026';
+const UPDATED = '8 October 2026';
 
 const casePay = [...CASE_PAY]
   .sort((a, b) => a.from - b.from)
@@ -64,7 +64,7 @@ const SECTIONS: Array<{ title: string; points: string[] }> = [
       `Reviewers are paid ${rupees(REVIEW_PAY.first)} for the first review of a case and ${rupees(REVIEW_PAY.reReview)} for reviewing a case another reviewer reviewed before it was rebuilt. Coming back to a case you already reviewed earns nothing extra. A review is paid once accepted: an approval when the case is published, a request for changes when the case is rebuilt with those comments.`,
       'Rates are those in force when a payment is earned. We may change rates for future work; anything already recorded keeps its amount.',
       'Payments are made by UPI to an ID in your own name. We are not responsible for delays caused by a wrong or inactive UPI ID. Payments may be subject to tax deduction where the law requires it.',
-      'Each published case also gives its writer one month of the MediKarya Resident plan, up to six months in all, used by signing in to medikarya.in with the same email.',
+      'Writers also get the MediKarya Resident plan free: 1 month at their 1st published case, 2 more months at their 3rd and 3 more at their 5th (6 months in all), used by signing in to medikarya.in with the same email.',
       'Rewards obtained through false details, duplicate accounts or breaches of these terms will be withdrawn.',
     ],
   },
@@ -97,7 +97,11 @@ export default function ContributorTermsPage() {
         <p className="eyebrow mt-8">Last updated {UPDATED}</p>
         <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">Contributor terms</h1>
         <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
-          These terms apply when you write or review clinical cases for MediKarya. “We” means {COMPANY_LEGAL_NAME}, Faridabad, Haryana; “you” means a case
+          These terms apply when you write or review clinical cases for MediKarya. For what you get at each milestone, see{' '}
+          <Link href="/rewards" className="font-medium text-primary hover:underline">
+            Rewards
+          </Link>
+          . “We” means {COMPANY_LEGAL_NAME}, Faridabad, Haryana; “you” means a case
           writer or reviewer.
         </p>
 

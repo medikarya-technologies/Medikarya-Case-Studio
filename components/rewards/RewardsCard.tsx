@@ -164,7 +164,12 @@ export function RewardsCard({ mode }: { mode: 'contributor' | 'reviewer' }) {
       <div className="grid md:grid-cols-[1.7fr_1fr]">
         {/* ── the journey ── */}
         <div className="p-5 sm:p-6">
-          <p className="eyebrow">{reviewer ? 'Your reviewer journey' : 'Your journey'}</p>
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="eyebrow">{reviewer ? 'Your reviewer journey' : 'Your journey'}</p>
+            <Link href="/rewards" target="_blank" className="text-[13px] font-medium text-primary hover:underline">
+              What each milestone gives
+            </Link>
+          </div>
           <div className="mt-2 flex items-center gap-3">
             <div className={`rounded-full p-2.5 ${title ? 'bg-primary text-primary-foreground' : 'bg-brand-muted text-primary'}`}>
               {title ? <Award className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}

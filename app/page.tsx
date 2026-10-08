@@ -197,26 +197,36 @@ export default async function Home() {
               anyone can verify.
             </p>
             <Ladder ranks={CONTRIBUTOR_RANKS} unit="published case" tone="light" />
-            <Link href="/sign-up" className="mt-3 inline-block">
-              <Button>
-                Write your first case <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+              <Link href="/sign-up">
+                <Button>
+                  Write your first case <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/rewards" className="text-[15px] font-medium text-primary hover:underline">
+                See every reward
+              </Link>
+            </div>
           </div>
 
           <div className="rounded-2xl bg-sidebar p-7 text-sidebar-foreground sm:p-9">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300">If you are a PG resident or faculty</p>
             <h2 className="mt-2 text-[1.7rem] leading-tight text-white">Ten minutes a case, in your specialty</h2>
             <p className="mt-3 text-[15px] leading-relaxed text-white/70">
-              Read a one-page report with everything the AI added marked, then approve it or say what is wrong. Each case you review earns an honorarium and
+              Read a one-page report of the case, then approve it or say what is wrong. Each case you review earns an honorarium and
               counts towards a reviewer title. Your name goes on the case only if you want it to.
             </p>
             <Ladder ranks={REVIEWER_RANKS} unit="reviewed case" tone="dark" />
-            <Link href="/join/reviewer" className="mt-3 inline-block">
-              <Button className="bg-white text-primary hover:bg-brand-muted">
-                Become a reviewer <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+              <Link href="/join/reviewer">
+                <Button className="bg-white text-primary hover:bg-brand-muted">
+                  Become a reviewer <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/rewards" className="text-[15px] font-medium text-emerald-300 hover:underline">
+                See what reviewers earn
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -295,8 +305,14 @@ export default async function Home() {
             <span className="font-medium text-foreground">{APP_NAME}</span>
           </div>
           <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            <Link href="/rewards" className="hover:text-foreground">
+              Rewards
+            </Link>
             <Link href="/contributors" className="hover:text-foreground">
               Contributors
+            </Link>
+            <Link href="/terms" className="hover:text-foreground">
+              Terms
             </Link>
             <Link href="/join/reviewer" className="hover:text-foreground">
               Become a reviewer

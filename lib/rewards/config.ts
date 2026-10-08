@@ -9,6 +9,17 @@ export const CASE_PAY: ReadonlyArray<{ from: number; amount: number }> = [
   { from: 1, amount: 100 }, //  1st to 4th (Case Contributor)
 ];
 
+/**
+ * Free months of MediKarya's Resident plan a writer gets when their published cases reach `at`, up to 6 in all. MediKarya
+ * gives them when it publishes a case; this copy must stay the same as CASE_REWARD in the main site's
+ * lib/plans/grants.ts, and is here so the studio can show it (the /rewards page, the terms).
+ */
+export const FREE_RESIDENT_MILESTONES: ReadonlyArray<{ at: number; months: number }> = [
+  { at: 1, months: 1 },
+  { at: 3, months: 2 },
+  { at: 5, months: 3 },
+];
+
 /** Case payouts are made for the first this-many cases published in a calendar month; later ones that month earn the title, not the cash. */
 export const CASE_PAYOUTS_PER_MONTH = 10;
 
@@ -18,7 +29,7 @@ export const CASE_PAYOUTS_PER_MONTH = 10;
  * who comes back to a case they already reviewed is paid nothing more, so asking for changes and then approving
  * earns the same as approving at once.
  */
-export const REVIEW_PAY = { first: 150, reReview: 75 };
+export const REVIEW_PAY = { first: 200, reReview: 100 };
 
 export const OWN_FOLLOW_UP_NOTE = 'Follow-up on a case they had already reviewed: covered by their first review of it';
 
