@@ -41,7 +41,8 @@ export interface Payout {
 export interface Certificate {
   id: string;
   credential_id: string;
-  kind: 'contributor' | 'reviewer' | 'advisory_board' | 'internship';
+  /** 'workshop' certificates are issued by the main site to students who took part in a workshop (migration 017). */
+  kind: 'contributor' | 'reviewer' | 'advisory_board' | 'internship' | 'workshop';
   user_id: string | null;
   recipient_name: string;
   title: string;

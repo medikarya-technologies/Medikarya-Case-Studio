@@ -20,8 +20,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: `Certificate ${credentialId} | MediKarya`, robots: { index: false } };
 }
 
-// On a development machine only, /certificate/MK-0000-00000 (a contributor) and /certificate/MK-0000-00001 (an
-// internship) show these samples, to check the layout without real data.
+// On a development machine only, /certificate/MK-0000-00000 (a contributor), /certificate/MK-0000-00001 (an
+// internship) and /certificate/MK-0000-00002 (a workshop) show these samples, to check the layout without real data.
 const SAMPLE: Certificate = {
   id: 'sample',
   credential_id: 'MK-0000-00000',
@@ -46,6 +46,41 @@ const SAMPLE_INTERNSHIP: Certificate = {
   revoked: false,
 };
 
+const SAMPLE_WORKSHOP: Certificate = {
+  id: 'sample-workshop',
+  credential_id: 'MK-0000-00002',
+  kind: 'workshop',
+  user_id: null,
+  recipient_name: 'Sample Student Name',
+  title: 'Clinical Reasoning Workshop',
+  detail: 'held at Maulana Azad Medical College, New Delhi on 24 October 2026, working through 2 simulated patient cases on MediKarya',
+  issued_at: '2026-10-24T12:30:00Z',
+  revoked: false,
+};
+
+// The words around the name and the title, by kind of certificate.
+const HEADING: Record<Certificate['kind'], string> = {
+  contributor: 'Certificate of Recognition',
+  reviewer: 'Certificate of Recognition',
+  advisory_board: 'Certificate of Recognition',
+  internship: 'Internship Completion Certificate',
+  workshop: 'Certificate of Participation',
+};
+const LEAD: Record<Certificate['kind'], string> = {
+  contributor: 'has been recognised as',
+  reviewer: 'has been recognised as',
+  advisory_board: 'is a member of the',
+  internship: 'has successfully completed an internship as',
+  workshop: 'has taken part in the',
+};
+
+function closingLine(c: Certificate): string {
+  if (c.kind === 'internship') return c.detail.replace(/^Completed an internship at /, 'at ');
+  // a workshop's line already says where it was held and that it was on MediKarya
+  if (c.kind === 'workshop') return `${c.detail}.`;
+  return `${c.detail}, the clinical simulation platform for medical students.`;
+}
+
 const INK = '#16302B';
 const GREEN = '#2F7A5C';
 const SOFT = '#5B6F69';
@@ -54,7 +89,7 @@ const SIGNATURE_INK = '#1E3A8A';
 export default async function CertificatePage({ params }: Props) {
   const { credentialId } = await params;
   const id = decodeURIComponent(credentialId);
-  const sample = process.env.NODE_ENV !== 'production' ? [SAMPLE, SAMPLE_INTERNSHIP].find((c) => c.credential_id === id) : undefined;
+  const sample = process.env.NODE_ENV !== 'production' ? [SAMPLE, SAMPLE_INTERNSHIP, SAMPLE_WORKSHOP].find((c) => c.credential_id === id) : undefined;
   const certificate = sample ?? (await getCertificate(id).catch(() => null));
   if (!certificate) notFound();
 
@@ -100,16 +135,14 @@ export default async function CertificatePage({ params }: Props) {
                 <span style={{ fontSize: '2.9cqw', fontWeight: 800, letterSpacing: '-0.02em' }}>MediKarya</span>
               </div>
 
-              <p style={{ marginTop: '3.8cqw', fontSize: '1.35cqw', letterSpacing: '0.42em', textTransform: 'uppercase', color: GREEN, fontWeight: 600 }}>{certificate.kind === 'internship' ? 'Internship Completion Certificate' : 'Certificate of Recognition'}</p>
+              <p style={{ marginTop: '3.8cqw', fontSize: '1.35cqw', letterSpacing: '0.42em', textTransform: 'uppercase', color: GREEN, fontWeight: 600 }}>{HEADING[certificate.kind]}</p>
               <p style={{ marginTop: '3.6cqw', fontSize: '1.5cqw', color: SOFT }}>This is to certify that</p>
               <p style={{ marginTop: '1.2cqw', fontSize: '4.6cqw', lineHeight: 1.1, fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 700 }}>{certificate.recipient_name}</p>
               <div style={{ marginTop: '1.4cqw', width: '34cqw', height: '0.12cqw', background: GREEN, opacity: 0.5 }} />
-              <p style={{ marginTop: '2.4cqw', fontSize: '1.5cqw', color: SOFT }}>{certificate.kind === 'advisory_board' ? 'is a member of the' : certificate.kind === 'internship' ? 'has successfully completed an internship as' : 'has been recognised as'}</p>
+              <p style={{ marginTop: '2.4cqw', fontSize: '1.5cqw', color: SOFT }}>{LEAD[certificate.kind]}</p>
               <p style={{ marginTop: '0.8cqw', fontSize: '3cqw', fontWeight: 700, color: GREEN }}>{certificate.title}</p>
               <p style={{ marginTop: '1.5cqw', fontSize: '1.55cqw', maxWidth: '62cqw', lineHeight: 1.5 }}>
-                {certificate.kind === 'internship'
-                  ? certificate.detail.replace(/^Completed an internship at /, 'at ')
-                  : `${certificate.detail}, the clinical simulation platform for medical students.`}
+                {closingLine(certificate)}
               </p>
 
               <div style={{ marginTop: 'auto', width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', textAlign: 'left' }}>

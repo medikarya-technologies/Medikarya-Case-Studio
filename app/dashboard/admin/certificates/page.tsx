@@ -22,6 +22,7 @@ const KIND: Record<Certificate['kind'], string> = {
   reviewer: 'Clinical reviewer',
   advisory_board: 'Advisory board',
   internship: 'Internship',
+  workshop: 'Workshop',
 };
 const day = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
 const EMPTY: InternshipInput = { name: '', role: '', from: '', to: '', summary: '', issuedOn: '' };
