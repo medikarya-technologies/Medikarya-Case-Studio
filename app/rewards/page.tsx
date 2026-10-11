@@ -7,13 +7,13 @@ import {
   CASE_PAY,
   CASE_PAYOUTS_PER_MONTH,
   CONTRIBUTOR_RANKS,
-  FREE_RESIDENT_MILESTONES,
+  FREE_PLAN_MILESTONES,
   REVIEWER_RANKS,
   REVIEW_PAY,
   rupees,
 } from '@/lib/rewards/config';
 
-// What writers and reviewers get, and when: a milestone track for writers (pay per case, free Resident months, titles
+// What writers and reviewers get, and when: a milestone track for writers (pay per case, free MediKarya, titles
 // with certificates) and the reviewers' rates and titles. Public. Everything is read from lib/rewards/config.ts, so
 // the page always shows what the system actually pays and gives.
 
@@ -29,23 +29,19 @@ interface Stop {
   at: number;
   title?: string;
   pay?: number;
-  freeMonths?: number;
-  freeTotal?: number;
+  free?: { plan: string; months: number };
 }
 
 /** Every number of published cases where something new happens, with what happens there. */
 function writerStops(): Stop[] {
-  const ats = [...new Set([...CASE_PAY.map((p) => p.from), ...CONTRIBUTOR_RANKS.map((r) => r.at), ...FREE_RESIDENT_MILESTONES.map((m) => m.at)])].sort((a, b) => a - b);
-  let total = 0;
+  const ats = [...new Set([...CASE_PAY.map((p) => p.from), ...CONTRIBUTOR_RANKS.map((r) => r.at), ...FREE_PLAN_MILESTONES.map((m) => m.at)])].sort((a, b) => a - b);
   return ats.map((at) => {
-    const free = FREE_RESIDENT_MILESTONES.find((m) => m.at === at)?.months;
-    if (free) total += free;
+    const free = FREE_PLAN_MILESTONES.find((m) => m.at === at);
     return {
       at,
       title: CONTRIBUTOR_RANKS.find((r) => r.at === at)?.title,
       pay: CASE_PAY.find((p) => p.from === at)?.amount,
-      freeMonths: free,
-      freeTotal: free ? total : undefined,
+      free: free ? { plan: free.plan, months: free.months } : undefined,
     };
   });
 }
@@ -68,12 +64,12 @@ function StopCard({ s }: { s: Stop }) {
             </span>
           </li>
         )}
-        {s.freeMonths !== undefined && (
+        {s.free && (
           <li className="flex gap-2.5">
             <Gift className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <span>
-              <span className="font-semibold text-foreground">+{months(s.freeMonths)}</span>{' '}
-              <span className="text-muted-foreground">of MediKarya Resident free ({s.freeTotal} in all)</span>
+              <span className="font-semibold text-foreground">{months(s.free.months)}</span>{' '}
+              <span className="text-muted-foreground">of MediKarya {s.free.plan} free</span>
             </span>
           </li>
         )}
@@ -103,7 +99,8 @@ function Points({ items, tone = 'light' }: { items: string[]; tone?: 'light' | '
 
 export default function RewardsPage() {
   const stops = writerStops();
-  const freeTotal = FREE_RESIDENT_MILESTONES.reduce((sum, m) => sum + m.months, 0);
+  // "1 month of Intern, then 2 months of Resident"
+  const freeSummary = FREE_PLAN_MILESTONES.map((m) => `${months(m.months)} of ${m.plan}`).join(', then ');
 
   return (
     <div className="min-h-screen bg-surface">
@@ -122,7 +119,7 @@ export default function RewardsPage() {
           <div className="mt-6 grid max-w-3xl gap-3 sm:grid-cols-3">
             {[
               { Icon: IndianRupee, label: 'Paid', text: 'for every published case and every review' },
-              { Icon: Gift, label: 'Free MediKarya', text: `up to ${months(freeTotal)} of Resident for writers` },
+              { Icon: Gift, label: 'Free MediKarya', text: `${freeSummary} for writers` },
               { Icon: Award, label: 'Titles', text: 'with certificates anyone can verify' },
             ].map(({ Icon, label, text }) => (
               <div key={label} className="flex items-start gap-3 rounded-xl border border-border bg-card/80 p-4">
@@ -180,7 +177,7 @@ export default function RewardsPage() {
                   items={[
                     'Your name on every case of yours that goes live.',
                     'A place on the contributors page at medikarya.in from your first published case.',
-                    'Free Resident unlocks when you sign in to medikarya.in with the same email.',
+                    'Your free MediKarya unlocks when you sign in to medikarya.in with the same email.',
                   ]}
                 />
               </div>

@@ -10,14 +10,13 @@ export const CASE_PAY: ReadonlyArray<{ from: number; amount: number }> = [
 ];
 
 /**
- * Free months of MediKarya's Resident plan a writer gets when their published cases reach `at`, up to 6 in all. MediKarya
- * gives them when it publishes a case; this copy must stay the same as CASE_REWARD in the main site's
- * lib/plans/grants.ts, and is here so the studio can show it (the /rewards page, the terms).
+ * Free MediKarya plan time a writer gets when their published cases reach `at`: a month of Intern at the first, two
+ * months of Resident at the fifth. MediKarya gives it when it publishes a case; this copy must stay the same as
+ * CASE_REWARD in the main site's lib/plans/grants.ts, and is here so the studio can show it (the /rewards page, the terms).
  */
-export const FREE_RESIDENT_MILESTONES: ReadonlyArray<{ at: number; months: number }> = [
-  { at: 1, months: 1 },
-  { at: 3, months: 2 },
-  { at: 5, months: 3 },
+export const FREE_PLAN_MILESTONES: ReadonlyArray<{ at: number; plan: 'Intern' | 'Resident'; months: number }> = [
+  { at: 1, plan: 'Intern', months: 1 },
+  { at: 5, plan: 'Resident', months: 2 },
 ];
 
 /** Case payouts are made for the first this-many cases published in a calendar month; later ones that month earn the title, not the cash. */

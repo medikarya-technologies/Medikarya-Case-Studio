@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: 'The terms for writing and reviewing clinical cases for MediKarya: joining, patient privacy, use of your case, reviewing, payments and certificates.',
 };
 
-const UPDATED = '8 October 2026';
+const UPDATED = '12 October 2026';
 
 const casePay = [...CASE_PAY]
   .sort((a, b) => a.from - b.from)
@@ -64,7 +64,7 @@ const SECTIONS: Array<{ title: string; points: string[] }> = [
       `Reviewers are paid ${rupees(REVIEW_PAY.first)} for the first review of a case and ${rupees(REVIEW_PAY.reReview)} for reviewing a case another reviewer reviewed before it was rebuilt. Coming back to a case you already reviewed earns nothing extra. A review is paid once accepted: an approval when the case is published, a request for changes when the case is rebuilt with those comments.`,
       'Rates are those in force when a payment is earned. We may change rates for future work; anything already recorded keeps its amount.',
       'Payments are made by UPI to an ID in your own name. We are not responsible for delays caused by a wrong or inactive UPI ID. Payments may be subject to tax deduction where the law requires it.',
-      'Writers also get the MediKarya Resident plan free: 1 month at their 1st published case, 2 more months at their 3rd and 3 more at their 5th (6 months in all), used by signing in to medikarya.in with the same email.',
+      'Writers also get MediKarya free: 1 month of the Intern plan at their 1st published case and 2 months of the Resident plan at their 5th, used by signing in to medikarya.in with the same email.',
       'Rewards obtained through false details, duplicate accounts or breaches of these terms will be withdrawn.',
     ],
   },
