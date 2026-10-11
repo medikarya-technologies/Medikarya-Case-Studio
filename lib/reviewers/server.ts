@@ -156,7 +156,9 @@ export async function reviewQueue(profile: ReviewerProfile): Promise<QueueItem[]
   const client = db();
   const { data: conversions, error } = await client
     .from('case_conversions')
-    .select('case_id, version, converted_at, case_json, cases!inner(title, specialty, author_id, original_author_name, patient_details, users!cases_author_id_fkey(name))');
+    .select('case_id, version, converted_at, case_json, cases!inner(title, specialty, author_id, original_author_name, patient_details, users!cases_author_id_fkey(name))')
+    // a published case is done (approved by a queue reviewer or through MediKarya's private link): nothing to claim
+    .is('published_at', null);
   if (error) throw error;
   if (!conversions?.length) return [];
 
